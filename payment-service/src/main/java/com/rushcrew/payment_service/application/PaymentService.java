@@ -15,7 +15,6 @@ import com.rushcrew.payment_service.infrastructure.client.OrderClient;
 import com.rushcrew.payment_service.infrastructure.client.dto.OrderResponse;
 import com.rushcrew.payment_service.infrastructure.event.PaymentCompletedEvent;
 import com.rushcrew.payment_service.infrastructure.event.PaymentEventProducer;
-import com.rushcrew.payment_service.presentation.dto.response.PaymentResponse;
 import feign.FeignException;
 import io.portone.sdk.server.payment.PaidPayment;
 import io.portone.sdk.server.payment.PaymentClient;

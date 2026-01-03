@@ -41,6 +41,7 @@ dependencies {
     testImplementation 'io.projectreactor:reactor-test'
     testImplementation 'org.springframework.batch:spring-batch-test'
     testImplementation 'org.springframework.kafka:spring-kafka-test'
+    testRuntimeOnly 'com.h2database:h2'
 }
 
 tasks.named('test') {

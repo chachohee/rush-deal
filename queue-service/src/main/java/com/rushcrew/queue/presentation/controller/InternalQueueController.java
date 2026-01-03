@@ -39,7 +39,7 @@ public class InternalQueueController {
         @RequestHeader(USER_ID_HEADER) Long currUserId,
         @RequestHeader(USER_ROLE_HEADER) String role
     ) {
-        boolean result = queueService.validateActivatedQueueToken(productId, queueToken);
+        boolean result = queueService.validateActivatedQueueToken(productId, queueToken, currUserId, role);
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.success(result));
     }
 }

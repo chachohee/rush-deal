@@ -1,0 +1,15 @@
+spring:
+  main:
+    web-application-type: reactive
+
+jwt:
+  access:
+    secret: N6WSY55g7gYEPvCAazUfZw/DkMLlOyzotH1xCju5L78=
+    expiration: 60480000
+  refresh:
+    secret: tbfb4D86amt6/7x5KHuVl7rzZXfs40IV6FWimTzImuQ=
+    expiration: 120960000
+
+eureka:
+  client:
+    enabled: false

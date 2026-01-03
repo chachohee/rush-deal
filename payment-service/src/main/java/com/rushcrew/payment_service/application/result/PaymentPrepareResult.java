@@ -1,7 +1,6 @@
 package com.rushcrew.payment_service.application.result;
 
 import com.rushcrew.payment_service.domain.model.Payment;
-import com.rushcrew.payment_service.domain.vo.PaymentStatus;
 
 import java.math.BigDecimal;
 import java.util.UUID;

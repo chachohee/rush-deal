@@ -1,27 +1,31 @@
 version: "3.8"
 
 services:
+  # =========================================
+  # PostgreSQL
+  # =========================================
   rushdeal_postgres:
     image: postgres:16-alpine
     container_name: rushdeal_postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${DB_URL}
-      POSTGRES_USER: ${DB_USERNAME}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: rushdeal
+      POSTGRES_USER: rushdeal
+      POSTGRES_PASSWORD: rushdeal
     ports:
       - "15432:5432"
     volumes:
       - rushdeal_pg_data:/var/lib/postgresql/data
       - ./scripts/init-schemas.sql:/docker-entrypoint-initdb.d/init-schemas.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_URL}"]
+      test: ["CMD-SHELL", "pg_isready -U rushdeal -d rushdeal"]
       interval: 10s
       timeout: 5s
       retries: 5
-    networks:
-      - rushdeal-network
 
+  # =========================================
+  # Redis Instances
+  # =========================================
   rushdeal_auth_redis:
     image: redis:7-alpine
     container_name: rushdeal_auth_redis
@@ -32,47 +36,40 @@ services:
       - rushdeal_auth_redis_data:/data
     command: redis-server --save 60 1 --loglevel warning
     healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
+      test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
       retries: 5
-    networks:
-      - rushdeal-network
 
   rushdeal_user_redis:
     image: redis:7-alpine
     container_name: rushdeal_user_redis
     restart: unless-stopped
     ports:
-      - "6379:6379"
       - "6383:6379"
     volumes:
       - rushdeal_user_redis_data:/data
-    healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
-      interval: 5s
-      timeout: 3s
-      retries: 5
-    networks:
-     - rushdeal-network
     command: redis-server --save 60 1 --loglevel warning
-
-  rushdeal_queue_redis: # 서비스 이름은 rushdeal_redis로 설정합니다.
-    image: redis:7-alpine
-    container_name: rushdeal_queue_redis
-    restart: unless-stopped
-    ports:
-      - "6380:6379" # 6379가 Redis 기본 포트이나, 호스트 포트를 6380으로 설정하여 기존 충돌을 피합니다.
-    volumes:
-      - rushdeal_queue_redis_data:/data # 데이터 영속성을 위한 볼륨
-    command: redis-server --save 60 1 --loglevel warning # 개발 중 데이터 날아가는거 방지 위해 60초마다 스냅샷 저장
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
       retries: 5
-    networks:
-      - rushdeal-network
+
+  rushdeal_queue_redis:
+    image: redis:7-alpine
+    container_name: rushdeal_queue_redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    volumes:
+      - rushdeal_queue_redis_data:/data
+    command: redis-server --save 60 1 --loglevel warning
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
   rushdeal_order_redis:
     image: redis:7-alpine
@@ -82,12 +79,12 @@ services:
       - "6381:6379"
     volumes:
       - rushdeal_order_redis_data:/data
+    command: redis-server --save 60 1 --loglevel warning
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
       retries: 5
-
 
   rushdeal_timedeal_redis:
     image: redis:7-alpine
@@ -97,16 +94,31 @@ services:
       - "6382:6379"
     volumes:
       - rushdeal_timedeal_redis_data:/data
+    command: redis-server --save 60 1 --loglevel warning
     healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
+      test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
       retries: 5
-    networks:
-      - rushdeal-network
 
+  rushdeal_gateway_redis:
+    image: redis:7-alpine
+    container_name: rushdeal_gateway_redis
+    restart: unless-stopped
+    ports:
+      - "6384:6379"
+    volumes:
+      - rushdeal_gateway_redis_data:/data
+    command: redis-server --save 60 1 --loglevel warning --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
-
+  # =========================================
+  # Redis Management UI
+  # =========================================
   redisinsight:
     image: redis/redisinsight:latest
     container_name: rushdeal_redisinsight
@@ -118,8 +130,11 @@ services:
       - rushdeal_order_redis
       - rushdeal_timedeal_redis
       - rushdeal_user_redis
+      - rushdeal_auth_redis
 
-
+  # =========================================
+  # Kafka & Zookeeper
+  # =========================================
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
     container_name: rushdeal_zookeeper
@@ -129,9 +144,7 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
-    networks:
-      - rushdeal-network
-      
+
   kafka:
     image: confluentinc/cp-kafka:7.5.0
     container_name: rushdeal_kafka
@@ -148,8 +161,11 @@ services:
       KAFKA_HEAP_OPTS: "-Xmx512M -Xms256M"
     depends_on:
       - zookeeper
-    networks:
-      - rushdeal-network
+    healthcheck:
+      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
@@ -163,293 +179,59 @@ services:
       KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
     depends_on:
       - kafka
-    networks:
-      - rushdeal-network
-
-  # Discovery Service (Eureka)
-  discovery-service:
-    container_name: rushdeal_eureka
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        SERVICE_NAME: discovery-service
-    environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-local}
-      SERVER_PORT: 8761
-      MANAGEMENT_METRICS_TAGS_APPLICATION: discovery-service
-    ports:
-      - "8761:8761"
-    networks:
-      rushdeal-network:
-        aliases:
-          - rushdeal-eureka
-          - eureka
-    restart: unless-stopped
 
   # =========================================
-  # [MSA 서비스] 스프링 부트 앱 설정
+  # Zipkin (Distributed Tracing)
   # =========================================
-
-  auth-service:
-    container_name: rushdeal_auth_service
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        SERVICE_NAME: auth-service
-    environment:
-      # Spring
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-local}
-      SERVER_PORT: ${AUTH_SERVER_PORT:-8000}
-
-      # Database
-      DB_URL: ${DB_URL}
-      DB_USERNAME: ${DB_USERNAME}
-      DB_PASSWORD: ${DB_PASSWORD}
-
-      # Redis
-      AUTH_REDIS_HOST: ${AUTH_REDIS_HOST}
-      AUTH_REDIS_PORT: 6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
-
-      # JWT
-      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
-      JWT_ACCESS_EXPIRED: ${JWT_ACCESS_EXPIRED:-3600000}
-      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
-      JWT_REFRESH_EXPIRED: ${JWT_REFRESH_EXPIRED:-604800000}
-
-      EUREKA_URL: ${EUREKA_URL}
-      # Auth Config
-      AUTH_MAX_CONCURRENT_SESSIONS: ${AUTH_MAX_CONCURRENT_SESSIONS:-3}
-
-      # Zipkin
-      MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin:9411/api/v2/spans
-      MANAGEMENT_METRICS_TAGS_APPLICATION: auth-service
-    ports:
-      - "${AUTH_SERVER_PORT:-8000}:${AUTH_SERVER_PORT:-8000}"
-    depends_on:
-      discovery-service:
-        condition: service_started
-      rushdeal_postgres:
-        condition: service_healthy
-      rushdeal_auth_redis:
-        condition: service_healthy
-    networks:
-      - rushdeal-network
+  zipkin:
+    image: openzipkin/zipkin:latest
+    container_name: rushdeal_zipkin
     restart: unless-stopped
-
-  user-service:
-    container_name: rushdeal_user_service
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        SERVICE_NAME: user-service
-    environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-local}
-      SERVER_PORT: ${USER_SERVER_PORT:-8060}
-      DB_URL: ${DB_URL}
-      DB_USERNAME: ${DB_USERNAME}
-      DB_PASSWORD: ${DB_PASSWORD}
-      SPRING_DATA_REDIS_HOST: ${USER_REDIS_HOST}
-      SPRING_DATA_REDIS_PORT: ${USER_REDIS_PORT:-6379}
-      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD}
-      EUREKA_ENABLED: ${EUREKA_ENABLED:-false}
-      EUREKA_URL: ${EUREKA_URL}
-      JPA_DDL_AUTO: ${JPA_DDL_AUTO:-update}
-      MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin:9411/api/v2/spans
-      MANAGEMENT_METRICS_TAGS_APPLICATION: user-service
     ports:
-      - "${USER_SERVER_PORT:-8060}:${USER_SERVER_PORT:-8060}"
-    depends_on:
-      rushdeal_postgres:
-        condition: service_healthy
-      rushdeal_user_redis:
-        condition: service_healthy
-    networks:
-      - rushdeal-network
-    restart: unless-stopped
-
-  order-service:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        SERVICE_NAME: order-service
-    container_name: rushdeal_order_service
+      - "9411:9411"
     environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-local}
-      SERVER_PORT: ${ORDER_SERVER_PORT:-8050}
-      DB_URL: ${DB_URL}
-      DB_USERNAME: ${DB_USERNAME}
-      DB_PASSWORD: ${DB_PASSWORD}
-      SPRING_DATA_REDIS_HOST: ${ORDER_REDIS_HOST}
-      SPRING_DATA_REDIS_PORT: 6379
-      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD}
-      KAFKA_BROKERS: ${KAFKA_BROKERS}
-      EUREKA_ENABLED: ${EUREKA_ENABLED:-false}
-      EUREKA_URL: ${EUREKA_URL}
-      JPA_DDL_AUTO: ${JPA_DDL_AUTO:-update}
-      SHOW_SQL: ${SHOW_SQL:-false}
-      SQL_INIT_MODE: ${SQL_INIT_MODE:-never}
-      QUARTZ_INIT_SCHEMA: ${QUARTZ_INIT_SCHEMA:-never}
-      QUARTZ_THREAD_COUNT: ${QUARTZ_THREAD_COUNT:-10}
-      MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin:9411/api/v2/spans
-      MANAGEMENT_METRICS_TAGS_APPLICATION: order-service
-    ports:
-      - "${ORDER_SERVER_PORT:-8050}:${ORDER_SERVER_PORT:-8050}"
-    depends_on:
-      rushdeal_postgres:
-        condition: service_healthy
-      rushdeal_order_redis:
-        condition: service_healthy
-      kafka:
-        condition: service_started
-    networks:
-      - rushdeal-network
-    restart: unless-stopped
+      - STORAGE_TYPE=mem
 
-  payment-service:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        SERVICE_NAME: payment-service
-    container_name: rushdeal_payment_service
-    environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-local}
-      SERVER_PORT: ${PAYMENT_SERVER_PORT:-8010}
-      DB_URL: ${DB_URL}
-      DB_USERNAME: ${DB_USERNAME}
-      DB_PASSWORD: ${DB_PASSWORD}
-      EUREKA_ENABLED: ${EUREKA_ENABLED:-false}
-      EUREKA_URL: ${EUREKA_URL}
-      JPA_DDL_AUTO: ${JPA_DDL_AUTO:-update}
-      SHOW_SQL: ${SHOW_SQL:-false}
-      PORTONE_API_SECRET: ${PORTONE_API_SECRET}
-      PORTONE_STORE_ID: ${PORTONE_STORE_ID}
-      PORTONE_CHANNEL_KEY: ${PORTONE_CHANNEL_KEY}
-      PORTONE_WEBHOOK: ${PORTONE_WEBHOOK}
-      MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin:9411/api/v2/spans
-      MANAGEMENT_METRICS_TAGS_APPLICATION: payment-service
-    ports:
-      - "${PAYMENT_SERVER_PORT:-8010}:${PAYMENT_SERVER_PORT:-8010}"
-    depends_on:
-      rushdeal_postgres:
-        condition: service_healthy
-    networks:
-      - rushdeal-network
+  # =========================================
+  # Prometheus (Metrics)
+  # =========================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: rushdeal_prometheus
     restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
 
-  product-service:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        SERVICE_NAME: product-service
-    container_name: rushdeal_product_service
-    environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-local}
-      SERVER_PORT: ${PRODUCT_SERVER_PORT:-8020}
-      DB_URL: ${DB_URL}
-      DB_USERNAME: ${DB_USERNAME}
-      DB_PASSWORD: ${DB_PASSWORD}
-      EUREKA_ENABLED: ${EUREKA_ENABLED:-false}
-      EUREKA_URL: ${EUREKA_URL}
-      JPA_DDL_AUTO: ${JPA_DDL_AUTO:-update}
-      SHOW_SQL: ${SHOW_SQL:-false}
-      SQL_INIT_MODE: ${SQL_INIT_MODE:-never}
-      MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin:9411/api/v2/spans
-      MANAGEMENT_METRICS_TAGS_APPLICATION: product-service
-    ports:
-      - "${PRODUCT_SERVER_PORT:-8020}:${PRODUCT_SERVER_PORT:-8020}"
-    depends_on:
-      rushdeal_postgres:
-        condition: service_healthy
-    networks:
-      - rushdeal-network
+  # =========================================
+  # Grafana (Monitoring Dashboard)
+  # =========================================
+  grafana:
+    image: grafana/grafana:latest
+    container_name: rushdeal_grafana
     restart: unless-stopped
-
-  queue-service:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        SERVICE_NAME: queue-service
-    container_name: rushdeal_queue_service
-    environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-local}
-      SERVER_PORT: ${QUEUE_SERVER_PORT:-8040}
-      DB_URL: ${DB_URL}
-      DB_USERNAME: ${DB_USERNAME}
-      DB_PASSWORD: ${DB_PASSWORD}
-      QUEUE_REDIS_HOST: ${QUEUE_REDIS_HOST}
-      QUEUE_REDIS_PORT: 6379
-      KAFKA_BROKERS: ${KAFKA_BROKERS}
-      EUREKA_ENABLED: ${EUREKA_ENABLED:-false}
-      EUREKA_URL: ${EUREKA_URL}
-      JPA_DDL_AUTO: ${JPA_DDL_AUTO:-update}
-      SHOW_SQL: ${SHOW_SQL:-false}
-      MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin:9411/api/v2/spans
-      MANAGEMENT_METRICS_TAGS_APPLICATION: queue-service
     ports:
-      - "${QUEUE_SERVER_PORT:-8040}:${QUEUE_SERVER_PORT:-8040}"
-    depends_on:
-      rushdeal_postgres:
-        condition: service_healthy
-      rushdeal_queue_redis:
-        condition: service_healthy
-      kafka:
-        condition: service_started
-    networks:
-      - rushdeal-network
-    restart: unless-stopped
-
-  timedeal-service:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        SERVICE_NAME: timedeal-service
-    container_name: rushdeal_timedeal_service
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
     environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-local}
-      SERVER_PORT: ${TIMEDEAL_SERVER_PORT:-8030}
-      DB_URL: ${DB_URL}
-      DB_USERNAME: ${DB_USERNAME}
-      DB_PASSWORD: ${DB_PASSWORD}
-      TIMEDEAL_REDIS_HOST: ${TIMEDEAL_REDIS_HOST}
-      TIMEDEAL_REDIS_PORT: 6379
-      BOOTSTRAP_SERVERS: ${KAFKA_BROKERS}
-      EUREKA_ENABLED: ${EUREKA_ENABLED:-false}
-      EUREKA_URL: ${EUREKA_URL}
-      JPA_DDL_AUTO: ${JPA_DDL_AUTO:-update}
-      SHOW_SQL: ${SHOW_SQL:-false}
-      SQL_INIT_MODE: ${SQL_INIT_MODE:-never}
-      MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin:9411/api/v2/spans
-      MANAGEMENT_METRICS_TAGS_APPLICATION: timedeal-service
-    ports:
-      - "${TIMEDEAL_SERVER_PORT:-8030}:${TIMEDEAL_SERVER_PORT:-8030}"
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
     depends_on:
-      rushdeal_postgres:
-        condition: service_healthy
-      rushdeal_timedeal_redis:
-        condition: service_healthy
-      kafka:
-        condition: service_started
-    networks:
-      - rushdeal-network
-    restart: unless-stopped
+      - prometheus
 
 volumes:
   rushdeal_pg_data:
+  rushdeal_gateway_redis_data:
   rushdeal_auth_redis_data:
   rushdeal_user_redis_data:
   rushdeal_queue_redis_data:
   rushdeal_order_redis_data:
   rushdeal_timedeal_redis_data:
-
-networks:
-  rushdeal-network:
-    driver: bridge
+  prometheus_data:
+  grafana_data:

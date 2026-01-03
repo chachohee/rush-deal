@@ -1,49 +1,49 @@
+# queue-service
+server:
+  port: ${QUEUE_SERVER_PORT:8040}
+
 spring:
   application:
     name: queue-service
-
   kafka:
-    # 환경변수 KAFKA_BROKERS가 있으면 그걸 쓰고, 없으면 로컬값(localhost:9092) 사용
-    bootstrap-servers: ${KAFKA_BROKERS:localhost:9092}  # 로컬 개발 환경 기준 (Docker 내부 통신 시 kafka:29092)
+    bootstrap-servers: ${KAFKA_BROKERS:localhost:9092}
     consumer:
-      group-id: queue-service-group   # 컨슈머 그룹 ID (중요)
-      auto-offset-reset: latest       # 가장 최신 메시지부터 읽음
-      spring.json.trusted.packages: "*" # 모든 패키지의 객체를 신뢰하고 역직렬화 허용
+      group-id: queue-service-group
+      auto-offset-reset: latest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      # JSON으로 받을거면 JsonDeserializer 사용 가능하지만, String으로 받아 직접 파싱하는게 디버깅에 유리함
-
+      properties:
+        spring.json.trusted.packages: "*"
   data:
     redis:
-      host: ${QUEUE_REDIS_HOST}
-      port: ${QUEUE_REDIS_PORT}
-
+      host: ${REDIS_HOST:localhost}
+      port: ${QUEUE_REDIS_PORT:6380}
+      password: ${REDIS_PASSWORD:}
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
-
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: ${JPA_DDL_AUTO:update} # 운영에선 none이나 validate로 바꾸기 위해 변수 처리
+      ddl-auto: ${JPA_DDL_AUTO:update}
     properties:
       hibernate:
         default_schema: queue_schema
         format_sql: true
         use_sql_comments: true
-    show-sql: ${SHOW_SQL:true} # 운영에선 로그 너무 많이 찍히니 false로 끄기 위해
+    show-sql: ${SHOW_SQL:false}
 
 logging:
   level:
-    org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql: TRACE
+    org.hibernate.SQL: ${SQL_LOG_LEVEL:INFO}
+    org.hibernate.type.descriptor.sql: ${SQL_TYPE_LOG_LEVEL:INFO}
 
 eureka:
   client:
     service-url:
-      defaultZone: ${EUREKA_URL}
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
 
 management:
   endpoints:
@@ -57,7 +57,7 @@ management:
       access: unrestricted
   zipkin:
     tracing:
-      endpoint: "http://localhost:9411/api/v2/spans"
+      endpoint: ${MANAGEMENT_ZIPKIN_TRACING_ENDPOINT:http://localhost:9411/api/v2/spans}
   tracing:
     sampling:
       probability: 1.0

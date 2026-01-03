@@ -1,5 +1,6 @@
+# api-gateway
 server:
-  port: 8000
+  port: ${API_GATEWAY_PORT:8080}
 
 spring:
   application:
@@ -9,8 +10,8 @@ spring:
   data:
     redis:
       host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD}
+      port: ${REDIS_PORT:6384}
+      password: ${REDIS_PASSWORD:}
       timeout: 3000ms
       lettuce:
         pool:
@@ -20,52 +21,50 @@ spring:
           max-wait: -1ms
   cloud:
     gateway:
-      server:
-        webflux:
-          routes:
-            - id: user-routes
-              uri: lb://user-service
-              predicates:
-                - Path=/api/v1/users/**
+      routes:
+        - id: user-routes
+          uri: lb://user-service
+          predicates:
+            - Path=/api/v1/users/**
 
-            - id: point-service
-              uri: lb://user-service
-              predicates:
-                - Path=/api/v1/points/**
+        - id: point-routes
+          uri: lb://user-service
+          predicates:
+            - Path=/api/v1/points/**
 
-            - id: auth-routes
-              uri: lb://auth-service
-              predicates:
-                - Path=/api/v1/auth/**
+        - id: auth-routes
+          uri: lb://auth-service
+          predicates:
+            - Path=/api/v1/auth/**
 
-            - id: product-routes
-              uri: lb://product-service
-              predicates:
-                - Path=/api/v1/product/**
+        - id: product-routes
+          uri: lb://product-service
+          predicates:
+            - Path=/api/v1/product/**
 
-            - id: timedeal-routes
-              uri: lb://timedeal-service
-              predicates:
-                - Path=/api/v1/timedeal/**
+        - id: timedeal-routes
+          uri: lb://timedeal-service
+          predicates:
+            - Path=/api/v1/timedeal/**
 
-            - id: order-routes
-              uri: lb://order-service
-              predicates:
-                - Path=/api/v1/order/**
+        - id: order-routes
+          uri: lb://order-service
+          predicates:
+            - Path=/api/v1/order/**
 
-            - id: payment-routes
-              uri: lb://payment-service
-              predicates:
-                - Path=/api/v1/payments/**
+        - id: payment-routes
+          uri: lb://payment-service
+          predicates:
+            - Path=/api/v1/payments/**
 
-            - id: queue-service
-              uri: lb://queue-service
-              predicates:
-                - Path=/api/v1/queues/**, /api/v1/queue/policies/**, /api/v1/internal/queues/**
+        - id: queue-routes
+          uri: lb://queue-service
+          predicates:
+            - Path=/api/v1/queues/**,/api/v1/queue/policies/**,/api/v1/internal/queues/**
 
-          discovery:
-            locator:
-              enabled: true
+      discovery:
+        locator:
+          enabled: true
 
 eureka:
   client:
@@ -75,7 +74,7 @@ eureka:
 jwt:
   access:
     secret: ${JWT_ACCESS_SECRET}
-    expiration: ${JWT_ACCESS_EXPIRED}
+    expiration: ${JWT_ACCESS_EXPIRED:3600000}
 
 gateway:
   public-paths:
@@ -93,3 +92,9 @@ management:
       show-details: always
     prometheus:
       access: unrestricted
+  zipkin:
+    tracing:
+      endpoint: ${MANAGEMENT_ZIPKIN_TRACING_ENDPOINT:http://localhost:9411/api/v2/spans}
+  tracing:
+    sampling:
+      probability: 1.0

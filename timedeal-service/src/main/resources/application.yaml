@@ -1,10 +1,15 @@
+# timedeal-service
+server:
+  port: ${TIMEDEAL_SERVER_PORT:8030}
+
 spring:
   application:
     name: timedeal-service
   data:
     redis:
-      host: ${TIMEDEAL_REDIS_HOST}
-      port: ${TIMEDEAL_REDIS_PORT}
+      host: ${REDIS_HOST:localhost}
+      port: ${TIMEDEAL_REDIS_PORT:6382}
+      password: ${REDIS_PASSWORD:}
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
@@ -12,22 +17,22 @@ spring:
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: update
-    show-sql: true
+      ddl-auto: ${JPA_DDL_AUTO:update}
+    show-sql: ${SHOW_SQL:false}
     properties:
       hibernate:
         format_sql: true
         default_schema: time_deal_schema
   sql:
     init:
-      mode: always
+      mode: ${SQL_INIT_MODE:never}
   kafka:
-    bootstrap-servers: ${BOOTSTRAP_SERVERS}
+    bootstrap-servers: ${KAFKA_BROKERS:localhost:9092}
 
 eureka:
   client:
     service-url:
-      defaultZone: ${EUREKA_URL}
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
 
 management:
   endpoints:
@@ -41,7 +46,7 @@ management:
       access: unrestricted
   zipkin:
     tracing:
-      endpoint: "http://localhost:9411/api/v2/spans"
+      endpoint: ${MANAGEMENT_ZIPKIN_TRACING_ENDPOINT:http://localhost:9411/api/v2/spans}
   tracing:
     sampling:
       probability: 1.0

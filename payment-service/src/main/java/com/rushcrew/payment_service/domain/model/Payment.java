@@ -23,7 +23,7 @@ public class Payment extends BaseEntity {
     private UUID orderId;
 
     @Column(nullable = false)
-    private Long amount;
+    private BigDecimal amount;
 
     @Column(name = "portone_payment_id")
     private String portonePaymentId;
@@ -32,7 +32,7 @@ public class Payment extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private PaymentStatus status;
 
-    public static Payment create(UUID orderId, Long amount, String portonePaymentId) {
+    public static Payment create(UUID orderId, BigDecimal amount, String portonePaymentId) {
         Payment payment = new Payment();
 
         payment.orderId = orderId;

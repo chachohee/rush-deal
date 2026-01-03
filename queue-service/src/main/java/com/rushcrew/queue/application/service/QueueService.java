@@ -62,7 +62,7 @@ public class QueueService implements QueuePort {
         }
 
         String tokenValue = queueToken.getId().getValue().toString();
-        return getQueueRank(command.productId(), tokenValue, command.userId(), command.role());
+        return getQueueRank(command.productId(), tokenValue, command.userId());
     }
 
     /**

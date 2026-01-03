@@ -3,6 +3,7 @@ package com.rushcrew.order_service.infrastructure.adapter.cache;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import org.springframework.context.annotation.Profile;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -17,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Component
 @RequiredArgsConstructor
+@Profile("!test")
 public class OrderQueryCacheAdapter implements OrderCachePort {
 
 	private final RedisTemplate<String, Object> redisTemplate;

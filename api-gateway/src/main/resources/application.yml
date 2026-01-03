@@ -5,8 +5,10 @@ server:
 spring:
   application:
     name: api-gateway
+
   main:
     web-application-type: reactive
+
   data:
     redis:
       host: ${REDIS_HOST:localhost}
@@ -19,52 +21,55 @@ spring:
           max-idle: 8
           min-idle: 2
           max-wait: -1ms
+
   cloud:
     gateway:
-      routes:
-        - id: user-routes
-          uri: lb://user-service
-          predicates:
-            - Path=/api/v1/users/**
+      server:
+        webflux:
+          routes:
+            - id: user-routes
+              uri: lb://user-service
+              predicates:
+                - Path=/api/v1/users/**
 
-        - id: point-routes
-          uri: lb://user-service
-          predicates:
-            - Path=/api/v1/points/**
+            - id: point-routes
+              uri: lb://user-service
+              predicates:
+                - Path=/api/v1/points/**
 
-        - id: auth-routes
-          uri: lb://auth-service
-          predicates:
-            - Path=/api/v1/auth/**
+            - id: auth-routes
+              uri: lb://auth-service
+              predicates:
+                - Path=/api/v1/auth/**
 
-        - id: product-routes
-          uri: lb://product-service
-          predicates:
-            - Path=/api/v1/product/**
+            - id: product-routes
+              uri: lb://product-service
+              predicates:
+                - Path=/api/v1/product/**
 
-        - id: timedeal-routes
-          uri: lb://timedeal-service
-          predicates:
-            - Path=/api/v1/timedeal/**
+            - id: timedeal-routes
+              uri: lb://timedeal-service
+              predicates:
+                - Path=/api/v1/timedeal/**
 
-        - id: order-routes
-          uri: lb://order-service
-          predicates:
-            - Path=/api/v1/order/**
+            - id: order-routes
+              uri: lb://order-service
+              predicates:
+                - Path=/api/v1/order/**
 
-        - id: payment-routes
-          uri: lb://payment-service
-          predicates:
-            - Path=/api/v1/payments/**
+            - id: payment-routes
+              uri: lb://payment-service
+              predicates:
+                - Path=/api/v1/payments/**
 
-        - id: queue-routes
-          uri: lb://queue-service
-          predicates:
-            - Path=/api/v1/queues/**,/api/v1/queue/policies/**,/api/v1/internal/queues/**
+            - id: queue-routes
+              uri: lb://queue-service
+              predicates:
+                - Path=/api/v1/queues/**,/api/v1/queue/policies/**,/api/v1/internal/queues/**
 
-      discovery:
-        locator:
-          enabled: true
+          discovery:
+            locator:
+              enabled: true
 
 eureka:
   client:

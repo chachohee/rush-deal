@@ -17,6 +17,7 @@ import com.rushcrew.order_service.domain.model.order.Order;
 import com.rushcrew.order_service.domain.model.order.OrderItem;
 import com.rushcrew.order_service.domain.model.order.OrderReservation;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.rushcrew.order_service.domain.vo.ProductSnapshot;
 import com.rushcrew.order_service.domain.vo.ShippingInfo;
 import com.rushcrew.order_service.infrastructure.messaging.event.OutboxEventType;
 import com.rushcrew.order_service.infrastructure.messaging.event.StockReservedEvent;
@@ -43,12 +44,23 @@ public class CreateOrderStep {
 
 		// 1. OrderItem 생성 stock.reserved 수신한 StockReservedEvent 사용
 		var orderItems = event.reservedItems().stream()
-			.map(reservedItem -> OrderItem.create(
-				UUID.fromString(reservedItem.timeDealStockId()),
-				reservedItem.quantity(),
-				reservedItem.discountedPrice(),
-				reservedItem.productSnapshot()
-			))
+			.map(reservedItem -> {
+
+				ProductSnapshot snapshot = ProductSnapshot.builder()
+					.timeDealStockId(reservedItem.timeDealStockId())
+					.productId(reservedItem.productId())
+					.optionId(reservedItem.optionId())
+					.timeDealId(event.timeDealId())
+					.originalPrice(reservedItem.discountedPrice()) // 임시: 할인 적용가
+					.build();
+
+				return OrderItem.create(
+					UUID.fromString(reservedItem.timeDealStockId()),
+					reservedItem.quantity(),
+					reservedItem.discountedPrice(),
+					snapshot
+				);
+			})
 			.toList();
 
 		// 2. Command -> Domain VO 변환

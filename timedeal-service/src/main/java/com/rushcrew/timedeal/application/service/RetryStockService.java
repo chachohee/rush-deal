@@ -2,13 +2,17 @@ package com.rushcrew.timedeal.application.service;
 
 import com.rushcrew.common.exception.BusinessException;
 import com.rushcrew.timedeal.application.command.ReserveStockCommand;
-import com.rushcrew.timedeal.application.event.StockReservedEvent;
+import com.rushcrew.timedeal.application.port.out.event.StockReservedEvent;
 import com.rushcrew.timedeal.application.port.out.event.StockSoldOutEvent;
 import com.rushcrew.timedeal.application.result.ReserveStockResult;
+import com.rushcrew.timedeal.domain.entity.TimeDeal;
+import com.rushcrew.timedeal.domain.entity.TimeDealProduct;
 import com.rushcrew.timedeal.domain.entity.TimeDealStock;
 import com.rushcrew.timedeal.domain.exception.TimeDealErrorCode;
 import com.rushcrew.timedeal.domain.repository.StockRepository;
 import java.math.BigDecimal;
+import java.util.List;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
@@ -37,6 +41,7 @@ public class RetryStockService {
         // 재고 예약
         stock.reserve(command.quantity(), command.orderId());
 
+		// 품절 이벤트
         if (stock.getStockCounts().getAvailable() == 0) {
             eventPublisher.publishEvent(
                 new StockSoldOutEvent(
@@ -47,17 +52,32 @@ public class RetryStockService {
             );
         }
 
-        // 할인된 가격 조회
-        Long discountPrice = stock.getTimeDealProduct().getTimeDeal().getPrice().getAmount();
+		// 타임딜 서비스에서 스냅샷 생성을 위해 접근 가능한 정보
+		TimeDealProduct product = stock.getTimeDealProduct();
+		TimeDeal timeDeal = product.getTimeDeal();
+		BigDecimal discountPrice = BigDecimal.valueOf(timeDeal.getPrice().getAmount());
 
-        eventPublisher.publishEvent(
-            new StockReservedEvent(command.stockId(), command.quantity().getQuantity())
-        );
+		// 이벤트 발행
+		eventPublisher.publishEvent(
+			StockReservedEvent.of(
+				command.orderId().getOrderId().toString(), // sagaId
+				timeDeal.getId().toString(),
+				List.of(
+					new StockReservedEvent.ReservedStockItem(
+						stock.getId().toString(),
+						product.getItemIds().getProductId().toString(),
+						product.getItemIds().getOptionId().toString(),
+						command.quantity().getQuantity(),
+						discountPrice
+					)
+				)
+			)
+		);
 
         return ReserveStockResult.of(
             stock.getStockCounts().getAvailable(),
             "재고가 예약되었습니다.",
-            BigDecimal.valueOf(discountPrice)
+            discountPrice
         );
     }
 }

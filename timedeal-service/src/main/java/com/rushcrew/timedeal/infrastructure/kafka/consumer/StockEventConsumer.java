@@ -53,28 +53,16 @@ public class StockEventConsumer {
                     event.userId()
                 );
 
-                // reserveStock의 반환값에서 가격 가져오기
-                ReserveStockResult result = stockService.reserveStock(command);
+				// 재고 예약만 수행
+				stockService.reserveStock(command);
 
-                // 할인된 가격을 포함해서 ReservedStockItem 생성
-                reservedItems.add(new StockReservedEvent.ReservedStockItem(
-                    item.timeDealStockId(),
-                    item.quantity(),
-                    result.discountPrice()  // 할인된 가격 추가
-                ));
-
-                log.info("재고 예약 완료: sagaId={}, stockId={}, quantity={}, price={}",
-                    event.sagaId(), item.timeDealStockId(), item.quantity(),
-                    result.discountPrice());
+				log.info(
+					"재고 예약 요청 처리 완료: sagaId={}, stockId={}, quantity={}",
+					event.sagaId(),
+					item.timeDealStockId(),
+					item.quantity()
+				);
             }
-
-            // 모든 재고 예약 성공 후 이벤트 발행
-            StockReservedEvent reservedEvent = StockReservedEvent.of(
-                event.sagaId(),
-                event.timeDealId(),
-                reservedItems
-            );
-            stockEventProducer.publishStockReserved(reservedEvent);
 
         } catch (JsonProcessingException e) {
             log.error("재고 예약 메시지 파싱 실패: {}", message, e);

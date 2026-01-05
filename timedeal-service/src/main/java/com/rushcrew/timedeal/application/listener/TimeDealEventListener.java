@@ -2,6 +2,7 @@ package com.rushcrew.timedeal.application.listener;
 
 import com.rushcrew.timedeal.application.event.TimeDealsEndedEvent;
 import com.rushcrew.timedeal.application.event.TimeDealsStartedEvent;
+import com.rushcrew.timedeal.application.port.out.event.StockReservedEvent;
 import com.rushcrew.timedeal.application.port.out.event.StockSoldOutEvent;
 import com.rushcrew.timedeal.application.port.out.event.TimeDealEndedEvent;
 import com.rushcrew.timedeal.application.port.out.event.TimeDealStartedEvent;
@@ -76,4 +77,9 @@ public class TimeDealEventListener {
             }
         });
     }
+
+	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+	public void handleStockReserved(StockReservedEvent event) {
+		stockEventProducer.publishStockReserved(event);
+	}
 }

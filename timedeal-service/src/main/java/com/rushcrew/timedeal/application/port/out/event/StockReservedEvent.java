@@ -25,6 +25,8 @@ public record StockReservedEvent(
 
 	public record ReservedStockItem(
 		String timeDealStockId,
+		String productId,
+		String optionId,
 		Long quantity,
 		BigDecimal discountedPrice  // 할인된 최종 가격만
 	) {}

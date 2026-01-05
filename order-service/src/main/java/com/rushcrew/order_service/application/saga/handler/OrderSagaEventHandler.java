@@ -1,5 +1,7 @@
 package com.rushcrew.order_service.application.saga.handler;
 
+import java.util.List;
+
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,6 +16,7 @@ import com.rushcrew.order_service.application.saga.step.UsePointStep;
 import com.rushcrew.order_service.domain.enums.SagaStatus;
 import com.rushcrew.order_service.domain.enums.SagaStepName;
 import com.rushcrew.order_service.domain.model.saga.SagaInstance;
+import com.rushcrew.order_service.domain.vo.ProductSnapshot;
 import com.rushcrew.order_service.infrastructure.messaging.event.StockReservationFailedEvent;
 import com.rushcrew.order_service.infrastructure.messaging.event.StockReservedEvent;
 
@@ -45,6 +48,31 @@ public class OrderSagaEventHandler {
 		// 반드시 restore
 		SagaContext context = SagaContext.restore(saga);
 		OrderCreationSagaData data = saga.restoreData();
+
+		// 🔴 여기서 스냅샷 구성
+		List<ProductSnapshot> snapshots =
+			event.reservedItems().stream()
+				.map(item -> ProductSnapshot.builder()
+					.timeDealStockId(item.timeDealStockId())
+					.productId(item.productId())
+					.optionId(item.optionId())
+					.originalPrice(item.discountedPrice()) // 임시
+					.timeDealId(event.timeDealId())
+
+					// ❗ 지금은 못 채우는 필드들
+					.productName(null)
+					.productDescription(null)
+					.optionName(null)
+					.sellerId(null)
+					.sellerName(null)
+					.discountRate(null)
+					.category(null)
+					.timeDealTitle(null)
+					.build()
+				)
+				.toList();
+
+		data.setProductSnapshots(snapshots);
 
 		try {
 			// Step 4: 주문 생성

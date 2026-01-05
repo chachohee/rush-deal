@@ -46,7 +46,8 @@ public class CreateOrderStep {
 			.map(reservedItem -> OrderItem.create(
 				UUID.fromString(reservedItem.timeDealStockId()),
 				reservedItem.quantity(),
-				reservedItem.discountedPrice()
+				reservedItem.discountedPrice(),
+				reservedItem.productSnapshot()
 			))
 			.toList();
 

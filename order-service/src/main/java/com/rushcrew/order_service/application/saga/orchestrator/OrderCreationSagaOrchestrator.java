@@ -47,15 +47,15 @@ public class OrderCreationSagaOrchestrator {
 
 		OrderCreationSagaData data = OrderCreationSagaData.builder()
 			.command(command)
-			.orderId(preGeneratedOrderId) // 미리 생성된 주문 ID 설정
+			.orderId(preGeneratedOrderId)
 			.queueToken(command.queueToken())
 			.build();
 
-		log.info("[Saga-{}] 주문 ID 사전 생성: orderId={}", saga.getSagaId(), preGeneratedOrderId);
+		log.info("[Saga-{}] Saga 시작 (userId={}, orderId={})",
+			saga.getSagaId(), command.userId(), preGeneratedOrderId);
 
 		try {
 			// Step 1: ValidateStock
-			log.info("[Saga-{}] Step 1: ValidateStock 시작", saga.getSagaId());
 			SagaStepResult validateResult = validateStockStep.execute(context, data);
 			if (validateResult.isFailure()) {
 				saga.fail(validateResult.getErrorMessage());
@@ -65,10 +65,8 @@ public class OrderCreationSagaOrchestrator {
 			saga.addStep(SagaStepName.VALIDATE_STOCK, SagaStatus.COMPLETED);
 
 			// Step 2: UsePoint
-			log.info("[Saga-{}] Step 2: UsePoint 시작", saga.getSagaId());
 			SagaStepResult pointResult = usePointStep.execute(context, data);
 			if (pointResult.isFailure()) {
-				// 포인트 사용 실패는 보상 불필요 (아직 차감 안 됨)
 				saga.fail(pointResult.getErrorMessage());
 				sagaInstancePort.save(saga);
 				throw new IllegalArgumentException(pointResult.getErrorMessage());
@@ -76,33 +74,19 @@ public class OrderCreationSagaOrchestrator {
 			saga.addStep(SagaStepName.USE_POINT, SagaStatus.COMPLETED);
 
 			// Step 3: RequestStockReservation
-			log.info("[Saga-{}] Step 3: RequestStockReservation 시작", saga.getSagaId());
 			requestStockReservationStep.execute(context, data);
 			saga.addStep(SagaStepName.REQUEST_STOCK_RESERVATION, SagaStatus.WAITING);
 
-			// Step 완료 후 SagaData 저장
+			// SagaData 저장
 			saga.saveData(data);
-
-			// Saga 저장
 			sagaInstancePort.save(saga);
 
-			log.info("[Saga-{}] ORDER_CREATION Saga 시작 완료 (비동기 대기)", saga.getSagaId());
-
+			log.info("[Saga-{}] Saga 초기화 완료 (비동기 대기)", saga.getSagaId());
 			return saga.getSagaId();
-		} catch (Exception e) {
-			log.error("[Saga-{}] Saga 초기화 실패: {}", saga.getSagaId(), e.getMessage(), e);
 
-			// 보상 트랜잭션: 완료된 Step만 보상
+		} catch (Exception e) {
+			log.error("[Saga-{}] Saga 실패: {}", saga.getSagaId(), e.getMessage(), e);
 			compensateCompletedSteps(saga, context, data);
-			// 보상 트랜잭션: 포인트 복구
-			// if (saga.hasCompletedStep(SagaStepName.USE_POINT)) {
-			// 	try {
-			// 		usePointStep.compensate(context, data);
-			// 	} catch (Exception compensateError) {
-			// 		log.error("[Saga-{}] 포인트 보상 실패", saga.getSagaId(), compensateError);
-			// 		// 보상 실패는 별도 처리 필요 (Dead Letter Queue 등)
-			// 	}
-			// }
 			throw e;
 		}
 	}
@@ -111,24 +95,20 @@ public class OrderCreationSagaOrchestrator {
 	 * 완료된 Step들에 대한 보상 트랜잭션 실행
 	 */
 	private void compensateCompletedSteps(SagaInstance saga, SagaContext context, OrderCreationSagaData data) {
-		log.info("[Saga-{}] 보상 트랜잭션 시작 (Orchestrator)", saga.getSagaId());
+		log.info("[Saga-{}] 보상 트랜잭션 시작", saga.getSagaId());
 
 		// USE_POINT가 완료되었다면 보상
 		if (saga.hasCompletedStep(SagaStepName.USE_POINT)) {
 			try {
-				log.info("[Saga-{}] 포인트 보상 실행", saga.getSagaId());
 				usePointStep.compensate(context, data);
 				saga.addStep(SagaStepName.USE_POINT_COMPENSATE, SagaStatus.COMPLETED);
-				log.info("[Saga-{}] 포인트 보상 완료", saga.getSagaId());
 			} catch (Exception compensateError) {
-				log.error("[Saga-{}] 포인트 보상 실패: {}",
+				saga.addStep(SagaStepName.USE_POINT_COMPENSATE, SagaStatus.FAILED);
+				log.error("[Saga-{}] 보상 실패: {}",
 					saga.getSagaId(), compensateError.getMessage(), compensateError);
-				// 보상 실패는 별도 처리 필요 (Dead Letter Queue, 알림 등)
 			}
 		}
 
-		// VALIDATE_STOCK은 보상 불필요 (조회만 했으므로)
-		log.info("[Saga-{}] 보상 트랜잭션 완료 (Orchestrator)", saga.getSagaId());
+		log.info("[Saga-{}] 보상 트랜잭션 완료", saga.getSagaId());
 	}
-
 }

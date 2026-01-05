@@ -29,27 +29,10 @@ public class OrderCreationSagaData {
 	private List<ProductSnapshot> productSnapshots;
 
 	/**
-	 * 임시 주문 ID (포인트 사용 시 생성)
-	 * - 실제 주문 생성 전에 포인트 차감용으로 생성
-	 * - 포인트 히스토리와 연결하기 위한 임시 ID
-	 */
-	// private String tempOrderId;
-
-	/**
 	 * 주문 생성 결과 (실제 주문 ID)
 	 */
 	private UUID orderId;
 	private String queueToken;
-
-	/* 주문 ID 설정 (호환성 유지) */
-	public void bindOrderId(UUID orderId) {
-		this.orderId = orderId;
-	}
-
-	/* 주문이 생성되었는지 확인 */
-	public boolean isOrderCreated() {
-		return orderId != null;
-	}
 
 	/**
 	 * 포인트 사용 여부 확인

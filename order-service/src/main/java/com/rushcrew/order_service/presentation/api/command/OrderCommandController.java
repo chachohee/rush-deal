@@ -68,13 +68,13 @@ public class OrderCommandController {
 	@PostMapping
 	@PreAuthorize("hasAnyRole('USER', 'MASTER', 'SELLER')")
 	public ApiResponse<CreateOrderResult> createOrder(
-			@Valid @RequestBody CreateOrderRequest request,
-			@AuthenticationPrincipal UserDetailsImpl userDetails,
-			@RequestHeader("X-Queue-Token") String queueToken
-			) {
-		CreateOrderCommand command = createOrderCommandMapper.toCommand(request, userDetails.userId(), userDetails.role(), queueToken);	// Saga 접수
-		CreateOrderResult result = createOrderUseCase.createOrder(command);	// 반환 (PROCESSING 상태 + sagaId)
-		return ApiResponse.success(result);
+		@Valid @RequestBody CreateOrderRequest request,
+		@AuthenticationPrincipal UserDetailsImpl userDetails,
+		@RequestHeader("X-Queue-Token") String queueToken
+	) {
+		CreateOrderCommand command = createOrderCommandMapper.toCommand(request, userDetails.userId(), userDetails.role(), queueToken);
+		CreateOrderResult result = createOrderUseCase.createOrder(command);	// Saga 접수
+		return ApiResponse.success(result);	// 반환 (PROCESSING 상태 + sagaId)
 	}
 
 	/**

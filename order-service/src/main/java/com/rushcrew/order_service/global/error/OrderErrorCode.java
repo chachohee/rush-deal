@@ -6,8 +6,8 @@ import com.rushcrew.common.global.error.ErrorCode;
 
 public enum OrderErrorCode implements ErrorCode {
 
-	INVALID_QUEUE_TOKEN(HttpStatus.BAD_REQUEST, "INVALID_QUEUE_TOKEN", "유효한 대기열 토큰이 없습니다."),
-	INVALID_TIME_DEAL(HttpStatus.BAD_REQUEST, "INVALID_TIME_DEAL", "타임딜이 진행 중이 아닙니다."),
+	INVALID_QUEUE_TOKEN(HttpStatus.BAD_REQUEST, "INVALID_QUEUE_TOKEN", "대기열 토큰이 유효하지 않습니다."),
+	INVALID_TIME_DEAL(HttpStatus.BAD_REQUEST, "INVALID_TIME_DEAL", "진행중인 타임딜이 아닙니다."),
 	INVALID_PRODUCT(HttpStatus.BAD_REQUEST, "INVALID_PRODUCT", "존재하지 않거나 판매 중단된 상품입니다."),
 	DUPLICATE_ORDER_ITEM(HttpStatus.BAD_REQUEST, "DUPLICATE_ORDER_ITEM", "이미 장바구니에 담긴 상품입니다."),
 	PURCHASE_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "PURCHASE_LIMIT_EXCEEDED", "1인당 최대 구매 가능 수량을 초과했습니다."),

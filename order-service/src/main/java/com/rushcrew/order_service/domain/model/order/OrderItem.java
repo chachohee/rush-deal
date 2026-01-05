@@ -70,8 +70,8 @@ public class OrderItem extends BaseEntity {
 		UUID timeDealStockId,
 		Long quantity,
 		// BigDecimal unitPrice,
-		// ProductSnapshot productSnapshot,
-		BigDecimal discountPrice
+		BigDecimal discountPrice,
+		ProductSnapshot productSnapshot
 	) {
 		if (quantity == null || quantity <= 0) {
 			throw new IllegalArgumentException("수량은 1개 이상이어야 합니다.");
@@ -87,6 +87,9 @@ public class OrderItem extends BaseEntity {
 		// 		"할인가[%S] 는 원가[%s] 보다 클 수 없습니다.".formatted(discountPrice, unitPrice)
 		// 	);
 		// }
+		if (productSnapshot == null) {
+			throw new IllegalArgumentException("상품 스냅샷은 필수입니다.");
+		}
 
 		BigDecimal subtotal = discountPrice.multiply(BigDecimal.valueOf(quantity));
 
@@ -98,7 +101,7 @@ public class OrderItem extends BaseEntity {
 			.discountPrice(discountPrice)
 			.subtotal(subtotal)
 			// .timeDealId(UUID.fromString(productSnapshot.timeDealId()))
-			// .productSnapshot(productSnapshot)
+			.productSnapshot(productSnapshot)
 			.build();
 	}
 

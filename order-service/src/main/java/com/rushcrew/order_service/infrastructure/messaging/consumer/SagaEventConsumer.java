@@ -24,7 +24,6 @@ public class SagaEventConsumer {
 		try {
 			StockReservedEvent event =
 				objectMapper.readValue(message, StockReservedEvent.class);
-
 			log.info("[Saga-{}] stock.reserved 수신", event.sagaId());
 			handler.handleStockReserved(event);
 		} catch (Exception e) {
@@ -37,7 +36,6 @@ public class SagaEventConsumer {
 		try {
 			StockReservationFailedEvent event =
 				objectMapper.readValue(message, StockReservationFailedEvent.class);
-
 			log.warn("[Saga-{}] stock.reservation_failed 수신", event.sagaId());
 			handler.handleStockReservationFailed(event);
 		} catch (Exception e) {

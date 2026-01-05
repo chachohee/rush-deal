@@ -23,7 +23,6 @@ public class SagaInstance {
 	@Id
 	private UUID sagaId;
 
-	@Column(nullable = true)
 	private UUID orderId;
 
 	@Column(nullable = false, length = 50)
@@ -40,6 +39,7 @@ public class SagaInstance {
 	private Instant createdAt;
 
 	private Instant completedAt;
+
 	private Instant failedAt;
 
 	@Column(columnDefinition = "TEXT")

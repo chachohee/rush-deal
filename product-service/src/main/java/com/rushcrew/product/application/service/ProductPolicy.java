@@ -30,29 +30,33 @@ public class ProductPolicy {
      * 요청한 사용자의 USER_ROLE이 SELLER라면
      * 해당 product에 접근할 권한이 있는지 확인
      */
-    public void validateSellerPermission(Product product, Long userId, String role) {
-        if(role.equals(UserRole.SELLER.getDescription())
-            && !Objects.equals(userId, product.getSellerId().getId())) {
-            throw new BusinessException(CommonErrorCode.FORBIDDEN);
-        }
-    }
+	public void validateSellerPermission(Product product, Long userId, String role) {
+		UserRole userRole = UserRole.from(role);
+
+		if(userRole == UserRole.SELLER
+			&& !Objects.equals(userId, product.getSellerId().getId())) {
+			throw new BusinessException(CommonErrorCode.FORBIDDEN);
+		}
+	}
 
     /**
      * 요청한 사용자가 MASTER -> request의 sellerId 사용,
      *               SELLER -> @AuthenticationPrincipal로 가져온 userId 사용
      */
-    public SellerId decideSellerId(Long sellerId, Long userId, String role) {
-        if (role.equals(UserRole.MASTER.getDescription())) {
-            if (sellerId == null) {
-                throw new BusinessException(ProductErrorCode.REQUIRED_SELLER_ID);
-            }
-            return SellerId.of(sellerId);
-        }
+	public SellerId decideSellerId(Long sellerId, Long userId, String role) {
+		UserRole userRole = UserRole.from(role);
 
-        if (role.equals(UserRole.SELLER.getDescription())) {
-            return SellerId.of(userId);
-        }
+		if (userRole == UserRole.MASTER) {
+			if (sellerId == null) {
+				throw new BusinessException(ProductErrorCode.REQUIRED_SELLER_ID);
+			}
+			return SellerId.of(sellerId);
+		}
 
-        throw new BusinessException(CommonErrorCode.FORBIDDEN);
-    }
+		if (userRole == UserRole.SELLER) {
+			return SellerId.of(userId);
+		}
+
+		throw new BusinessException(CommonErrorCode.FORBIDDEN);
+	}
 }

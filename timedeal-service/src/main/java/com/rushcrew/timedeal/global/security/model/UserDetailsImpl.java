@@ -7,12 +7,12 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 public record UserDetailsImpl(Long userId, String email, String role) implements UserDetails {
 
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(() -> "ROLE_" + role);
-    }
+	@Override
+	public Collection<? extends GrantedAuthority> getAuthorities() {
+		return List.of(() -> "ROLE_" + role.toUpperCase());
+	}
 
-    @Override public String getPassword() { return ""; }
-    @Override public String getUsername() { return email; }
+	@Override public String getPassword() { return ""; }
+	@Override public String getUsername() { return email; }
 }
 

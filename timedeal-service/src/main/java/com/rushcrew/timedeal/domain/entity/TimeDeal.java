@@ -35,7 +35,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "p_time_deal", schema = "timedeal_schema")
+@Table(name = "p_time_deal", schema = "time_deal_schema")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)

@@ -28,7 +28,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "p_stock_log", schema = "timedeal_schema")
+@Table(name = "p_stock_log", schema = "time_deal_schema")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)

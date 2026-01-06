@@ -11,31 +11,29 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
-@EnableMethodSecurity
+@EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
-    private final AuthorizationFilter authorizationFilter;
+	private final AuthorizationFilter authorizationFilter;
 
-    public SecurityConfig(AuthorizationFilter authorizationFilter) {
-        this.authorizationFilter = authorizationFilter;
-    }
+	public SecurityConfig(AuthorizationFilter authorizationFilter) {
+		this.authorizationFilter = authorizationFilter;
+	}
 
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-            .csrf(AbstractHttpConfigurer::disable) // CSRF 비활성화 (API 서버이므로 필요 없음)
-            .formLogin(AbstractHttpConfigurer::disable) // Form Login, Basic Http 비활성화 (Gateway가 인증을 하므로)
-            .httpBasic(AbstractHttpConfigurer::disable)
-            .sessionManagement(session ->
-                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // 세션 사용 안 함 (Stateless 설정)
-            .logout(AbstractHttpConfigurer::disable)
-            .authorizeHttpRequests(auth -> auth
-                // 경로별 권한 설정
-                // 보통 @PreAuthorize로 처리하므로 모두 허용하거나 authenticated로 설정
-                // Actuator나 헬스 체크 경로는 열어두는 것이 좋음
-                .requestMatchers("/actuator/**").permitAll()
-                .anyRequest().authenticated()
-            )
-            .addFilterBefore(authorizationFilter, UsernamePasswordAuthenticationFilter.class);
-        return http.build();
-    }
+	@Bean
+	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+		http
+			.csrf(AbstractHttpConfigurer::disable)
+			.formLogin(AbstractHttpConfigurer::disable)
+			.httpBasic(AbstractHttpConfigurer::disable)
+			.sessionManagement(session ->
+				session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+			.logout(AbstractHttpConfigurer::disable)
+			.authorizeHttpRequests(auth -> auth
+				.requestMatchers("/actuator/**").permitAll()
+				// ⚠️ 수정: @PreAuthorize에서 권한 체크하도록 permitAll()로 변경
+				.anyRequest().permitAll()
+			)
+			.addFilterBefore(authorizationFilter, UsernamePasswordAuthenticationFilter.class);
+		return http.build();
+	}
 }

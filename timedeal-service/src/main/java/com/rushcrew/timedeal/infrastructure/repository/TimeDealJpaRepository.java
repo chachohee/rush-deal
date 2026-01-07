@@ -73,7 +73,7 @@ public interface TimeDealJpaRepository extends JpaRepository<TimeDeal, UUID> {
                 td.status           AS status,
                 td.discount_price   AS discountPrice,
                 td.limit_quantity   AS limitQuantity
-            FROM timedeal_schema.p_time_deal td
+            FROM time_deal_schema.p_time_deal td
             WHERE td.id = :timeDealId
         """,
 		nativeQuery = true

@@ -62,6 +62,32 @@ ON CONFLICT (email) DO NOTHING;
 \echo '✅ SELLER 생성 완료'
 
 -- =====================================================
+-- 3. MASTER
+-- =====================================================
+\echo ''
+\echo '🏪 Creating test seller...'
+
+INSERT INTO user_schema.p_user (
+    email,
+    password,
+    name,
+    role,
+    created_at,
+    updated_at
+)
+VALUES (
+    'master@test.com',
+    '$2a$10$N9qo8uLOickgx2ZMRZoMye1J7qizxLjxmWiGXQxPTGBLxGQXLlNji',
+    '관리자',
+    'MASTER',
+    now(),
+    now()
+)
+ON CONFLICT (email) DO NOTHING;
+
+\echo '✅ MASTER 생성 완료'
+
+-- =====================================================
 -- 3. POINT INITIALIZATION (USER 100명 → 10,000 포인트)
 -- =====================================================
 \echo ''

@@ -39,14 +39,9 @@ public class AuthorizationFilter extends OncePerRequestFilter {
 		String role = request.getHeader(USER_ROLE_HEADER);
 
 		if (userId == null || email == null || role == null) {
-			System.out.println("[AuthorizationFilter] 헤더 누락 -> SecurityContext 세팅 안 함");
-			System.out.println("X-User-Id=" + userId + ", X-User-Email=" + email + ", X-User-Role=" + role);
 			filterChain.doFilter(request, response);
 			return;
 		}
-
-		System.out.println("[AuthorizationFilter] 헤더 확인 -> SecurityContext 세팅 시도");
-		System.out.println("X-User-Id=" + userId + ", X-User-Email=" + email + ", X-User-Role=" + role);
 
 		// ⚠️ Lambda 대신 SimpleGrantedAuthority 사용
 		UsernamePasswordAuthenticationToken auth =
@@ -57,12 +52,6 @@ public class AuthorizationFilter extends OncePerRequestFilter {
 			);
 
 		SecurityContextHolder.getContext().setAuthentication(auth);
-
-		System.out.println("[AuthorizationFilter] SecurityContext 세팅 완료");
-		auth.getAuthorities().forEach(a ->
-			System.out.println("[AuthorizationFilter] Authority: " + a.getAuthority())
-		);
-
 		filterChain.doFilter(request, response);
 	}
 }

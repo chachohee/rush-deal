@@ -5,7 +5,7 @@ echo "📋 Creating Kafka topics..."
 
 TOPICS=(
   "stock.reserved"
-  "stock.reservation_failed"
+  "stock.reservation.failed"
   "stock.reservation.requested"
   "order.created"
   "order.paid"

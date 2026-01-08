@@ -31,15 +31,15 @@ public class SagaEventConsumer {
 		}
 	}
 
-	@KafkaListener(topics = "stock.reservation_failed", groupId = "order-saga")
+	@KafkaListener(topics = "stock.reservation.failed", groupId = "order-saga")
 	public void onStockReservationFailed(String message) {
 		try {
 			StockReservationFailedEvent event =
 				objectMapper.readValue(message, StockReservationFailedEvent.class);
-			log.warn("[Saga-{}] stock.reservation_failed 수신", event.sagaId());
+			log.warn("[Saga-{}] stock.reservation.failed 수신", event.sagaId());
 			handler.handleStockReservationFailed(event);
 		} catch (Exception e) {
-			log.error("stock.reservation_failed 처리 실패: {}", message, e);
+			log.error("stock.reservation.failed 처리 실패: {}", message, e);
 		}
 	}
 }

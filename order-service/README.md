@@ -615,6 +615,7 @@ Retry: 3회 (1초, 2초, 10초 간격)
 ## 🔗 관련 문서
 
 - **[테스트 실행 가이드](LOAD_TEST_GUIDE.md)** - 단계별 테스트 실행 방법
+- **[테스트 결과 보고서](LOAD_TEST_RESULT.md)** - 부하테스트 수행 결과 요약 및 분석
 - **[시스템 아키텍처](docs/ARCHITECTURE.md)** - 전체 시스템 구조
 - **[Saga 패턴 구현](docs/SAGA_PATTERN.md)** - 분산 트랜잭션 상세
 - **[성능 튜닝 가이드](docs/PERFORMANCE_TUNING.md)** - 최적화 방법

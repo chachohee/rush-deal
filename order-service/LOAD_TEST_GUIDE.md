@@ -920,3 +920,105 @@ export function teardown(data) {
     console.log('');
 }
 ```
+### 6.2 테스트 실행
+
+```bash
+k6 run load-test-order.js 2>&1 | tee load-test-output.log
+```
+
+---
+## 7. 결과 검증
+
+### 7.1 주문 결과 조회
+
+```bash
+# 주문 통계
+docker exec rushdeal_postgres psql -U rushdeal -d rushdeal -c "
+SELECT 
+    status,
+    COUNT(*) as count,
+    SUM(total_price) as total_amount
+FROM order_schema.p_order
+GROUP BY status
+ORDER BY status;
+"
+```
+
+### 7.2 재고 확인
+
+```bash
+# 재고 현황
+docker exec rushdeal_postgres psql -U rushdeal -d rushdeal -c "
+SELECT 
+    time_deal_product_id,
+    total_stock,
+    reserved_stock,
+    sold_stock,
+    (total_stock - reserved_stock - sold_stock) as available_stock
+FROM time_deal_schema.p_time_deal_stock
+ORDER BY time_deal_product_id;
+"
+```
+
+### 7.3 포인트 확인
+
+```bash
+# 포인트 사용 현황
+docker exec rushdeal_postgres psql -U rushdeal -d rushdeal -c "
+SELECT 
+    type,
+    COUNT(*) as transaction_count,
+    SUM(amount) as total_amount
+FROM user_schema.p_point_history
+GROUP BY type
+ORDER BY type;
+"
+```
+
+---
+
+## 8. 문제 해결
+
+### 8.1 일반적인 문제
+
+#### 컨테이너 실행 실패
+```bash
+docker-compose down -v
+docker-compose up -d
+```
+
+#### Kafka 토픽 생성 실패
+```bash
+./create-kafka-topics.sh
+```
+
+#### 토큰 발급 실패
+- Queue Service 헬스체크 확인
+- Redis 연결 상태 확인
+- Product ID 정확성 확인
+
+### 8.2 로그 확인
+
+```bash
+# 서비스별 로그 확인
+docker logs rushdeal_order_service
+docker logs rushdeal_queue_service
+docker logs rushdeal_kafka
+
+# 실시간 로그 모니터링
+docker logs -f rushdeal_order_service
+```
+
+### 8.3 데이터베이스 초기화
+
+```bash
+# 테스트 데이터 삭제
+docker exec rushdeal_postgres psql -U rushdeal -d rushdeal -c "
+TRUNCATE TABLE order_schema.p_order CASCADE;
+TRUNCATE TABLE time_deal_schema.p_time_deal_stock CASCADE;
+DELETE FROM user_schema.p_point_history WHERE type != 'EARN_CONFIRM';
+"
+
+# 재실행
+docker exec -i rushdeal_postgres psql -U rushdeal -d rushdeal < test-data.sql
+```

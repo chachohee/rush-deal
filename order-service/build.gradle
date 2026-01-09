@@ -20,7 +20,7 @@ dependencies {
     implementation 'com.vladmihalcea:hibernate-types-60:2.21.1'
 
     // Redisson (분산 락)
-    implementation 'org.redisson:redisson-spring-boot-starter:3.23.5'
+//    implementation 'org.redisson:redisson-spring-boot-starter:3.23.5'
 
     // 자체 공통 모듈
     implementation 'com.github.RushCrew:rush-deal-common:v0.0.7'

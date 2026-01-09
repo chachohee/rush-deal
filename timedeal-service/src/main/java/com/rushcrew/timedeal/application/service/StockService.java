@@ -12,6 +12,8 @@ import com.rushcrew.timedeal.application.result.StockLogResult;
 import com.rushcrew.timedeal.application.result.StockResult;
 import com.rushcrew.timedeal.application.result.UpdateStockCountResult;
 import com.rushcrew.timedeal.domain.vo.TimeDealStockStatus;
+
+import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -36,4 +38,6 @@ public interface StockService {
     void restoreStock(RestoreStockCommand command);
 
     Page<StockLogResult> getStockLogs(UUID stockId, String eventType, Pageable pageable);
+
+	void reserveStocksBatch(List<ReserveStockCommand> commands);
 }

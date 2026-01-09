@@ -1,4 +1,4 @@
-package com.rushcrew.order_service.global.error;
+package com.rushcrew.order_service.global.advice;
 
 import org.springframework.http.HttpStatus;
 

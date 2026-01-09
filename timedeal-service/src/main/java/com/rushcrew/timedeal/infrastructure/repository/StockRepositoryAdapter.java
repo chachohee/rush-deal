@@ -6,6 +6,8 @@ import com.rushcrew.timedeal.domain.entity.StockLog;
 import com.rushcrew.timedeal.domain.entity.TimeDealStock;
 import com.rushcrew.timedeal.domain.repository.StockRepository;
 import com.rushcrew.timedeal.domain.vo.TimeDealStockStatus;
+
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -57,4 +59,9 @@ public class StockRepositoryAdapter implements StockRepository {
     public Optional<TimeDealStock> findStockForReservation(UUID stockId) {
         return stockJpaRepository.findStockForReservation(stockId);
     }
+
+	@Override
+	public List<TimeDealStock> findStocksForReservation(List<UUID> stockIds) {
+		return stockJpaRepository.findStocksForReservation(stockIds);
+	}
 }

@@ -4,12 +4,15 @@ import java.util.UUID;
 
 import org.springframework.stereotype.Component;
 
+import com.rushcrew.common.exception.BusinessException;
 import com.rushcrew.order_service.application.port.out.PointPort;
 import com.rushcrew.order_service.application.saga.dto.OrderCreationSagaData;
 import com.rushcrew.order_service.application.saga.dto.SagaContext;
 import com.rushcrew.order_service.application.saga.dto.SagaStepResult;
 import com.rushcrew.order_service.domain.enums.SagaStepName;
+import com.rushcrew.order_service.global.advice.OrderErrorCode;
 
+import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -21,7 +24,9 @@ public class UsePointStep {
 	private final PointPort pointPort;
 
 	public SagaStepResult execute(SagaContext context, OrderCreationSagaData data) {
-		log.info("[Saga-{}] Step 2: {} 시작", context.getSagaId(), SagaStepName.USE_POINT.getDescription());
+		log.info("[Saga-{}] Step 2: {} 시작",
+			context.getSagaId(), SagaStepName.USE_POINT.getDescription());
+
 		try {
 			Long pointUsed = data.getCommand().pointUsed();
 
@@ -37,29 +42,50 @@ public class UsePointStep {
 
 			log.info("[Saga-{}] Step 2: 포인트 차감 요청 (userId={}, pointUsed={}, orderId={})",
 				sagaId, userId, pointUsed, orderId);
+
 			pointPort.usePoint(userId, orderId.toString(), pointUsed, sagaId);
 
 			log.info("[Saga-{}] Step 2: {} 완료 (orderId={}, pointUsed={})",
 				sagaId, SagaStepName.USE_POINT.getDescription(), orderId, pointUsed);
+
 			return SagaStepResult.success();
 
-		} catch (IllegalArgumentException e) {
-			log.warn("[Saga-{}] Step 2: {} 실패 - {}",
-				context.getSagaId(), SagaStepName.USE_POINT.getDescription(), e.getMessage());
-			return SagaStepResult.failure(e.getMessage());
+		} catch (BusinessException e) {
+			log.error("[Saga-{}] Step 2: {} 실패 - ErrorCode: {}, Message: {}",
+				context.getSagaId(),
+				SagaStepName.USE_POINT.getDescription(),
+				e.getErrorCode() != null ? e.getErrorCode().getName() : "UNKNOWN",
+				e.getErrorCode() != null ? e.getErrorCode().getMessage() : "No message"
+			);
+
+			return SagaStepResult.failure(e.getErrorCode());
+
+		} catch (FeignException e) {
+			log.error("[Saga-{}] Step 2: FeignException 발생 - status={}, body={}",
+				context.getSagaId(), e.status(), e.contentUTF8());
+
+			// 포인트 부족 오류 매핑
+			if (e.status() == 400 && e.contentUTF8().contains("POINT-002")) {
+				return SagaStepResult.failure(OrderErrorCode.NOT_ENOUGH_POINTS);
+			}
+
+			// 기타 외부 서비스 오류
+			return SagaStepResult.failure(OrderErrorCode.POINT_SERVICE_ERROR);
 
 		} catch (Exception e) {
-			log.error("[Saga-{}] Step 2: {} 실패 - {}",
-				context.getSagaId(), SagaStepName.USE_POINT.getDescription(), e.getMessage(), e);
-			return SagaStepResult.failure("포인트 서비스 호출 실패: " + e.getMessage());
+			log.error("[Saga-{}] Step 2: 알 수 없는 오류 발생 - {}",
+				context.getSagaId(), e.getMessage(), e);
+
+			return SagaStepResult.failure(OrderErrorCode.POINT_SERVICE_ERROR);
 		}
 	}
+
 
 	public void compensate(SagaContext context, OrderCreationSagaData data) {
 		try {
 			Long pointUsed = data.getCommand().pointUsed();
 
-			if (pointUsed == null || pointUsed == 0) {
+			if (pointUsed == null || pointUsed <= 0) {
 				log.info("[Saga-{}] 보상: 포인트 사용 없음, 스킵", context.getSagaId());
 				return;
 			}
@@ -79,6 +105,7 @@ public class UsePointStep {
 		} catch (Exception e) {
 			log.error("[Saga-{}] 보상: {} 실패 - {}",
 				context.getSagaId(), SagaStepName.USE_POINT_COMPENSATE.getDescription(), e.getMessage(), e);
+
 			throw new RuntimeException("포인트 보상 실패", e);
 		}
 	}

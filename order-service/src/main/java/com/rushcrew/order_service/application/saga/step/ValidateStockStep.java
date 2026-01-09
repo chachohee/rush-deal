@@ -33,6 +33,7 @@ public class ValidateStockStep {
 		log.info("[Saga-{}] Step 1: {} 시작", context.getSagaId(), SagaStepName.VALIDATE_STOCK.getDescription());
 		try {
 			CreateOrderCommand command = data.getCommand();
+
 			// 1. 큐 토큰 검증
 			log.info("[Saga-{}] Step 1-1: 큐 토큰 검증 시작 (userId={}, productId={})",
 				context.getSagaId(), command.userId(), command.productId());
@@ -72,11 +73,13 @@ public class ValidateStockStep {
 			return SagaStepResult.success();
 
 		} catch (BusinessException e) {
-			String errorMsg = e.getMessage() != null ? e.getMessage() : "비즈니스 검증 실패";
-			log.error("[Saga-{}] Step 1: {} 실패 - ExceptionType: {}, Message: {}",
-				context.getSagaId(), SagaStepName.VALIDATE_STOCK.getDescription(),
-				e.getClass().getSimpleName(), errorMsg, e);
-			return SagaStepResult.failure(errorMsg);
+			log.error("[Saga-{}] Step 1: {} 실패 - ErrorCode: {}, Message: {}",
+				context.getSagaId(),
+				SagaStepName.VALIDATE_STOCK.getDescription(),
+				e.getErrorCode() != null ? e.getErrorCode().getName() : "UNKNOWN",
+				e.getErrorCode() != null ? e.getErrorCode().getMessage() : "No message");
+
+			return SagaStepResult.failure(e.getErrorCode());
 
 		} catch (Exception e) {
 			String errorMsg = "재고 검증 중 오류 발생: " + e.getClass().getSimpleName();

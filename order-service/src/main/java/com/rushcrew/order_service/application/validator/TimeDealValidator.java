@@ -5,7 +5,7 @@ import org.springframework.stereotype.Component;
 import com.rushcrew.common.exception.BusinessException;
 import com.rushcrew.order_service.application.port.dto.TimeDealInfo;
 import com.rushcrew.order_service.application.port.dto.TimeDealStatus;
-import com.rushcrew.order_service.global.error.OrderErrorCode;
+import com.rushcrew.order_service.global.advice.OrderErrorCode;
 
 @Component
 public class TimeDealValidator {

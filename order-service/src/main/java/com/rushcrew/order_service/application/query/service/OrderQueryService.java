@@ -13,7 +13,7 @@ import com.rushcrew.order_service.application.query.dto.OrderSearchCriteria;
 import com.rushcrew.order_service.application.query.usecase.GetOrderDetailUseCase;
 import com.rushcrew.order_service.application.query.usecase.GetOrderListUseCase;
 import com.rushcrew.order_service.application.query.port.out.OrderQueryPort;
-import com.rushcrew.order_service.global.error.OrderErrorCode;
+import com.rushcrew.order_service.global.advice.OrderErrorCode;
 
 import lombok.RequiredArgsConstructor;
 

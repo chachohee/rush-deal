@@ -1,6 +1,12 @@
 # order-service
 server:
   port: ${ORDER_SERVER_PORT:8050}
+  tomcat:
+    threads:
+      max: 200              # 최대 스레드 수
+      min-spare: 10
+    max-connections: 8192   # 최대 연결 수
+    accept-count: 100       # 대기 큐 크기
 
 spring:
   application:
@@ -18,6 +24,7 @@ spring:
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
+#      ddl-auto: create-drop
       ddl-auto: ${JPA_DDL_AUTO:update}
     show-sql: ${SHOW_SQL:false}
     properties:
@@ -50,27 +57,49 @@ spring:
         multiplier: 2.0
         max-interval: 10000
 
+logging:
+  level:
+    com.rushcrew.order_service.application.validator: DEBUG  # Validator 로그 활성화
+    com.rushcrew.order_service.application.saga: INFO
+
 eureka:
   client:
     service-url:
       defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
 
+#management:
+#  endpoints:
+#    web:
+#      exposure:
+#        include: health,info,metrics,prometheus,scheduledtasks
+#      base-path: /actuator
+#  endpoint:
+#    health:
+#      show-details: when-authorized
+#  metrics:
+#    tags:
+#      application: ${spring.application.name}
+#  prometheus:
+#    metrics:
+#      export:
+#        enabled: true
+#  zipkin:
+#    tracing:
+#      endpoint: ${MANAGEMENT_ZIPKIN_TRACING_ENDPOINT:http://localhost:9411/api/v2/spans}
+#  tracing:
+#    sampling:
+#      probability: 1.0
+
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus,scheduledtasks
-      base-path: /actuator
+        include: '*'
   endpoint:
     health:
-      show-details: when-authorized
-  metrics:
-    tags:
-      application: ${spring.application.name}
-  prometheus:
-    metrics:
-      export:
-        enabled: true
+      show-details: always
+    prometheus:
+      access: unrestricted
   zipkin:
     tracing:
       endpoint: ${MANAGEMENT_ZIPKIN_TRACING_ENDPOINT:http://localhost:9411/api/v2/spans}

@@ -5,6 +5,8 @@ import com.rushcrew.timedeal.application.result.StockResult;
 import com.rushcrew.timedeal.domain.entity.StockLog;
 import com.rushcrew.timedeal.domain.entity.TimeDealStock;
 import com.rushcrew.timedeal.domain.vo.TimeDealStockStatus;
+
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -26,4 +28,6 @@ public interface StockRepository {
     Page<StockLogResult> findLogByIdAndFilter(UUID stockId, String eventType, Pageable pageable);
 
     Optional<TimeDealStock> findStockForReservation(UUID stockId);
+
+	List<TimeDealStock> findStocksForReservation(List<UUID> stockIds);
 }

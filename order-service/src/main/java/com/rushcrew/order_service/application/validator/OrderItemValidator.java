@@ -8,7 +8,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Component;
 import com.rushcrew.common.exception.BusinessException;
 import com.rushcrew.order_service.application.command.dto.command.CreateOrderCommand;
-import com.rushcrew.order_service.global.error.OrderErrorCode;
+import com.rushcrew.order_service.global.advice.OrderErrorCode;
 
 @Component
 public class OrderItemValidator {

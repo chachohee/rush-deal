@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 
 import com.rushcrew.common.exception.BusinessException;
 import com.rushcrew.order_service.application.port.out.QueuePort;
-import com.rushcrew.order_service.global.error.OrderErrorCode;
+import com.rushcrew.order_service.global.advice.OrderErrorCode;
 
 import lombok.RequiredArgsConstructor;
 

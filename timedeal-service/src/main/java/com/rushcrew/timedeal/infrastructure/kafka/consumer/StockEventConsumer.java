@@ -8,7 +8,6 @@ import com.rushcrew.timedeal.application.command.ReserveStockCommand;
 import com.rushcrew.timedeal.application.command.RestoreStockCommand;
 import com.rushcrew.timedeal.application.port.out.event.StockReservationFailedEvent;
 import com.rushcrew.timedeal.application.port.out.event.StockReservedEvent;
-import com.rushcrew.timedeal.application.result.ReserveStockResult;
 import com.rushcrew.timedeal.application.service.StockService;
 import com.rushcrew.timedeal.domain.vo.OrderId;
 import com.rushcrew.timedeal.domain.vo.Quantity;
@@ -29,116 +28,105 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class StockEventConsumer {
 
-    private final StockService stockService;
-    private final ObjectMapper objectMapper;
-    private final StockEventProducer stockEventProducer;
+	private final StockService stockService;
+	private final ObjectMapper objectMapper;
+	private final StockEventProducer stockEventProducer;
 
-    // 주문 생성 -> 재고 예약
-    @KafkaListener(topics = "stock.reservation.requested")
-    public void reserve(String message) {
-        StockReserveEvent event = null;
-        try {
-            log.info("재고 예약 메시지 수신: {}", message);
+	// ✅ 주문 생성 -> 재고 배치 예약
+	@KafkaListener(topics = "stock.reservation.requested")
+	public void reserve(String message) {
+		StockReserveEvent event = null;
+		try {
+			log.info("재고 배치 예약 메시지 수신: {}", message);
 
-            event = objectMapper.readValue(message, StockReserveEvent.class);
+			event = objectMapper.readValue(message, StockReserveEvent.class);
 
-            // 재고 예약 처리
-            List<StockReservedEvent.ReservedStockItem> reservedItems = new ArrayList<>();
+			log.info("재고 배치 예약 시작: sagaId={}, itemCount={}",
+				event.sagaId(), event.orderItems().size());
 
-            for (StockReserveEvent.OrderItem item : event.orderItems()) {
-                ReserveStockCommand command = new ReserveStockCommand(
-                    OrderId.of(UUID.fromString(event.sagaId())),
-                    UUID.fromString(item.timeDealStockId()),
-                    Quantity.positive(item.quantity()),
-                    event.userId()
-                );
+			// ✅ 배치 커맨드 생성
+			List<ReserveStockCommand> commands = new ArrayList<>();
+			for (StockReserveEvent.OrderItem item : event.orderItems()) {
+				commands.add(new ReserveStockCommand(
+					OrderId.of(UUID.fromString(event.sagaId())),
+					UUID.fromString(item.timeDealStockId()),
+					Quantity.positive(item.quantity()),
+					event.userId()
+				));
+			}
 
-				// 재고 예약만 수행
-				stockService.reserveStock(command);
+			// ✅ 배치 재고 예약 (트랜잭션 내에서 원자적으로 처리)
+			stockService.reserveStocksBatch(commands);
 
-				log.info(
-					"재고 예약 요청 처리 완료: sagaId={}, stockId={}, quantity={}",
+			log.info("재고 배치 예약 완료: sagaId={}, itemCount={}",
+				event.sagaId(), commands.size());
+
+		} catch (JsonProcessingException e) {
+			log.error("재고 예약 메시지 파싱 실패: {}", message, e);
+			throw new RuntimeException("재고 예약 메시지 파싱 실패", e);
+
+		} catch (Exception e) {
+			log.error("재고 배치 예약 실패: sagaId={}, error={}",
+				event != null ? event.sagaId() : "unknown", e.getMessage(), e);
+
+			// ✅ 실패 이벤트 발행 (StockService에서 이미 발행했지만 안전장치)
+			if (event != null) {
+				StockReservationFailedEvent failedEvent = StockReservationFailedEvent.of(
 					event.sagaId(),
-					item.timeDealStockId(),
-					item.quantity()
+					event.productId(),
+					e.getMessage()
 				);
-            }
+				stockEventProducer.publishStockReservationFailed(failedEvent);
+			}
 
-        } catch (JsonProcessingException e) {
-            log.error("재고 예약 메시지 파싱 실패: {}", message, e);
-            throw new RuntimeException("재고 예약 메시지 파싱 실패", e);
+			throw new RuntimeException("재고 배치 예약 실패", e);
+		}
+	}
 
-        } catch (Exception e) {
-            log.error("재고 예약 처리 실패: sagaId={}",
-                event != null ? event.sagaId() : "unknown", e);
+	// 결제 -> 재고 확정
+	@KafkaListener(topics = "payment.completed")
+	public void confirm(String message) {
+		try {
+			log.info("재고 확정 메시지 수신: {}", message);
 
-            if (event != null) {
-                StockReservationFailedEvent failedEvent = StockReservationFailedEvent.of(
-                    event.sagaId(),
-                    event.productId(),
-                    e.getMessage()
-                );
-                stockEventProducer.publishStockReservationFailed(failedEvent);
-            }
+			StockConfirmEvent event = objectMapper.readValue(message, StockConfirmEvent.class);
 
-            throw new RuntimeException("재고 예약 처리 실패", e);
-        }
-    }
+			ConfirmStockCommand command = new ConfirmStockCommand(
+				OrderId.of(event.orderId()),
+				event.stockId(),
+				Quantity.positive(event.quantity())
+			);
+			stockService.confirmStock(command);
 
-    // 결제 -> 재고 확정
-    @KafkaListener(topics = "payment.completed")
-    public void confirm(String message) {
-        try {
-            log.info("재고 확정 메시지 수신: {}", message);
+			log.info("재고 확정 완료: orderId={}", event.orderId());
 
-            StockConfirmEvent event = objectMapper.readValue(message, StockConfirmEvent.class);
+		} catch (JsonProcessingException e) {
+			log.error("재고 확정 메시지 파싱 실패: {}", message, e);
+			throw new RuntimeException("재고 확정 메시지 파싱 실패", e);
+		}
+	}
 
-            ConfirmStockCommand command = new ConfirmStockCommand(
-                OrderId.of(event.orderId()),
-                event.stockId(),
-                Quantity.positive(event.quantity())
-            );
-            stockService.confirmStock(command);
+	// 주문 취소 -> 재고 복구
+	@KafkaListener(topics = "order.cancelled")
+	public void restore(String message) {
+		try {
+			log.info("재고 복구 메시지 수신: {}", message);
 
-            log.info("재고 확정 완료: orderId={}", event.orderId());
+			StockRestoreEvent event = objectMapper.readValue(message, StockRestoreEvent.class);
 
-        } catch (JsonProcessingException e) {
-            log.error("재고 확정 메시지 파싱 실패: {}", message, e);
-            throw new RuntimeException("재고 확정 메시지 파싱 실패", e);
-        }
-    }
+			RestoreStockCommand command = new RestoreStockCommand(
+				event.stockId(),
+				Quantity.positive(event.quantity()),
+				OrderId.of(event.orderId()),
+				event.reason()
+			);
+			stockService.restoreStock(command);
 
-    // 주문 취소 -> 재고 복구
-    @KafkaListener(topics = "order.cancelled")
-    public void restore(String message) {
-        try {
-            log.info("재고 복구 메시지 수신: {}", message);
+			log.info("재고 복구 완료: orderId={}", event.orderId());
 
-            StockRestoreEvent event = objectMapper.readValue(message, StockRestoreEvent.class);
-
-            RestoreStockCommand command = new RestoreStockCommand(
-                event.stockId(),
-                Quantity.positive(event.quantity()),
-                OrderId.of(event.orderId()),
-                event.reason()
-            );
-            stockService.restoreStock(command);
-
-            log.info("재고 복구 완료: orderId={}", event.orderId());
-
-        } catch (JsonProcessingException e) {
-            log.error("재고 복구 메시지 파싱 실패: {}", message, e);
-            throw new RuntimeException("재고 복구 메시지 파싱 실패", e);
-        }
-    }
-
-    // 에러 로깅을 위한 헬퍼 메서드
-    private String extractSagaId(String message) {
-        try {
-            JsonNode node = objectMapper.readTree(message);
-            return node.has("sagaId") ? node.get("sagaId").asText() : "unknown";
-        } catch (Exception e) {
-            return "unknown";
-        }
-    }
+		} catch (JsonProcessingException e) {
+			log.error("재고 복구 메시지 파싱 실패: {}", message, e);
+			throw new RuntimeException("재고 복구 메시지 파싱 실패", e);
+		}
+	}
 }

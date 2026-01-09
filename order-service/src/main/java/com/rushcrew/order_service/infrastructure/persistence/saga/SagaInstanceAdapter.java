@@ -11,8 +11,7 @@ import com.rushcrew.order_service.application.port.out.SagaInstancePort;
 import com.rushcrew.order_service.domain.enums.SagaStatus;
 import com.rushcrew.order_service.domain.enums.SagaStepName;
 import com.rushcrew.order_service.domain.model.saga.SagaInstance;
-import com.rushcrew.order_service.global.error.OrderErrorCode;
-import com.rushcrew.order_service.global.error.SagaErrorCode;
+import com.rushcrew.order_service.global.advice.SagaErrorCode;
 import com.rushcrew.order_service.infrastructure.persistence.saga.repository.SagaInstanceJpaRepository;
 
 import lombok.RequiredArgsConstructor;

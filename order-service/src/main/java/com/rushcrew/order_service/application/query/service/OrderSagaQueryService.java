@@ -4,11 +4,9 @@ import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
-import com.rushcrew.common.exception.BusinessException;
 import com.rushcrew.order_service.application.query.dto.OrderSagaResult;
 import com.rushcrew.order_service.application.query.port.out.SagaQueryPort;
 import com.rushcrew.order_service.application.query.usecase.GetOrderSagaUseCase;
-import com.rushcrew.order_service.global.error.OrderErrorCode;
 
 import lombok.RequiredArgsConstructor;
 

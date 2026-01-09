@@ -19,7 +19,7 @@ import com.rushcrew.order_service.application.port.out.OutboxPort;
 import com.rushcrew.order_service.application.query.port.out.OrderQueryPort;
 import com.rushcrew.order_service.domain.enums.OrderStatus;
 import com.rushcrew.order_service.domain.model.order.Order;
-import com.rushcrew.order_service.global.error.OrderErrorCode;
+import com.rushcrew.order_service.global.advice.OrderErrorCode;
 import com.rushcrew.order_service.infrastructure.messaging.event.OutboxEventType;
 
 import lombok.RequiredArgsConstructor;

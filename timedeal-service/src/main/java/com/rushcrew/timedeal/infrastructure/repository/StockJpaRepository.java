@@ -5,14 +5,19 @@ import com.rushcrew.timedeal.application.result.StockResult;
 import com.rushcrew.timedeal.domain.entity.StockLog;
 import com.rushcrew.timedeal.domain.entity.TimeDealStock;
 import com.rushcrew.timedeal.domain.vo.TimeDealStockStatus;
+
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+
+import jakarta.persistence.LockModeType;
 
 @Repository
 public interface StockJpaRepository extends JpaRepository<TimeDealStock, UUID> {
@@ -27,52 +32,54 @@ public interface StockJpaRepository extends JpaRepository<TimeDealStock, UUID> {
         @Param("stockId") UUID stockId
     );
 
-    @Query("""
-                  SELECT new com.rushcrew.timedeal.application.result.StockResult(
-                                  tds.id,
-                                  tdp.id,
-                                  tdp.timeDeal.timeDealInfo.sellerId,
-                                  tds.stockCounts.available,
-                                  tds.stockCounts.reserved,
-                                  tds.stockCounts.sold,
-                                  tdp.status,
-                                  tds.updatedAt
-                             )
-                  FROM TimeDealStock tds
-                  JOIN tds.timeDealProduct tdp
-                  JOIN tdp.timeDeal td
-                  WHERE (:keyword IS NULL OR CAST(td.timeDealInfo.title AS STRING) LIKE :keyword)
-                    AND (:productId IS NULL OR tdp.id = :productId)
-                    AND (:status IS NULL OR tds.status = :status)
-                    AND tds.deletedAt IS NULL
-        """)
-    Page<StockResult> findStockResults(
-        @Param("keyword") String keyword,
-        @Param("productId") UUID productId,
-        @Param("status") TimeDealStockStatus status,
-        Pageable pageable
-    );
+	@Query("""
+			SELECT new com.rushcrew.timedeal.application.result.StockResult(
+				tds.id,
+				tds.itemIds.productId,
+				tds.itemIds.optionId,
+				tdp.timeDeal.timeDealInfo.sellerId,
+				tds.stockCounts.available,
+				tds.stockCounts.reserved,
+				tds.stockCounts.sold,
+				tdp.status,
+				tds.updatedAt
+			)
+			FROM TimeDealStock tds
+			JOIN tds.timeDealProduct tdp
+			JOIN tdp.timeDeal td
+			WHERE (:keyword IS NULL OR CAST(td.timeDealInfo.title AS STRING) LIKE :keyword)
+			  AND (:productId IS NULL OR tds.itemIds.productId = :productId)
+			  AND (:status IS NULL OR tds.status = :status)
+			  AND tds.deletedAt IS NULL
+		""")
+	Page<StockResult> findStockResults(
+		@Param("keyword") String keyword,
+		@Param("productId") UUID productId,
+		@Param("status") TimeDealStockStatus status,
+		Pageable pageable
+	);
 
 
-    @Query("""
-                  SELECT new com.rushcrew.timedeal.application.result.StockResult(
-                                  tds.id,
-                                  tdp.id,
-                                  tdp.timeDeal.timeDealInfo.sellerId,
-                                  tds.stockCounts.available,
-                                  tds.stockCounts.reserved,
-                                  tds.stockCounts.sold,
-                                  tdp.status,
-                                  tds.updatedAt
-                             )
-                  FROM TimeDealStock tds
-                  JOIN tds.timeDealProduct tdp
-                  WHERE tds.id = :stockId
-                    AND tds.deletedAt IS NULL
-        """)
-    StockResult findStockResultById(
-        @Param("stockId") UUID stockId
-    );
+	@Query("""
+			SELECT new com.rushcrew.timedeal.application.result.StockResult(
+				tds.id,
+				tds.itemIds.productId,
+				tds.itemIds.optionId,
+				tdp.timeDeal.timeDealInfo.sellerId,
+				tds.stockCounts.available,
+				tds.stockCounts.reserved,
+				tds.stockCounts.sold,
+				tdp.status,
+				tds.updatedAt
+			)
+			FROM TimeDealStock tds
+			JOIN tds.timeDealProduct tdp
+			WHERE tds.id = :stockId
+			  AND tds.deletedAt IS NULL
+		""")
+	StockResult findStockResultById(
+		@Param("stockId") UUID stockId
+	);
 
     @Query("""
                 SELECT sl
@@ -116,4 +123,13 @@ public interface StockJpaRepository extends JpaRepository<TimeDealStock, UUID> {
                   AND tds.deletedAt IS NULL
      """)
     Optional<TimeDealStock> findStockForReservation(@Param("stockId") UUID stockId);
+
+	/**
+	 * ✅ 배치 재고 조회 (비관적 락)
+	 * - 여러 재고를 한 번에 조회하여 성능 향상
+	 * - PESSIMISTIC_WRITE 락으로 동시성 제어
+	 */
+	@Lock(LockModeType.PESSIMISTIC_WRITE)
+	@Query("SELECT s FROM TimeDealStock s WHERE s.id IN :ids")
+	List<TimeDealStock> findStocksForReservation(@Param("ids") List<UUID> ids);
 }

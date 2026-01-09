@@ -4,6 +4,7 @@ import java.util.UUID;
 
 import org.springframework.stereotype.Component;
 
+import com.rushcrew.common.exception.BusinessException;
 import com.rushcrew.order_service.application.command.dto.command.CreateOrderCommand;
 import com.rushcrew.order_service.application.port.out.SagaInstancePort;
 import com.rushcrew.order_service.application.saga.dto.OrderCreationSagaData;
@@ -57,20 +58,12 @@ public class OrderCreationSagaOrchestrator {
 		try {
 			// Step 1: ValidateStock
 			SagaStepResult validateResult = validateStockStep.execute(context, data);
-			if (validateResult.isFailure()) {
-				saga.fail(validateResult.getErrorMessage());
-				sagaInstancePort.save(saga);
-				throw new IllegalArgumentException(validateResult.getErrorMessage());
-			}
+			handleStepResult(saga, validateResult);
 			saga.addStep(SagaStepName.VALIDATE_STOCK, SagaStatus.COMPLETED);
 
 			// Step 2: UsePoint
 			SagaStepResult pointResult = usePointStep.execute(context, data);
-			if (pointResult.isFailure()) {
-				saga.fail(pointResult.getErrorMessage());
-				sagaInstancePort.save(saga);
-				throw new IllegalArgumentException(pointResult.getErrorMessage());
-			}
+			handleStepResult(saga, pointResult);
 			saga.addStep(SagaStepName.USE_POINT, SagaStatus.COMPLETED);
 
 			// Step 3: RequestStockReservation
@@ -84,10 +77,35 @@ public class OrderCreationSagaOrchestrator {
 			log.info("[Saga-{}] Saga 초기화 완료 (비동기 대기)", saga.getSagaId());
 			return saga.getSagaId();
 
-		} catch (Exception e) {
-			log.error("[Saga-{}] Saga 실패: {}", saga.getSagaId(), e.getMessage(), e);
+		} catch (BusinessException e) {
+			log.error("[Saga-{}] Saga 실패 (BusinessException): ErrorCode={}, Message={}",
+				saga.getSagaId(),
+				e.getErrorCode() != null ? e.getErrorCode().getName() : "UNKNOWN",
+				e.getErrorCode() != null ? e.getErrorCode().getMessage() : "No message");
 			compensateCompletedSteps(saga, context, data);
 			throw e;
+
+		} catch (Exception e) {
+			log.error("[Saga-{}] Saga 실패 (예상치 못한 오류): {}",
+				saga.getSagaId(), e.getMessage(), e);
+			compensateCompletedSteps(saga, context, data);
+			throw e;
+		}
+	}
+
+	/**
+	 * Step 실행 결과 처리
+	 */
+	private void handleStepResult(SagaInstance saga, SagaStepResult result) {
+		if (result.isFailure()) {
+			saga.fail(result.getErrorMessage());
+			sagaInstancePort.save(saga);
+
+			if (result.getErrorCode() != null) {
+				throw new BusinessException(result.getErrorCode());
+			} else {
+				throw new RuntimeException(result.getErrorMessage());
+			}
 		}
 	}
 

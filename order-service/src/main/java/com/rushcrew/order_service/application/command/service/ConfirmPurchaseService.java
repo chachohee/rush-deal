@@ -15,7 +15,7 @@ import com.rushcrew.order_service.application.command.usecase.ConfirmPurchaseUse
 import com.rushcrew.order_service.application.port.out.OutboxPort;
 import com.rushcrew.order_service.application.port.out.PointEventPort;
 import com.rushcrew.order_service.domain.model.order.Order;
-import com.rushcrew.order_service.global.error.OrderErrorCode;
+import com.rushcrew.order_service.global.advice.OrderErrorCode;
 import com.rushcrew.order_service.infrastructure.messaging.event.OutboxEventType;
 
 import lombok.RequiredArgsConstructor;

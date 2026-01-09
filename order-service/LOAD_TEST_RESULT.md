@@ -67,7 +67,7 @@
 | Grafana       | rushdeal_grafana        | Up | 3000  |  |
 | Zipkin        | rushdeal_zipkin         | Up | 9411  |  |
 
-![docker.png](./order-service/docs/images/docker.png)
+![docker.png](docs/images/docker.png)
 
 ### 2.2 인프라 헬스체크 결과
 
@@ -263,9 +263,9 @@ INSERT 0 100
 # 포인트 합계 확인
 💰 Total Points: 1,000,000
 ```
-![user_db.png](./order-service/docs/images/user_db.png)
+![user_db.png](docs/images/user_db.png)
 
-![point_db.png](./order-service/docs/images/point_db.png)
+![point_db.png](docs/images/point_db.png)
 
 **상태:** ✅ 테스트 데이터 정상 생성
 
@@ -287,15 +287,15 @@ INSERT 0 100
 | 옵션 수 | 4개 (S/M × 빨강/파랑) |
 
 **포스트맨 요청:**
-![product_postman.png](./order-service/docs/images/product_postman.png)
+![product_postman.png](docs/images/product_postman.png)
 
 **생성 결과:**
 - Product ID: `2728e8db-cea7-42fd-bdde-ad665eccb5dc`
 - 상태: ✅ 성공
 
-![product_db.png](./order-service/docs/images/product_db.png)
+![product_db.png](docs/images/product_db.png)
 
-![product_option_db.png](./order-service/docs/images/product_option_db.png)
+![product_option_db.png](docs/images/product_option_db.png)
 
 ### 4.2 타임딜 생성 결과
 
@@ -312,21 +312,21 @@ INSERT 0 100
 | 상태 | IN_PROGRESS |
 
 **포스트맨 요청:**
-![timedeal_postman.png](./order-service/docs/images/timedeal_postman.png)
+![timedeal_postman.png](docs/images/timedeal_postman.png)
 
 **생성 결과:**
 - TimeDeal ID: `59985464-4f6b-40e3-8e6a-8626005e77b2`
 - 생성된 TimeDeal Product: 4개
 - 상태: ✅ 성공
 
-![timedeal_db.png](./order-service/docs/images/timedeal_db.png)
+![timedeal_db.png](docs/images/timedeal_db.png)
 
-![timedeal_product_db.png](./order-service/docs/images/timedeal_product_db.png)
+![timedeal_product_db.png](docs/images/timedeal_product_db.png)
 
 ### 4.3 재고 설정 결과
 **포스트맨 요청:**
 4회 수행
-![stock_postman.png](./order-service/docs/images/stock_postman.png)
+![stock_postman.png](docs/images/stock_postman.png)
 
 **재고 정보:**
 
@@ -338,7 +338,7 @@ INSERT 0 100
 | M-파랑 | `8b7951f9-539a-457a-ac4b-a4c3ff72b91e` | `373d331d-42a3-456e-9e47-418d57f03289` | 100개 | ✅ |
 
 **총 재고:** 400개
-![stock_db.png](./order-service/docs/images/stock_db.png)
+![stock_db.png](docs/images/stock_db.png)
 
 ### 4.4 대기열 정책 생성 결과
 
@@ -355,7 +355,7 @@ INSERT 0 100
 | TTL | 36,000초 (10시간) |
 
 **생성 결과:** ✅ 성공
-![queue_db.png](./order-service/docs/images/queue_db.png)
+![queue_db.png](docs/images/queue_db.png)
 
 ---
 
@@ -416,7 +416,7 @@ c88f36f9-01ba-4cba-9d12-406bc665cfbd
 ```
 
 **상태:** ✅ 토큰 발급 성공
-![queue_token_redis.png](./order-service/docs/images/queue_token_redis.png)
+![queue_token_redis.png](docs/images/queue_token_redis.png)
 
 ---
 

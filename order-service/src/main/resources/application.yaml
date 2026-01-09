@@ -38,10 +38,10 @@ spring:
       password: ${REDIS_PASSWORD:}
   sql:
     init:
-      mode: ${SQL_INIT_MODE:never}
+      mode: always
+#      mode: ${SQL_INIT_MODE:never}
       encoding: UTF-8
       schema-locations:
-        - classpath:schema.sql
         - classpath:sql/batch-schema.sql
   kafka:
     bootstrap-servers: ${KAFKA_BROKERS:localhost:9092}

@@ -30,8 +30,10 @@ public interface OrderJpaRepository extends JpaRepository<Order, UUID> {
 
 	Page<Order> findByUserId(Long userId, Pageable pageable);
 
-	/* 자동 구매확정 대상 조회 --> autoConfirmTargetOrderReader()에서 메서드 네임으로 사용 */
+	/** 자동 구매확정 대상 조회 --> autoConfirmTargetOrderReader()에서 메서드 네임으로 사용 */
 	Page<Order> findAllByStatusAndAutoConfirmScheduledAtBefore(OrderStatus status, Instant scheduledAt, Pageable pageable);
+
+
 
 	// ==================== 캐시 워밍 쿼리 ====================
 

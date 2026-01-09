@@ -35,7 +35,7 @@ public class AutoConfirmPurchaseBatchJob {
 	private final OrderJpaRepository orderJpaRepository;
 	private final PointEventPort pointEventPort;
 
-	/* 자동 구매확정 Job */
+	/** 자동 구매확정 Job */
 	@Bean
 	public Job autoConfirmPurchaseJob() {
 		return new JobBuilder("autoConfirmPurchaseJob", jobRepository)
@@ -43,7 +43,7 @@ public class AutoConfirmPurchaseBatchJob {
 			.build();
 	}
 
-	/* 자동 구매확정 Step */
+	/** 자동 구매확정 Step */
 	@Bean
 	public Step autoConfirmPurchaseStep() {
 		return new StepBuilder("autoConfirmPurchaseStep", jobRepository)
@@ -54,7 +54,7 @@ public class AutoConfirmPurchaseBatchJob {
 			.build();
 	}
 
-	/* Reader: 자동 구매확정 대상 주문 조회 */
+	/** Reader: 자동 구매확정 대상 주문 조회 */
 	@Bean
 	public RepositoryItemReader<Order> autoConfirmTargetOrderReader() {
 		return new RepositoryItemReaderBuilder<Order>()
@@ -67,7 +67,7 @@ public class AutoConfirmPurchaseBatchJob {
 			.build();
 	}
 
-	/* Processor: 구매확정 처리 */
+	/** Processor: 구매확정 처리 */
 	@Bean
 	public ItemProcessor<Order, Order> autoConfirmProcessor() {
 		return order -> {
@@ -78,16 +78,14 @@ public class AutoConfirmPurchaseBatchJob {
 		};
 	}
 
-	/* Writer: DB 저장 및 포인트 적립 이벤트 발행 */
+	/** Writer: DB 저장 및 포인트 적립 이벤트 발행 */
 	@Bean
 	public ItemWriter<Order> autoConfirmWriter() {
 		return orders -> {
 			// 1. 주문 저장 (OrderHistory도 cascade로 저장됨)
 			orderJpaRepository.saveAll(orders);
-
 			// 2. 각 주문에 대해 포인트 적립 요청
 			for (Order order : orders) {
-
 				pointEventPort.publishPointEarnRequested(
 					order.getUserId(),
 					order.getOrderId(),
@@ -95,11 +93,9 @@ public class AutoConfirmPurchaseBatchJob {
 					order.getSagaId(),
 					"자동 구매확정"
 				);
-
 				log.info("자동 구매확정 완료 + 포인트 적립 요청 - 주문 ID: {}, 사용자 ID: {}",
 					order.getOrderId(), order.getUserId());
 			}
-
 			log.info("총 {}건의 주문을 자동 구매확정 처리했습니다.", orders.size());
 		};
 	}

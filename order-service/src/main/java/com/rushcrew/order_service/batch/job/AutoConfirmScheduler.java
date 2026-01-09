@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-/*
+/**
  * 자동 구매확정
  * */
 @Slf4j
@@ -21,15 +21,14 @@ public class AutoConfirmScheduler {
 	private final JobLauncher jobLauncher;
 	private final Job autoConfirmPurchaseJob;
 
-
-
-
 	// 10초마다 실행
 	// @Scheduled(cron = "0/10 * * * * ?")
 	// 1분마다 실행
-	// @Scheduled(cron = "0 * * * * ?")
+	@Scheduled(cron = "0 * * * * ?")
 	// 매 시간 정각 실행
-	@Scheduled(cron = "0 0 * * * ?")
+	// @Scheduled(cron = "0 0 * * * ?")
+	// 5분마다 실행
+	// @Scheduled(cron = "0 */5 * * * ?")
 	protected void executeAutoConfirmBatch() {
 		log.info("====== 자동 구매확정 배치 작업 시작 ======");
 		try {
@@ -44,7 +43,7 @@ public class AutoConfirmScheduler {
 			log.info("====== 자동 구매확정 배치 작업 완료 ======");
 
 		} catch (Exception e) {
-			log.error("====== 자동 구매확정 배치 작업 실패 ======");
+			log.error("====== 자동 구매확정 배치 작업 실패 ======", e);
 		}
 	}
 }

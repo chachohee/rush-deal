@@ -1,5 +1,5 @@
 #!/bin/bash
-# verify-order-consistency.sh
+# verify-data-consistency.sh
 # 주문 서비스 데이터 정합성 검증
 
 echo "🔍 Order Service Data Consistency Verification"

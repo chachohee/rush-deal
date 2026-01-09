@@ -526,7 +526,7 @@ time="2026-01-09T16:12:29+09:00" level=info msg="✅ [User 67] Order created - S
 **15분 내 미결제 시 주문 취소 진행**
 ```bash
 # 실행 명령어
-./verify-order-consistency.sh
+./verify-data-consistency.sh
 ```
 
 **실행 결과:**

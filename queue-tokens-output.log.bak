@@ -1,0 +1,167 @@
+
+         /\      Grafana   /‾‾/  
+    /\  /  \     |\  __   /  /   
+   /  \/    \    | |/ /  /   ‾‾\ 
+  /          \   |   (  |  (‾)  |
+ / __________ \  |_|\_\  \_____/ 
+
+     execution: local
+        script: generate-queue-tokens.js
+        output: -
+
+     scenarios: (100.00%) 1 scenario, 100 max VUs, 10m30s max duration (incl. graceful stop):
+              * default: 100 iterations shared among 100 VUs (maxDuration: 10m0s, gracefulStop: 30s)
+
+time="2026-01-09T16:06:43+09:00" level=info msg="🎫 Queue Token Generation" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="==========================" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="Product ID: 2728e8db-cea7-42fd-bdde-ad665eccb5dc" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="Test Users: 1~100" source=console
+time="2026-01-09T16:06:43+09:00" level=info source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ Queue Service is healthy" source=console
+time="2026-01-09T16:06:43+09:00" level=info source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 5: 9a10f37b-b588-424c-a9c8-75678a93f838" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 19: 18414d84-83af-43e0-ab7c-877b7278e0d9" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 53: faa1e744-6aad-4240-ab47-6cae5311afa7" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 42: c88f36f9-01ba-4cba-9d12-406bc665cfbd" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 40: 13d9bf6b-a450-4f60-a28d-8dd9675d7819" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 22: be709b2f-666a-4719-aec9-952ed3703a44" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 96: 522cbd30-d521-4d2b-a4f4-25c75c5b0614" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 12: 9f2d1c64-243d-418d-bd76-81968f1e33d0" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 49: 62ffaa42-6513-4256-8651-443cf8267e54" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 6: 379c14d5-3e2a-4168-a94e-aea1098e223c" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 93: 93033e08-13aa-4290-b642-60e45620dd96" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 43: 8ad702fb-c6a8-476a-a590-acd243d83b8f" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 29: 94f423dc-0673-4459-85f5-56c8ed4fc001" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 78: bd0eab2e-4802-40b1-a4e9-3406e4f15917" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 13: 0f1f263e-37a2-45ea-a5f5-3c7472bea333" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 66: 8131cbd5-bc89-419c-a818-594d0960383d" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 60: 1eb929b3-0d96-4358-a03c-95d6eaea1abe" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 47: 82259534-04c5-419b-9473-505b0b7c008b" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 50: e7a98f79-32d5-4ca1-998d-4bb4f0c6bf33" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 97: 3816e6e0-2db1-4aa1-9d8b-cbc2496c49f0" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 95: 108815b5-2986-489f-91ad-2eb153eb9daa" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 17: dc7e0361-8c04-4441-89e5-6badeb4c519d" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 55: 06e03607-7fe8-40c8-8d7a-31f202bd4506" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 82: b37e17ad-893b-4ffc-8b16-22dfb0144fa4" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 100: e24085cc-d1f1-4f73-9ddb-563675e01899" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 52: b832c717-864d-4b58-80c1-09b33d66747c" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 63: b179bf41-84d0-461e-a7c2-7c0f6ef9835f" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 24: 48675c24-7932-49c1-8aaf-0fabfe047bda" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 85: d67d6303-9855-4f25-b732-ac0aab85747c" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 75: a702592b-a5ef-4fc1-8378-3b64f39e7355" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 27: aa6deefa-d907-44e0-9f79-2b87004bf9a7" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 67: 57e74697-8b6a-4392-a5dc-5fb92b59b4d5" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 86: db3ae403-fecd-445b-a30b-763ecab70988" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 72: dfcfca4e-4e13-4fd0-a357-93216e4a03f6" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 45: 42e85709-f1ca-4fda-9ece-ab8f8b2aa184" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 73: c9461c26-c545-4afd-84e0-f7d0997c4c12" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 8: 7c9914e9-2bd0-4b07-a69b-ebf87d32f0ca" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 89: dd742a63-0b26-48b5-af78-b89c748bb275" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 79: 9c01eb14-25d6-4920-b0d3-1b85e99812e0" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 83: ab3a8bd8-280c-443a-85c7-9e244eb9b117" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 59: 0c61114c-fa69-499d-8d90-01abdb1c47ff" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 54: 078d14e5-141f-4883-9a02-fa608266fb3f" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 1: 87f2a1a9-45ad-4028-94d8-fa45fb36ebe8" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 57: cb73e5ba-a059-4576-9153-4c089fa273b2" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 36: 2dd22a31-1c53-42af-b730-233d66e49f7e" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 51: 1ecc2a45-6aa1-4eba-ba25-528034aacdc3" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 90: abcd06a2-dec3-4931-a5f7-7c07fd7687fe" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 26: 93ecc3fc-8bb7-4e58-bd17-9df1ae48ce34" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 18: 6d6c0540-0277-41f3-9737-27594753eeae" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 70: b080cd1b-d411-41e9-a77f-1aaaa3c2247d" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 71: 7eebf010-50ce-4987-9c12-fbed7d8dbb65" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 91: e0bd9fca-6b47-4a24-87b4-dd610ef22413" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 2: 7b3fb2a9-3d89-495f-bf05-c491aad45a04" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 10: c153180d-7655-4d6b-a8dd-c52e46d49fcc" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 81: 919ce9bc-fc9f-4b16-af8a-3820bdac11bf" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 69: 343c9ffd-5843-49fa-a24a-64490b4af7b3" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 80: f6a5bcc7-f729-4109-9068-a66eb984cbbd" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 20: f44602eb-661d-4c0b-9721-2f79252176f8" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 87: 9c14383e-982a-4f88-a0b4-d4a3b8b07855" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 7: 43aff7d9-9528-4ab3-8b80-9fde4d486793" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 39: d6dd5367-0a27-4b8f-855a-72e2660e8c1c" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 62: 41f62487-06bb-4e82-9b2a-33af02da97f9" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 3: 5d8e2051-5ac8-4c7b-9422-3105d97dd03e" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 48: e2dabd54-bc93-49e1-9741-2b245f6d15da" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 25: 0d9caf2c-772e-454e-9deb-1d4c56ba16ea" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 76: abcbc685-064f-4adb-bc1a-f27e24a3ab72" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 64: 470d5886-edce-4406-9be2-561599e83768" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 30: e1c11621-fbc2-4cef-8646-48ad1765b187" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 84: 2b08baad-ed1b-49ec-9817-c79183467a1f" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 28: 39faf1a4-27ee-47ba-a2f7-77f7794dc3c4" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 38: 37eff777-d925-47aa-8562-f4dee332c6a6" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 46: d6244a87-fcb1-447b-8dcd-204e15068793" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 14: aea6f39f-b388-47b3-a8c5-8a80549ab8ab" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 99: a1fcbcde-fdc8-40c7-ba55-acedc0acfa84" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 4: 8985ef74-eab9-49fb-88fd-7dd4167c3d4f" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 41: e2e6b307-7ac3-4824-9f42-96c35d8e20fb" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 31: a870c882-a25d-4d09-a730-661170887830" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 58: 0ddd30a1-a5b2-4c45-98be-3f76c818296e" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 65: 89f7534c-7760-4e3b-8ead-b6d768adc8b8" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 56: 668d70bd-a395-4067-8f71-1dfa595bae73" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 61: 69e89f9f-8853-4137-85fd-3002a0ac1cca" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 44: 1d405db6-b7b1-4b39-b941-8a9351d10d95" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 32: 72fa05a5-fbe5-442c-9276-f9cc76c0cc41" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 35: 7a9d7959-1a98-479b-aad8-5a8d890d3048" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 16: 3f391ce2-55a3-449e-a729-1a0a26f77208" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 94: 1174f5fa-4d86-4131-83c7-23c2bab3e0b2" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 15: 31c00f41-8c73-4945-a10b-e4fd55a9a605" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 11: 0da57f34-0767-4f69-b02c-b7c41d11629b" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 37: bc967da7-4370-4da5-b002-43c3bf560a8c" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 68: 4f33cffb-e89f-41cf-ad8e-2c889bb97f71" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 34: c298e62d-0f55-4f3f-b459-86fe1345da0c" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 33: 0ae0d1e2-c292-4b66-9a5b-f0b5d1ce0676" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 9: 3d8adcd5-3f31-4347-bef1-e65d643a667b" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 92: d85ead5e-6998-43b1-a542-c55a56a15bc4" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 21: e5a96377-4b49-4e35-96c0-39bcb59c6316" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 98: 98d4b2ed-abdb-4ed2-8178-49be1ece403e" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 74: 14242ce5-d0e2-4446-9009-3f7c3431a8d6" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 23: 466c9475-8077-487d-a641-32a16c6cf377" source=console
+time="2026-01-09T16:06:43+09:00" level=info msg="✅ User 88: cf27bd55-1e4c-46ee-9d17-0dec4a5097b5" source=console
+
+running (00m01.0s), 001/100 VUs, 99 complete and 0 interrupted iterations
+default   [  99% ] 100 VUs  00m01.0s/10m0s  099/100 shared iters
+time="2026-01-09T16:06:44+09:00" level=info msg="✅ User 77: 59804958-c0c9-462b-a65f-10e7211d26d3" source=console
+time="2026-01-09T16:06:44+09:00" level=info source=console
+time="2026-01-09T16:06:44+09:00" level=info msg="🏁 Token Generation Completed" source=console
+
+
+  █ THRESHOLDS 
+
+    checks
+    ✓ 'rate>0.90' rate=100.00%
+
+    http_req_duration
+    ✓ 'p(95)<5000' p(95)=529.35ms
+
+
+  █ TOTAL RESULTS 
+
+    checks_total.......: 200     191.198685/s
+    checks_succeeded...: 100.00% 200 out of 200
+    checks_failed......: 0.00%   0 out of 200
+
+    ✓ status is 200 or 201
+    ✓ has token
+
+    HTTP
+    http_req_duration..............: avg=443.54ms min=12.37ms  med=440.55ms max=532.38ms p(90)=516ms    p(95)=529.35ms
+      { expected_response:true }...: avg=443.54ms min=12.37ms  med=440.55ms max=532.38ms p(90)=516ms    p(95)=529.35ms
+    http_req_failed................: 0.00% 0 out of 101
+    http_reqs......................: 101   96.555336/s
+
+    EXECUTION
+    iteration_duration.............: avg=460.56ms min=374.65ms med=448.59ms max=1.02s    p(90)=518.82ms p(95)=533.28ms
+    iterations.....................: 100   95.599342/s
+    vus............................: 1     min=1        max=1  
+    vus_max........................: 100   min=100      max=100
+
+    NETWORK
+    data_received..................: 56 kB 53 kB/s
+    data_sent......................: 27 kB 26 kB/s
+
+
+
+
+running (00m01.0s), 000/100 VUs, 100 complete and 0 interrupted iterations
+default ✓ [ 100% ] 100 VUs  00m01.0s/10m0s  100/100 shared iters

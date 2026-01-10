@@ -34,13 +34,18 @@ public class PendingOrderTimeoutScheduler {
 	private final OrderCommandPort orderCommandPort;
 	private final CancelOrderUseCase cancelOrderUseCase;
 
-	private static final int PENDING_TIMEOUT_MINUTES = 15; // 15분
+	private static final int PENDING_TIMEOUT_MINUTES = 5; // 5분 (테스트용)
+	// private static final int PENDING_TIMEOUT_MINUTES = 15; // 15분
 	private static final int BATCH_SIZE = 100;
 
+	// /**
+	//  * 5분마다 타임아웃된 PENDING 주문 자동 취소
+	//  */
+	// @Scheduled(fixedDelay = 300_000) // 5분
 	/**
-	 * 5분마다 타임아웃된 PENDING 주문 자동 취소
+	 * 1분마다 타임아웃된 PENDING 주문 자동 취소 (테스트용)
 	 */
-	@Scheduled(fixedDelay = 300_000) // 5분
+	@Scheduled(fixedDelay = 60_000) // 5분 → 1분으로 변경
 	public void cancelTimedOutPendingOrders() {
 		Instant timeoutThreshold = Instant.now().minus(PENDING_TIMEOUT_MINUTES, ChronoUnit.MINUTES);
 

@@ -4,8 +4,25 @@
 
 set -e  # 에러 발생 시 즉시 중단
 
+# 🔥 작업 디렉토리 설정
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+K6_DIR="$(dirname "$SCRIPT_DIR")"
+TESTS_DIR="$K6_DIR/tests"
+OUTPUTS_DIR="$K6_DIR/outputs"
+
+# outputs 디렉토리 생성
+mkdir -p "$OUTPUTS_DIR"
+
+# 작업 디렉토리를 k6 디렉토리로 변경 (스크립트 실행 편의성)
+cd "$K6_DIR"
+
 echo "🚀 RushDeal Load Test - Full Automation"
 echo "========================================"
+echo ""
+echo "📁 Working Directory: $K6_DIR"
+echo "📁 Scripts Directory: $SCRIPT_DIR"
+echo "📁 Tests Directory: $TESTS_DIR"
+echo "📁 Outputs Directory: $OUTPUTS_DIR"
 echo ""
 
 # 색상 코드
@@ -92,8 +109,8 @@ read -p "🧹 Clean existing test data? (y/N): " -n 1 -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
     log_info "Step 2: Cleaning up old test data..."
-    chmod +x cleanup-test-data.sh
-    ./cleanup-test-data.sh
+    chmod +x "$SCRIPT_DIR/cleanup-test-data.sh"
+    "$SCRIPT_DIR/cleanup-test-data.sh"
     log_success "Cleanup completed"
 else
     log_warning "Skipping cleanup"
@@ -102,18 +119,18 @@ echo ""
 
 # Step 3: Kafka 토픽 생성
 log_info "Step 3: Creating Kafka topics..."
-chmod +x create-kafka-topics.sh
-./create-kafka-topics.sh > /dev/null 2>&1
+chmod +x "$SCRIPT_DIR/create-kafka-topics.sh"
+"$SCRIPT_DIR/create-kafka-topics.sh" > /dev/null 2>&1
 log_success "Kafka topics created"
 echo ""
 
 # Step 4: 테스트 ID 조회
 log_info "Step 4: Getting test IDs..."
-chmod +x get-test-ids.sh
-./get-test-ids.sh > test-ids.txt
+chmod +x "$SCRIPT_DIR/get-test-ids.sh"
+"$SCRIPT_DIR/get-test-ids.sh" > "$OUTPUTS_DIR/test-ids.txt"
 
-PRODUCT_ID=$(grep "Product ID:" test-ids.txt -A 1 | tail -1 | xargs)
-TIMEDEAL_ID=$(grep "TimeDeal ID:" test-ids.txt -A 1 | tail -1 | xargs)
+PRODUCT_ID=$(grep "Product ID:" "$OUTPUTS_DIR/test-ids.txt" -A 1 | tail -1 | xargs)
+TIMEDEAL_ID=$(grep "TimeDeal ID:" "$OUTPUTS_DIR/test-ids.txt" -A 1 | tail -1 | xargs)
 
 if [ -z "$PRODUCT_ID" ] || [ -z "$TIMEDEAL_ID" ]; then
     log_error "Failed to get Product ID or TimeDeal ID"
@@ -149,8 +166,8 @@ echo ""
 
 # Step 6: 큐 토큰 발급
 log_info "Step 6: Generating queue tokens..."
-if [ ! -f "generate-queue-tokens.js" ]; then
-    log_error "generate-queue-tokens.js not found!"
+if [ ! -f "$TESTS_DIR/generate-queue-tokens.js" ]; then
+    log_error "generate-queue-tokens.js not found at $TESTS_DIR!"
     exit 1
 fi
 
@@ -158,8 +175,8 @@ fi
 QUEUE_SERVICE_URL="http://$QUEUE_SERVICE_IP:8040"
 
 log_info "Updating generate-queue-tokens.js with URL: $QUEUE_SERVICE_URL"
-sed -i "s/const PRODUCT_ID = .*/const PRODUCT_ID = '$PRODUCT_ID';/" generate-queue-tokens.js
-sed -i "s|const QUEUE_SERVICE = .*|const QUEUE_SERVICE = '$QUEUE_SERVICE_URL';|" generate-queue-tokens.js
+sed -i "s/const PRODUCT_ID = .*/const PRODUCT_ID = '$PRODUCT_ID';/" "$TESTS_DIR/generate-queue-tokens.js"
+sed -i "s|const QUEUE_SERVICE = .*|const QUEUE_SERVICE = '$QUEUE_SERVICE_URL';|" "$TESTS_DIR/generate-queue-tokens.js"
 
 # 헬스체크로 서버 연결 확인
 log_info "Checking Queue Service connectivity..."
@@ -171,7 +188,7 @@ else
     # localhost로 폴백 시도
     log_info "Trying localhost:8040 as fallback..."
     QUEUE_SERVICE_URL="http://localhost:8040"
-    sed -i "s|const QUEUE_SERVICE = .*|const QUEUE_SERVICE = '$QUEUE_SERVICE_URL';|" generate-queue-tokens.js
+    sed -i "s|const QUEUE_SERVICE = .*|const QUEUE_SERVICE = '$QUEUE_SERVICE_URL';|" "$TESTS_DIR/generate-queue-tokens.js"
 
     if curl -s -f "$QUEUE_SERVICE_URL/actuator/health" > /dev/null 2>&1; then
         log_success "Queue Service is ready at $QUEUE_SERVICE_URL"
@@ -189,7 +206,7 @@ fi
 
 # k6 실행 (타임아웃 추가)
 log_info "Running k6 token generation (timeout: 5 minutes)..."
-if timeout 300 k6 run generate-queue-tokens.js 2>&1 | tee queue-tokens-output.log; then
+if timeout 300 k6 run "$TESTS_DIR/generate-queue-tokens.js" 2>&1 | tee "$OUTPUTS_DIR/queue-tokens-output.log"; then
     log_success "k6 execution completed"
 else
     EXIT_CODE=$?
@@ -203,13 +220,13 @@ fi
 
 # 토큰 추출
 log_info "Extracting tokens from output..."
-grep "✅ User" queue-tokens-output.log | \
-  grep -oE '[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}' > tokens.txt
+grep "✅ User" "$OUTPUTS_DIR/queue-tokens-output.log" | \
+  grep -oE '[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}' > "$OUTPUTS_DIR/tokens.txt"
 
-TOKEN_COUNT=$(wc -l < tokens.txt)
+TOKEN_COUNT=$(wc -l < "$OUTPUTS_DIR/tokens.txt")
 if [ "$TOKEN_COUNT" -ne 100 ]; then
     log_warning "Expected 100 tokens, got $TOKEN_COUNT"
-    log_info "Check queue-tokens-output.log for details"
+    log_info "Check $OUTPUTS_DIR/queue-tokens-output.log for details"
     if [ "$TOKEN_COUNT" -eq 0 ]; then
         log_error "No tokens generated. Aborting."
         exit 1
@@ -226,12 +243,12 @@ log_info "Step 7: Updating load-test-order.js..."
 ORDER_SERVICE_URL="http://$ORDER_SERVICE_IP:8050"
 
 # TEST_DATA 섹션 찾아서 업데이트
-sed -i "s/productId: '.*',/productId: '$PRODUCT_ID',/" load-test-order.js
-sed -i "s/timeDealId: '.*',/timeDealId: '$TIMEDEAL_ID',/" load-test-order.js
+sed -i "s/productId: '.*',/productId: '$PRODUCT_ID',/" "$TESTS_DIR/load-test-order.js"
+sed -i "s/timeDealId: '.*',/timeDealId: '$TIMEDEAL_ID',/" "$TESTS_DIR/load-test-order.js"
 
 # stockIds 배열 업데이트
 STOCK_JS_ARRAY="'${STOCK_ARRAY[0]}',\n        '${STOCK_ARRAY[1]}',\n        '${STOCK_ARRAY[2]}',\n        '${STOCK_ARRAY[3]}'"
-sed -i "/stockIds: \[/,/\]/c\    stockIds: [\n        $STOCK_JS_ARRAY\n    ]," load-test-order.js
+sed -i "/stockIds: \[/,/\]/c\    stockIds: [\n        $STOCK_JS_ARRAY\n    ]," "$TESTS_DIR/load-test-order.js"
 
 # ORDER_SERVICE URL 업데이트
 log_info "Updating Order Service URL to: $ORDER_SERVICE_URL"
@@ -251,7 +268,7 @@ else
     fi
 fi
 
-sed -i "s|const ORDER_SERVICE = .*|const ORDER_SERVICE = '$ORDER_SERVICE_URL';|" load-test-order.js
+sed -i "s|const ORDER_SERVICE = .*|const ORDER_SERVICE = '$ORDER_SERVICE_URL';|" "$TESTS_DIR/load-test-order.js"
 
 log_success "load-test-order.js updated"
 echo ""
@@ -263,7 +280,7 @@ echo ""
 
 read -p "▶️  Press Enter to start load test..."
 
-k6 run load-test-order.js 2>&1 | tee load-test-output.log
+k6 run "$TESTS_DIR/load-test-order.js" 2>&1 | tee "$OUTPUTS_DIR/load-test-output.log"
 
 log_success "Load test completed"
 echo ""
@@ -278,17 +295,10 @@ log_info "Step 9: Initial verification (Order Creation Check)..."
 echo ""
 log_warning "Checking if orders were actually created..."
 
-# 디버그: 명령어 직접 실행해서 결과 확인
-echo "DEBUG: Running query..."
-docker exec rushdeal_postgres psql -U rushdeal -d rushdeal -t -A -c "SELECT COUNT(*) FROM order_schema.p_order;"
-echo "DEBUG: Query completed"
-
 # 주문 건수 확인 (전체) - 공백/개행 완전히 제거
 ORDER_COUNT=$(docker exec rushdeal_postgres psql -U rushdeal -d rushdeal -t -A -c \
   "SELECT COUNT(*) FROM order_schema.p_order;" 2>&1 | tr -d ' \t\n\r')
 
-echo "DEBUG: ORDER_COUNT='$ORDER_COUNT'"
-echo "DEBUG: Length=${#ORDER_COUNT}"
 log_info "Orders created: $ORDER_COUNT"
 
 if [ -z "$ORDER_COUNT" ] || [ "$ORDER_COUNT" = "0" ]; then
@@ -323,16 +333,16 @@ if [ -z "$ORDER_COUNT" ] || [ "$ORDER_COUNT" = "0" ]; then
 
     echo ""
     log_info "Checking k6 test results..."
-    if [ -f "load-test-output.log" ]; then
+    if [ -f "$OUTPUTS_DIR/load-test-output.log" ]; then
         echo ""
         echo "=== k6 Test Summary ==="
-        grep -A 20 "checks\|CUSTOM" load-test-output.log | head -30 || echo "No check results found"
+        grep -A 20 "checks\|CUSTOM" "$OUTPUTS_DIR/load-test-output.log" | head -30 || echo "No check results found"
         echo ""
         echo "=== Recent Errors ==="
-        grep -E "❌|ERROR|error:|failed" load-test-output.log | head -10 || echo "No errors found in k6 log"
+        grep -E "❌|ERROR|error:|failed" "$OUTPUTS_DIR/load-test-output.log" | head -10 || echo "No errors found in k6 log"
         echo ""
         echo "=== Success Count ==="
-        grep -E "pending_orders_created|order_success_rate" load-test-output.log || echo "No success metrics found"
+        grep -E "pending_orders_created|order_success_rate" "$OUTPUTS_DIR/load-test-output.log" || echo "No success metrics found"
         echo ""
     fi
 
@@ -346,14 +356,14 @@ else
 fi
 
 # 주문 생성 검증 실행
-chmod +x verify-order-creation.sh
+chmod +x "$SCRIPT_DIR/verify-order-creation.sh"
 log_info "Running order creation verification..."
 echo ""
-echo "========================================" | tee initial-verification.log
-echo "📊 Initial Verification - Order Creation" | tee -a initial-verification.log
-echo "========================================" | tee -a initial-verification.log
-echo "" | tee -a initial-verification.log
-./verify-order-creation.sh 100 2>&1 | tee -a initial-verification.log
+echo "========================================" | tee "$OUTPUTS_DIR/initial-verification.log"
+echo "📊 Initial Verification - Order Creation" | tee -a "$OUTPUTS_DIR/initial-verification.log"
+echo "========================================" | tee -a "$OUTPUTS_DIR/initial-verification.log"
+echo "" | tee -a "$OUTPUTS_DIR/initial-verification.log"
+"$SCRIPT_DIR/verify-order-creation.sh" 100 2>&1 | tee -a "$OUTPUTS_DIR/initial-verification.log"
 echo ""
 
 # Step 10: 자동 취소 대기
@@ -382,14 +392,14 @@ log_info "Step 11: Final verification (Order Cancellation & Refund Check)..."
 echo ""
 
 # 주문 취소 검증 실행
-chmod +x verify-order-cancellation.sh
+chmod +x "$SCRIPT_DIR/verify-order-cancellation.sh"
 log_info "Running order cancellation verification..."
 echo ""
-echo "========================================" | tee final-verification.log
-echo "📊 Final Verification - Order Cancellation" | tee -a final-verification.log
-echo "========================================" | tee -a final-verification.log
-echo "" | tee -a final-verification.log
-./verify-order-cancellation.sh 100 2>&1 | tee -a final-verification.log
+echo "========================================" | tee "$OUTPUTS_DIR/final-verification.log"
+echo "📊 Final Verification - Order Cancellation" | tee -a "$OUTPUTS_DIR/final-verification.log"
+echo "========================================" | tee -a "$OUTPUTS_DIR/final-verification.log"
+echo "" | tee -a "$OUTPUTS_DIR/final-verification.log"
+"$SCRIPT_DIR/verify-order-cancellation.sh" 100 2>&1 | tee -a "$OUTPUTS_DIR/final-verification.log"
 echo ""
 
 log_success "===================================="
@@ -398,10 +408,10 @@ log_success "===================================="
 echo ""
 
 echo "📊 Test Results:"
-echo "   - Initial verification: initial-verification.log"
-echo "   - Final verification: final-verification.log"
-echo "   - Queue tokens: queue-tokens-output.log"
-echo "   - Load test output: load-test-output.log"
+echo "   - Initial verification: $OUTPUTS_DIR/initial-verification.log"
+echo "   - Final verification: $OUTPUTS_DIR/final-verification.log"
+echo "   - Queue tokens: $OUTPUTS_DIR/queue-tokens-output.log"
+echo "   - Load test output: $OUTPUTS_DIR/load-test-output.log"
 echo ""
 
 echo "💡 Quick Summary:"
@@ -433,6 +443,6 @@ ORDER BY category, detail;
 
 echo ""
 echo "🔍 For detailed analysis:"
-echo "   - Order Creation:    cat initial-verification.log"
-echo "   - Order Cancellation: cat final-verification.log"
-echo "   - Point Refund:      ./check-point-refund.sh"
+echo "   - Order Creation:    cat $OUTPUTS_DIR/initial-verification.log"
+echo "   - Order Cancellation: cat $OUTPUTS_DIR/final-verification.log"
+echo "   - Point Refund:      $SCRIPT_DIR/check-point-refund.sh"

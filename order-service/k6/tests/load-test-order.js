@@ -11,7 +11,7 @@ import { SharedArray } from 'k6/data';
 // SharedArray: 모든 VU가 공유하는 읽기 전용 배열 (메모리 효율적)
 const queueTokens = new SharedArray('tokens', function() {
     // tokens.txt 파일에서 토큰 로드 (각 줄이 하나의 토큰)
-    const data = open('./tokens.txt').split('\n').filter(t => t.trim());
+    const data = open('../outputs/tokens.txt').split('\n').filter(t => t.trim());
     console.log(`✅ Loaded ${data.length} queue tokens`);
     return data;
 });

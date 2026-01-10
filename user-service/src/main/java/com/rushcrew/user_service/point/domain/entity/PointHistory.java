@@ -211,4 +211,39 @@ public class PointHistory {
             sagaId
         );
     }
+
+	// PointHistory.java에 추가할 메서드
+
+	/**
+	 * 포인트 환불 이력 생성 (USE_PENDING → REFUND 처리)
+	 *
+	 * @param userId 사용자 ID
+	 * @param orderId 주문 ID
+	 * @param amount 환불 포인트 (양수)
+	 * @param balanceAfter 환불 후 잔액
+	 * @param createdAt 생성 시각
+	 * @param sagaId Saga ID
+	 * @return 환불 확정 이력
+	 */
+	public static PointHistory createRefundConfirm(
+		UserId userId,
+		OrderId orderId,
+		Point amount,
+		Point balanceAfter,
+		LocalDateTime createdAt,
+		SagaId sagaId
+	) {
+		// USE_CANCEL 타입 사용 (기존 enum 활용)
+		PointHistory history = create(
+			userId,
+			orderId,
+			amount,          // 양수 값
+			balanceAfter,    // 환불 후 증가한 잔액
+			PointType.USE_CANCEL,  // 사용 취소 = 환불
+			sagaId
+		);
+		history.createdAt = createdAt;
+		history.confirmedAt = createdAt;  // 환불은 즉시 확정
+		return history;
+	}
 }

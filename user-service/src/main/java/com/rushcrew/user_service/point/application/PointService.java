@@ -3,6 +3,7 @@ package com.rushcrew.user_service.point.application;
 import com.rushcrew.common.exception.BusinessException;
 import com.rushcrew.user_service.point.application.command.CancelOrderCommand;
 import com.rushcrew.user_service.point.application.command.CreatePendingPointCommand;
+import com.rushcrew.user_service.point.application.command.RefundPointCommand;
 import com.rushcrew.user_service.point.application.command.UsePointCommand;
 import com.rushcrew.user_service.point.domain.entity.PointHistory;
 import com.rushcrew.user_service.point.domain.enums.PointType;
@@ -174,4 +175,64 @@ public class PointService {
             }
         }
     }
+
+	/**
+	 * 주문 취소 시 USE_PENDING 포인트 환불 처리
+	 *
+	 * @param command 환불 요청 정보
+	 */
+	@Transactional
+	public void refundUsedPoints(RefundPointCommand command) {
+		executeWithLock(command.userId(), () -> {
+			// 1. 해당 주문의 USE_PENDING 이력 조회
+			List<PointHistory> usePendingHistories =
+				pointHistoryQueryRepository.findByOrderIdAndType(
+					command.orderId(),
+					PointType.USE_PENDING
+				);
+
+			if (usePendingHistories.isEmpty()) {
+				log.warn("환불할 USE_PENDING 포인트 없음: orderId={}", command.orderId());
+				return;
+			}
+
+			// 2. 현재 잔액 조회
+			Point currentBalance = getCurrentBalance(command.userId());
+
+			// 3. 각 USE_PENDING에 대해 USE_CANCEL 이력 생성
+			List<PointHistory> refundHistories = new ArrayList<>();
+
+			for (PointHistory usePending : usePendingHistories) {
+				// USE_PENDING의 amount는 음수이므로, 절댓값을 취해 양수로 변환
+				long refundAmount = Math.abs(usePending.getAmount().getAmount());
+
+				// 잔액 증가
+				currentBalance = currentBalance.add(refundAmount);
+
+				// USE_CANCEL 이력 생성 (환불 = 사용 취소)
+				PointHistory refund = PointHistory.createRefundConfirm(
+					UserId.of(command.userId()),
+					OrderId.of(command.orderId()),
+					Point.of(refundAmount),  // 양수 값
+					currentBalance,
+					LocalDateTime.now(),
+					SagaId.of(command.sagaId())
+				);
+
+				refundHistories.add(refund);
+			}
+
+			// 4. USE_CANCEL 이력 저장
+			pointHistoryRepository.saveAll(refundHistories);
+
+			log.info("포인트 환불 완료: orderId={}, refundCount={}, totalAmount={}",
+				command.orderId(),
+				refundHistories.size(),
+				refundHistories.stream()
+					.map(h -> h.getAmount().getAmount())
+					.reduce(0L, Long::sum)
+			);
+		});
+	}
+
 }

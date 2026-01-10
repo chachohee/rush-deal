@@ -137,4 +137,19 @@ public class PointHistoryQueryRepositoryImpl
             .where(pointHistory.id.in(ids))
             .execute();
     }
+
+	/**
+	 * 특정 주문의 특정 타입 포인트 이력 조회
+	 */
+	@Override
+	public List<PointHistory> findByOrderIdAndType(String orderId, PointType type) {
+		return queryFactory
+			.selectFrom(pointHistory)
+			.where(
+				pointHistory.orderId.id.eq(orderId),
+				pointHistory.type.eq(type)
+			)
+			.orderBy(pointHistory.createdAt.asc())
+			.fetch();
+	}
 }

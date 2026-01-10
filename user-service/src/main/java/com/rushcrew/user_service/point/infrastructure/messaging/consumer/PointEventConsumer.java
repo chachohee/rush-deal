@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rushcrew.user_service.point.application.PointService;
 import com.rushcrew.user_service.point.application.command.CancelOrderCommand;
 import com.rushcrew.user_service.point.application.command.CreatePendingPointCommand;
+import com.rushcrew.user_service.point.application.command.RefundPointCommand;
 import com.rushcrew.user_service.point.infrastructure.messaging.dto.PointEarnRequestedEvent;
 import com.rushcrew.user_service.point.infrastructure.messaging.dto.PointRefundRequestedEvent;
 import lombok.RequiredArgsConstructor;
@@ -43,26 +44,53 @@ public class PointEventConsumer {
             acknowledgment.acknowledge();
     }
 
-    @KafkaListener(topics = "point.refund.requested", groupId = "point-service-group")
-    public void consumePointRefundRequested(
-        @Payload String message,
-        Acknowledgment acknowledgment
-    ) throws Exception {
+	// TODO: 주문 환불 후 적립 예정 포인트를 취소하는 컨슈머로 토픽 이름 변경
+    // @KafkaListener(topics = "point.refund.requested", groupId = "point-service-group")
+    // public void consumePointRefundRequested(
+    //     @Payload String message,
+    //     Acknowledgment acknowledgment
+    // ) throws Exception {
+	//
+    //     PointRefundRequestedEvent event = objectMapper.readValue(
+    //             message,
+    //             PointRefundRequestedEvent.class
+    //         );
+	//
+    //         CancelOrderCommand command = new CancelOrderCommand(
+    //             event.userId(),
+    //             event.orderId(),
+    //             event.sagaId()
+    //         );
+	//
+	//
+    //         pointService.cancelOrder(command);
+	//
+    //         acknowledgment.acknowledge();
+    // }
 
-        PointRefundRequestedEvent event = objectMapper.readValue(
-                message,
-                PointRefundRequestedEvent.class
-            );
+	@KafkaListener(topics = "point.refund.requested", groupId = "point-service-group")
+	public void consumePointRefundRequested(
+		@Payload String message,
+		Acknowledgment acknowledgment
+	) throws Exception {
 
-            CancelOrderCommand command = new CancelOrderCommand(
-                event.userId(),
-                event.orderId(),
-                event.sagaId()
-            );
+		PointRefundRequestedEvent event = objectMapper.readValue(
+			message,
+			PointRefundRequestedEvent.class
+		);
 
+		// USE_PENDING 포인트 환불 로직
+		RefundPointCommand command = new RefundPointCommand(
+			event.userId(),
+			event.orderId(),
+			event.sagaId()
+		);
 
-            pointService.cancelOrder(command);
+		pointService.refundUsedPoints(command);
 
-            acknowledgment.acknowledge();
-    }
+		acknowledgment.acknowledge();
+
+		log.info("포인트 환불 요청 처리 완료: userId={}, orderId={}",
+			event.userId(), event.orderId());
+	}
 }

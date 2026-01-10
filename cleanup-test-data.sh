@@ -50,8 +50,20 @@ echo "   ✅ Point history cleaned"
 
 # 4. Redis 큐 토큰 삭제
 echo "🔑 4. Cleaning REDIS queue tokens..."
+
+# 현재 DB의 모든 키 삭제
 docker exec rushdeal_queue_redis redis-cli FLUSHDB > /dev/null 2>&1
-echo "   ✅ Queue tokens cleared"
+
+# Redis가 완전히 정리될 때까지 대기
+sleep 2
+
+# 검증: Redis 키 개수 확인
+REDIS_KEYS=$(docker exec rushdeal_queue_redis redis-cli DBSIZE | grep -oE '[0-9]+')
+if [ "$REDIS_KEYS" -le 2 ]; then
+    echo "   ✅ Queue tokens cleared ($REDIS_KEYS keys - scheduler tokens only)"
+else
+    echo "   ⚠️  Warning: $REDIS_KEYS keys remaining (expected ≤ 2)"
+fi
 
 # 5. Kafka 토픽 초기화 (선택사항)
 echo "📨 5. Resetting KAFKA topics..."

@@ -68,10 +68,10 @@ const TEST_DATA = {
 
     // 4개 옵션의 재고 ID (각 옵션당 100개씩, 총 400개 재고)
     stockIds: [
-        '37d8e622-4146-4ecf-9170-e104b2c5c8d9',  // Stock 1
-        '9fa33b34-2bc0-45c7-9b5b-9989a468a281',  // Stock 2
-        '65e8fb15-0a9c-4388-84a1-467778ecb4d9',  // Stock 3
-        '373d331d-42a3-456e-9e47-418d57f03289',  // Stock 4
+        '37d8e622-4146-4ecf-9170-e104b2c5c8d9',
+        '9fa33b34-2bc0-45c7-9b5b-9989a468a281',
+        '65e8fb15-0a9c-4388-84a1-467778ecb4d9',
+        '373d331d-42a3-456e-9e47-418d57f03289'
     ],
 
     productPrice: 95200,   // 상품 가격
@@ -81,7 +81,7 @@ const TEST_DATA = {
 
 // 서비스 URL (WSL2에서 Windows로 접근)
 // cmd에서 "ipconfig | findstr IPv4" 실행하여 IP 확인
-const ORDER_SERVICE = 'http://172.30.1.100:8050';
+const ORDER_SERVICE = 'http://172.30.1.72:8050';
 
 // ===== Setup 단계 =====
 // 테스트 시작 전 1회만 실행되는 초기화 함수

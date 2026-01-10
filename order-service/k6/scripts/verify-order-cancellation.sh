@@ -188,22 +188,14 @@ echo ""
 echo "📦 7. STOCK RESTORATION CHECK"
 docker exec rushdeal_postgres psql -U rushdeal -d rushdeal -c "
 SELECT
-    time_deal_product_id,
+    id as time_deal_stock_id,
     available_stock as \"가용 재고\",
     reserved_stock as \"예약 재고\",
     sold_stock as \"판매 재고\",
-    (available_stock + reserved_stock + sold_stock) as \"총 재고\"
+    (available_stock + reserved_stock + sold_stock) as \"기존 재고\"
 FROM time_deal_schema.p_time_deal_stock
-WHERE time_deal_product_id IN (
-    SELECT id FROM time_deal_schema.p_time_deal_product
-    WHERE time_deal_id IN (
-        SELECT DISTINCT tdp.time_deal_id
-        FROM time_deal_schema.p_time_deal_product tdp
-        JOIN time_deal_schema.p_time_deal_stock tds ON tdp.id = tds.time_deal_product_id
-        LIMIT 1
-    )
-)
-ORDER BY time_deal_product_id;
+ORDER BY id
+LIMIT 10;
 "
 
 echo ""

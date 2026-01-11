@@ -4,18 +4,21 @@ import java.time.Instant;
 
 public record StockReservationFailedEvent(
 	String sagaId,
-	String productId,
+	String orderId,
+	String stockId, // TODO: 실패한 재고 ID 목록들로 변경
 	String reason,
 	Instant occurredAt
 ) {
 	public static StockReservationFailedEvent of(
 		String sagaId,
-		String productId,
+		String orderId,
+		String stockId,
 		String reason
 	) {
 		return new StockReservationFailedEvent(
 			sagaId,
-			productId,
+			orderId,
+			stockId,
 			reason,
 			Instant.now()
 		);

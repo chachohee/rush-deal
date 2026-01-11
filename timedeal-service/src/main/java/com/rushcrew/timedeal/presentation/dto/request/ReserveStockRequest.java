@@ -10,6 +10,9 @@ public record ReserveStockRequest(
     @NotNull
     UUID orderId,
 
+	@NotNull
+	UUID sagaId,
+
     @NotNull
     UUID timeDealStockId,
 
@@ -23,6 +26,7 @@ public record ReserveStockRequest(
     public ReserveStockCommand toCommand() {
         return new ReserveStockCommand(
             OrderId.of(this.orderId),
+			this.sagaId,
             this.timeDealStockId,
             Quantity.positive(this.quantity),
             this.userId

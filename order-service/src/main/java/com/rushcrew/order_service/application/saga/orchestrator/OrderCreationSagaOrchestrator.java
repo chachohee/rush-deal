@@ -67,7 +67,8 @@ public class OrderCreationSagaOrchestrator {
 			saga.addStep(SagaStepName.USE_POINT, SagaStatus.COMPLETED);
 
 			// Step 3: RequestStockReservation
-			requestStockReservationStep.execute(context, data);
+			SagaStepResult stockReservationResult = requestStockReservationStep.execute(context, data);
+			handleStepResult(saga, stockReservationResult);
 			saga.addStep(SagaStepName.REQUEST_STOCK_RESERVATION, SagaStatus.WAITING);
 
 			// SagaData 저장

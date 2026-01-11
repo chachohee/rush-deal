@@ -65,8 +65,8 @@ public class OutboxEventType {
 	/** 포인트 환불 요청 */
 	public static final String POINT_REFUND_REQUESTED = "POINT_REFUND_REQUESTED";
 
-	/** 포인트 차감 요청 */
-	// public static final String POINT_DEDUCT_REQUESTED = "POINT_DEDUCT_REQUESTED";
+	/** 포인트 사용 취소 요청 */
+	public static final String POINT_USE_CANCEL_REQUESTED = "POINT_USE_CANCEL_REQUESTED";
 
 	// ============================================
 	//              재고 이벤트
@@ -74,9 +74,6 @@ public class OutboxEventType {
 
 	/** 재고 예약 요청 */
 	public static final String STOCK_RESERVATION_REQUESTED = "STOCK_RESERVATION_REQUESTED";
-
-	/** 재고 예약 취소 */
-	public static final String STOCK_RESERVATION_CANCELLED = "STOCK_RESERVATION_CANCELLED";
 
 	/** 재고 복구 요청 */
 	public static final String STOCK_ROLLBACK_REQUESTED = "STOCK_ROLLBACK_REQUESTED";

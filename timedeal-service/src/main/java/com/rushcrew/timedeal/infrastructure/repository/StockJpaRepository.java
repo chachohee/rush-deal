@@ -81,18 +81,18 @@ public interface StockJpaRepository extends JpaRepository<TimeDealStock, UUID> {
 		@Param("stockId") UUID stockId
 	);
 
-    @Query("""
-                SELECT sl
-                FROM StockLog sl
-                WHERE sl.timeDealStock.id = :stockId
-                  AND sl.orderId.orderId = :orderId
-                ORDER BY sl.createdAt DESC
-                FETCH FIRST 1 ROW ONLY
-        """)
-    Optional<StockLog> findLastByStockIdAndOrderId(
-        @Param("stockId") UUID stockId,
-        @Param("orderId") UUID orderId
-    );
+	@Query(value = """
+			SELECT * 
+			FROM time_deal_schema.p_stock_log 
+			WHERE time_deal_stock_id = :stockId 
+			  AND order_id = :orderId 
+			ORDER BY created_at DESC 
+			LIMIT 1
+		""", nativeQuery = true)
+	Optional<StockLog> findLastByStockIdAndOrderId(
+		@Param("stockId") UUID stockId,
+		@Param("orderId") UUID orderId
+	);
 
     @Query("""
                     SELECT new com.rushcrew.timedeal.application.result.StockLogResult(

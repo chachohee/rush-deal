@@ -19,12 +19,16 @@ public record RestoreStockRequest(
     @NotNull
     UUID orderId,
 
+	@NotNull
+	UUID sagaId,
+
     @NotBlank
     String reason
 ) {
 
     public RestoreStockCommand toCommand() {
         return new RestoreStockCommand(
+			this.sagaId,
             this.timeDealStockId,
             Quantity.positive(this.quantity),
             OrderId.of(this.orderId),

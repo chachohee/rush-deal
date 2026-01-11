@@ -1,7 +1,10 @@
 package com.rushcrew.order_service.application.command.service;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,7 +41,15 @@ public class CancelOrderService implements CancelOrderUseCase {
 	@Override
 	@Transactional
 	public CancelOrderResult cancelOrder(CancelOrderCommand command) {
-		log.info("주문 취소 처리 시작: orderId={}, userId={}", command.orderId(), command.userId());
+		// log.info("주문 취소 처리 시작: orderId={}, userId={}", command.orderId(), command.userId());
+		StackTraceElement caller = Thread.currentThread().getStackTrace()[2];
+		log.info("=== 주문 취소 처리 시작 ===");
+		log.info("orderId={}, userId={}", command.orderId(), command.userId());
+		log.info("호출 위치: {}.{}({}:{})",
+			caller.getClassName(),
+			caller.getMethodName(),
+			caller.getFileName(),
+			caller.getLineNumber());
 
 		Order order = orderCommandPort.findById(command.orderId())
 			.orElseThrow(() -> new BusinessException(OrderErrorCode.ORDER_NOT_FOUND));
@@ -47,7 +58,6 @@ public class CancelOrderService implements CancelOrderUseCase {
 			throw new BusinessException(OrderErrorCode.ORDER_ACCESS_DENIED);
 		}
 
-		// 취소 가능 상태 검증 (PENDING 상태만 가능)
 		if (!order.canCancelBeforePayment()) {
 			throw new BusinessException(OrderErrorCode.ORDER_CANNOT_CANCEL);
 		}
@@ -55,52 +65,57 @@ public class CancelOrderService implements CancelOrderUseCase {
 		// 주문 상태 변경 (PENDING → CANCELLED)
 		order.cancelBeforePayment("시스템에 의한 주문 취소");
 
-		// 각 예약된 재고에 대해 예약 취소 처리
-		for (OrderReservation reservation : order.getReservations()) {
-			if (reservation.getStatus() == ReservationStatus.RESERVED) {
-				// 예약 상태를 CANCELLED로 변경
-				reservation.cancel();
-			}
-		}
+		// ✅ RESERVED 상태인 예약들만 수집 (상태 변경 전)
+		List<OrderReservation> cancelledReservations = order.getReservations().stream()
+			.filter(reservation -> reservation.getStatus() == ReservationStatus.RESERVED)
+			.collect(Collectors.toList());
 
-		// Order와 OrderReservation 변경사항 DB에 저장 (cascade로 함께 저장됨)
+		// ✅ 예약 상태 변경 (RESERVED → CANCELLED)
+		cancelledReservations.forEach(OrderReservation::cancel);
+
+		// Order 저장 (cascade로 OrderReservation도 함께 저장됨)
 		Order savedOrder = orderCommandPort.save(order);
 
-		log.info("주문 취소 완료: orderId={}", savedOrder.getOrderId());
+		log.info("주문 취소 완료: orderId={}, cancelledReservations={}",
+			savedOrder.getOrderId(), cancelledReservations.size());
 
-		// 포인트 환불 이벤트 발행
+		// 포인트 사용 취소 이벤트 발행
 		if (savedOrder.getPointUsed() != null && savedOrder.getPointUsed() > 0L) {
 			try {
-				pointEventPort.publishPointRefundRequested(
+				pointEventPort.publishPointUseCancellRequested(
 					savedOrder.getUserId(),
 					savedOrder.getOrderId(),
 					savedOrder.getSagaId(),
 					savedOrder.getPointUsed(),
-					"주문 취소에 의한 포인트 환불"
+					"주문 취소에 의한 포인트 사용 취소"
 				);
-				log.info("포인트 환불 이벤트 발행 완료: orderId={}, pointUsed={}",
+				log.info("포인트 사용 취소 이벤트 발행 완료: orderId={}, pointUsed={}",
 					savedOrder.getOrderId(), savedOrder.getPointUsed());
 			} catch (Exception e) {
-				log.error("포인트 환불 이벤트 발행 실패: orderId={}", savedOrder.getOrderId());
+				log.error("포인트 사용 취소 이벤트 발행 실패: orderId={}", savedOrder.getOrderId(), e);
 			}
 		}
-		// 각 예약된 재고에 대해 예약 해제 이벤트 발행
-		for (OrderReservation reservation : savedOrder.getReservations()) {
-			if (reservation.getStatus() == ReservationStatus.CANCELLED) {
-				try {
-					stockEventPort.publishStockReservationCancelled(
-						savedOrder.getOrderId(),
-						reservation.getTimeDealStockId(),
-						reservation.getQuantity(),
-						"주문 취소에 의한 재고 예약 해제"
-					);
-				} catch (Exception e) {
-					log.error("재고 예약 취소 이벤트 발행 실패: reservationId={}", reservation.getOrderReservationId(), e);
-				}
+
+		if (!cancelledReservations.isEmpty()) {
+			try {
+				Map<UUID, Long> stockReservations = cancelledReservations.stream()
+					.collect(Collectors.toMap(
+						OrderReservation::getTimeDealStockId,
+						OrderReservation::getQuantity
+					));
+
+				stockEventPort.publishStockReservationCancelledBatch(
+					savedOrder.getOrderId(),
+					savedOrder.getSagaId(),
+					stockReservations,
+					"주문 취소에 의한 재고 예약 해제"
+				);
+				log.info("재고 예약 취소 배치 이벤트 발행 완료: orderId={}, itemCount={}",
+					savedOrder.getOrderId(), stockReservations.size());
+			} catch (Exception e) {
+				log.error("재고 예약 취소 배치 이벤트 발행 실패: orderId={}", savedOrder.getOrderId(), e);
 			}
 		}
-		log.info("재고 예약 취소 이벤트 발행 완료: orderId={}, reservationCount={}",
-			savedOrder.getOrderId(), savedOrder.getReservations().size());
 
 		// outbox에 ORDER_CANCELLED 이벤트 저장
 		try {

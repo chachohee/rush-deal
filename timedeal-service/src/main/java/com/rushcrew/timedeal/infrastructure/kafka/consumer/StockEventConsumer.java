@@ -1,13 +1,11 @@
 package com.rushcrew.timedeal.infrastructure.kafka.consumer;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rushcrew.timedeal.application.command.ConfirmStockCommand;
 import com.rushcrew.timedeal.application.command.ReserveStockCommand;
 import com.rushcrew.timedeal.application.command.RestoreStockCommand;
 import com.rushcrew.timedeal.application.port.out.event.StockReservationFailedEvent;
-import com.rushcrew.timedeal.application.port.out.event.StockReservedEvent;
 import com.rushcrew.timedeal.application.service.StockService;
 import com.rushcrew.timedeal.domain.vo.OrderId;
 import com.rushcrew.timedeal.domain.vo.Quantity;
@@ -48,7 +46,8 @@ public class StockEventConsumer {
 			List<ReserveStockCommand> commands = new ArrayList<>();
 			for (StockReserveEvent.OrderItem item : event.orderItems()) {
 				commands.add(new ReserveStockCommand(
-					OrderId.of(UUID.fromString(event.sagaId())),
+					OrderId.of(UUID.fromString(event.orderId())),
+					UUID.fromString(event.sagaId()),
 					UUID.fromString(item.timeDealStockId()),
 					Quantity.positive(item.quantity()),
 					event.userId()
@@ -73,6 +72,7 @@ public class StockEventConsumer {
 			if (event != null) {
 				StockReservationFailedEvent failedEvent = StockReservationFailedEvent.of(
 					event.sagaId(),
+					event.orderId(),
 					event.productId(),
 					e.getMessage()
 				);
@@ -106,27 +106,44 @@ public class StockEventConsumer {
 		}
 	}
 
-	// 주문 취소 -> 재고 복구
-	@KafkaListener(topics = "order.cancelled")
-	public void restore(String message) {
+	@KafkaListener(topics = "stock.restore.requested")
+	public void restoreBatch(String message) {
 		try {
-			log.info("재고 복구 메시지 수신: {}", message);
-
 			StockRestoreEvent event = objectMapper.readValue(message, StockRestoreEvent.class);
 
-			RestoreStockCommand command = new RestoreStockCommand(
-				event.stockId(),
-				Quantity.positive(event.quantity()),
-				OrderId.of(event.orderId()),
-				event.reason()
-			);
-			stockService.restoreStock(command);
+			// ✅ null 체크 추가
+			if (event.items() == null) {
+				log.warn("items가 null인 메시지 수신, 스킵: orderId={}, message={}",
+					event.orderId(), message);
+				return; // 정상 처리로 간주하고 offset 진행
+			}
 
-			log.info("재고 복구 완료: orderId={}", event.orderId());
+			if (event.items().isEmpty()) {
+				log.info("items가 비어있는 메시지 수신, 스킵: orderId={}", event.orderId());
+				return;
+			}
 
-		} catch (JsonProcessingException e) {
-			log.error("재고 복구 메시지 파싱 실패: {}", message, e);
-			throw new RuntimeException("재고 복구 메시지 파싱 실패", e);
+			// 배치 커맨드 생성
+			List<RestoreStockCommand> commands = new ArrayList<>();
+			for (StockRestoreEvent.StockRestoreItem item : event.items()) {
+				commands.add(new RestoreStockCommand(
+					event.sagaId(),
+					item.stockId(),
+					Quantity.positive(item.quantity()),
+					OrderId.of(event.orderId()),
+					event.reason()
+				));
+			}
+
+			// ✅ 배치로 복구
+			stockService.restoreStocksBatch(commands);
+
+			log.info("배치 재고 복구 완료: orderId={}, itemCount={}",
+				event.orderId(), commands.size());
+
+		} catch (Exception e) {
+			log.error("배치 재고 복구 실패", e);
+			throw new RuntimeException("배치 재고 복구 실패", e);
 		}
 	}
 }

@@ -61,6 +61,44 @@ public class PointEventPublisher implements PointEventPort {
 	}
 
 	@Override
+	public void publishPointUseCancellRequested(Long userId, UUID orderId, UUID sagaId, Long pointUsed, String reason) {
+		try {
+			// log.info("포인트 사용 취소 요청 이벤트 발행: userId={}, orderId={}, pointUsed={}", userId, orderId, pointUsed);
+
+			StackTraceElement caller = Thread.currentThread().getStackTrace()[2];
+			log.info("!!! 포인트 취소 이벤트 발행 호출됨 !!!");
+			log.info("orderId: {}, userId: {}, pointUsed: {}", orderId, userId, pointUsed);
+			log.info("호출 위치: {}.{}({}:{})",
+				caller.getClassName(),
+				caller.getMethodName(),
+				caller.getFileName(),
+				caller.getLineNumber());
+
+			Map<String, Object> event = new HashMap<>();
+			event.put("userId", userId);
+			event.put("orderId", orderId.toString());
+			event.put("sagaId", sagaId);
+
+			String payload = objectMapper.writeValueAsString(event);
+
+			OutboxEventEntity outbox = OutboxEventEntity.create(
+				"ORDER",         // aggregateType
+				orderId,                     // aggregateId
+				"POINT_USE_CANCEL_REQUESTED",     // eventType
+				payload                      // json
+			);
+
+			outboxRepository.save(outbox);
+			log.info("포인트 사용 취소 요청 이벤트 Outbox 저장 완료: orderId={}", orderId);
+
+		} catch (Exception e) {
+			log.error("포인트 사용 취소 요청 이벤트 발행 실패: orderId={}", orderId, e);
+			throw new RuntimeException("포인트 사용 취소 요청 이벤트 발행 실패", e);
+		}
+	}
+
+	// TODO: 검토 및 수정 필요
+	@Override
 	public void publishPointRefundRequested(Long userId, UUID orderId, UUID sagaId, Long pointUsed, String reason) {
 		try {
 			log.info("포인트 환불 요청 이벤트 발행: userId={}, orderId={}, pointUsed={}", userId, orderId, pointUsed);

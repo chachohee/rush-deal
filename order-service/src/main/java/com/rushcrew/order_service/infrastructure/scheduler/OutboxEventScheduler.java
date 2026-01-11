@@ -170,12 +170,12 @@ public class OutboxEventScheduler {
 
 			// 포인트 이벤트
 			case "POINT_EARN_REQUESTED" -> "point.earn.requested";
-			case "POINT_REFUND_REQUESTED" -> "point.refund.requested";
-			// case "POINT_DEDUCT_REQUESTED" -> "point.deduct.requested";
+			case "POINT_USE_CANCEL_REQUESTED" -> "point.use.cancel.requested"; // 주문 생성 시 포인트 사용 취소
+			case "POINT_REFUND_REQUESTED" -> "point.refund.requested"; // 주문 환불 시
 
 			// 재고 이벤트
 			case "STOCK_RESERVATION_REQUESTED" -> "stock.reservation.requested";
-			case "STOCK_RESERVATION_CANCELLED" -> "stock.reservation.cancelled";
+			case "STOCK_ROLLBACK_REQUESTED" -> "stock.restore.requested";
 
 			// 큐 이벤트
 			case "TOKEN_REMOVE_REQUESTED" -> "order-complete-token-remove";

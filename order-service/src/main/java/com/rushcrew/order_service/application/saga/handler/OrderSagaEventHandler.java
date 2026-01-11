@@ -19,6 +19,7 @@ import com.rushcrew.order_service.domain.model.saga.SagaInstance;
 import com.rushcrew.order_service.domain.vo.ProductSnapshot;
 import com.rushcrew.order_service.infrastructure.messaging.event.StockReservationFailedEvent;
 import com.rushcrew.order_service.infrastructure.messaging.event.StockReservedEvent;
+import com.rushcrew.order_service.infrastructure.messaging.event.StockRestoreFailedEvent;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -111,7 +112,7 @@ public class OrderSagaEventHandler {
 		SagaContext context = SagaContext.restore(saga);
 		OrderCreationSagaData data = saga.restoreData();
 
-		log.error("[Saga-{}] 재고 예약 실패: {}", event.sagaId(), event.reason());
+		log.error("[Saga-{}] 재고 예약 실패: orderId{}, 이유:{}", event.sagaId(), event.orderId(), event.reason());
 
 		// 보상 트랜잭션 실행
 		executeCompensation(saga, context, data, "재고 예약 실패: " + event.reason());
@@ -179,5 +180,32 @@ public class OrderSagaEventHandler {
 		} catch (Exception e) {
 			log.error("[Saga] 토큰 만료 이벤트 Outbox 저장 실패 (주문은 성공)", e);
 		}
+	}
+
+	@Transactional
+	public void handleStockRestoreFailed(StockRestoreFailedEvent event) {
+		SagaInstance saga = sagaInstancePort.findBySagaId(event.sagaId());
+
+		if (saga.isCompleted() || saga.isFailed()) {
+			log.warn("[Saga-{}] 이미 완료 또는 실패한 Saga입니다. 현재 상태: {}",
+				event.sagaId(), saga.getStatus());
+			return;
+		}
+
+		log.error("[Saga-{}] 재고 복구 실패: orderId={}, stockId={}, reason={}",
+			event.sagaId(), event.orderId(), event.stockId(), event.reason());
+
+		// 재고 복구 실패는 심각한 상황이므로 별도 처리 필요
+		// 1. Saga 상태를 FAILED로 마킹
+		saga.addStep(SagaStepName.REQUEST_STOCK_RESERVATION_COMPENSATE, SagaStatus.FAILED);
+		saga.fail("재고 복구 실패: " + event.reason());
+		sagaInstancePort.save(saga);
+
+		// 2. 메트릭 기록
+		metricsPort.recordSagaFailure();
+
+		// 3. 알림/모니터링 (선택사항)
+		log.error("[CRITICAL][Saga-{}] 재고 복구 실패 - 수동 확인 필요! orderId={}, stockId={}",
+			event.sagaId(), event.orderId(), event.stockId());
 	}
 }

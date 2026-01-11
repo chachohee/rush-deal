@@ -40,4 +40,6 @@ public interface StockService {
     Page<StockLogResult> getStockLogs(UUID stockId, String eventType, Pageable pageable);
 
 	void reserveStocksBatch(List<ReserveStockCommand> commands);
+
+	void restoreStocksBatch(List<RestoreStockCommand> commands);
 }

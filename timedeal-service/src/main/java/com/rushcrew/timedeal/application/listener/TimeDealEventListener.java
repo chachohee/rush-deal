@@ -4,6 +4,7 @@ import com.rushcrew.timedeal.application.event.TimeDealsEndedEvent;
 import com.rushcrew.timedeal.application.event.TimeDealsStartedEvent;
 import com.rushcrew.timedeal.application.port.out.event.StockReservationFailedEvent;
 import com.rushcrew.timedeal.application.port.out.event.StockReservedEvent;
+import com.rushcrew.timedeal.application.port.out.event.StockRestoreFailedEvent;
 import com.rushcrew.timedeal.application.port.out.event.StockSoldOutEvent;
 import com.rushcrew.timedeal.application.port.out.event.TimeDealEndedEvent;
 import com.rushcrew.timedeal.application.port.out.event.TimeDealStartedEvent;
@@ -88,5 +89,11 @@ public class TimeDealEventListener {
 	public void handleStockReservationFailed(StockReservationFailedEvent event) {
 		log.info("[Saga-{}] StockReservationFailedEvent 처리 - Kafka 발행", event.sagaId());
 		stockEventProducer.publishStockReservationFailed(event);
+	}
+
+	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+	public void handleStockRestoreFailed(StockRestoreFailedEvent event) {
+		log.info("[Saga-{}] StockRestoreFailedEvent 처리 - Kafka 발행", event.sagaId());
+		stockEventProducer.publishStockRestoreFailed(event);
 	}
 }

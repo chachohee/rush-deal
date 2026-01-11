@@ -2,6 +2,8 @@ package com.rushcrew.order_service.application.command.service;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,10 +40,10 @@ public class RefundOrderService implements RefundOrderUseCase {
 
 	/**
 	 * 주문 환불 처리
-	 * 
+	 *
 	 * 환불은 PAID 상태에서만 가능하다
 	 * 구매확정(PURCHASE_CONFIRMED) 후에는 환불 불가능
-	 * 
+	 *
 	 * 처리 순서:
 	 * 1. 주문 검증 (존재 여부, 소유자 확인)
 	 * 2. 환불 가능 상태 검증 (PAID 상태만 가능)
@@ -99,28 +101,36 @@ public class RefundOrderService implements RefundOrderUseCase {
 					savedOrder.getPointUsed(),
 					"주문 환불에 의한 포인트 환불"
 				);
+				log.info("포인트 환불 이벤트 발행 완료: orderId={}, pointUsed={}",
+					savedOrder.getOrderId(), savedOrder.getPointUsed());
 			} catch (Exception e) {
-				log.error("포인트 이벤트 발행 실패", e);
+				log.error("포인트 환불 이벤트 발행 실패: orderId={}", savedOrder.getOrderId(), e);
 				// 실패해도 주문 환불은 계속 진행
 			}
 		}
 
-		// 재고 복구 이벤트 발행
-		for (OrderItem orderItem : savedOrder.getOrderItems()) {
-			try {
-				stockEventPort.publishStockReservationCancelled(
-					savedOrder.getOrderId(),
-					orderItem.getTimeDealStockId(),
-					orderItem.getQuantity(),
-					"주문 환불에 의한 재고 복구"
-				);
-			} catch (Exception e) {
-				log.error("재고 이벤트 발행 실패", e);
-				// 실패해도 주문 환불은 계속 진행
-			}
+		// 재고 복구 이벤트 발행 (배치)
+		try {
+			// OrderItem들에서 stockId와 quantity를 Map으로 수집
+			Map<UUID, Long> refundStockReservations = savedOrder.getOrderItems().stream()
+				.collect(Collectors.toMap(
+					OrderItem::getTimeDealStockId,
+					OrderItem::getQuantity
+				));
+
+			stockEventPort.publishStockReservationCancelledBatch(
+				savedOrder.getOrderId(),
+				savedOrder.getSagaId(),
+				refundStockReservations,
+				"주문 환불에 의한 재고 복구"
+			);
+
+			log.info("재고 복구 이벤트 발행 완료: orderId={}, itemCount={}",
+				savedOrder.getOrderId(), refundStockReservations.size());
+		} catch (Exception e) {
+			log.error("재고 복구 이벤트 발행 실패: orderId={}", savedOrder.getOrderId(), e);
+			// 실패해도 주문 환불은 계속 진행
 		}
-		log.info("재고 복구 이벤트 발행 완료: orderId={}, itemCount={}",
-			savedOrder.getOrderId(), savedOrder.getOrderItems().size());
 
 		// ORDER_REFUNDED 이벤트를 Outbox에 저장
 		try {

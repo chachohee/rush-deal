@@ -44,32 +44,32 @@ public class PointEventConsumer {
             acknowledgment.acknowledge();
     }
 
-	// TODO: 주문 환불 후 적립 예정 포인트를 취소하는 컨슈머로 토픽 이름 변경
-    // @KafkaListener(topics = "point.refund.requested", groupId = "point-service-group")
-    // public void consumePointRefundRequested(
-    //     @Payload String message,
-    //     Acknowledgment acknowledgment
-    // ) throws Exception {
-	//
-    //     PointRefundRequestedEvent event = objectMapper.readValue(
-    //             message,
-    //             PointRefundRequestedEvent.class
-    //         );
-	//
-    //         CancelOrderCommand command = new CancelOrderCommand(
-    //             event.userId(),
-    //             event.orderId(),
-    //             event.sagaId()
-    //         );
-	//
-	//
-    //         pointService.cancelOrder(command);
-	//
-    //         acknowledgment.acknowledge();
-    // }
+	// 주문 취소 시에 예비 포인트 적립 취소
+    @KafkaListener(topics = "point.refund.requested", groupId = "point-service-group")
+    public void consumePointRefundRequested(
+        @Payload String message,
+        Acknowledgment acknowledgment
+    ) throws Exception {
 
-	@KafkaListener(topics = "point.refund.requested", groupId = "point-service-group")
-	public void consumePointRefundRequested(
+        PointRefundRequestedEvent event = objectMapper.readValue(
+                message,
+                PointRefundRequestedEvent.class
+            );
+
+            CancelOrderCommand command = new CancelOrderCommand(
+                event.userId(),
+                event.orderId(),
+                event.sagaId()
+            );
+
+
+            pointService.cancelOrder(command);
+
+            acknowledgment.acknowledge();
+    }
+
+	@KafkaListener(topics = "point.use.cancel.requested", groupId = "point-service-group")
+	public void consumePointUseCancellRequested(
 		@Payload String message,
 		Acknowledgment acknowledgment
 	) throws Exception {

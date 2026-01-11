@@ -3,6 +3,7 @@ package com.rushcrew.timedeal.infrastructure.kafka.publisher;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rushcrew.timedeal.application.port.out.event.StockReservationFailedEvent;
 import com.rushcrew.timedeal.application.port.out.event.StockReservedEvent;
+import com.rushcrew.timedeal.application.port.out.event.StockRestoreFailedEvent;
 import com.rushcrew.timedeal.application.port.out.event.StockSoldOutEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,6 +39,17 @@ public class StockEventProducer {
             throw new RuntimeException("이벤트 발행 실패", e);
         }
     }
+
+	public void publishStockRestoreFailed(StockRestoreFailedEvent event) {
+		try {
+			String message = objectMapper.writeValueAsString(event);
+			kafkaTemplate.send("stock.restore.failed", event.sagaId(), message);
+			log.info("[Saga-{}] stock.restore.failed 이벤트 발행 완료", event.sagaId());
+		} catch (Exception e) {
+			log.error("[Saga-{}] stock.restore.failed 이벤트 발행 실패", event.sagaId(), e);
+			throw new RuntimeException("이벤트 발행 실패", e);
+		}
+	}
 
     public void publishStockSoldOut(StockSoldOutEvent event) {
         try {

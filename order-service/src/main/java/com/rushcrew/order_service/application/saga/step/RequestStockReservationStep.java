@@ -1,5 +1,9 @@
 package com.rushcrew.order_service.application.saga.step;
 
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -37,6 +41,7 @@ public class RequestStockReservationStep {
 			// 페이로드 구성
 			StockReservationRequestPayload payload = StockReservationRequestPayload.builder()
 				.sagaId(context.getSagaId().toString())
+				.orderId(data.getOrderId().toString())
 				.userId(command.userId())
 				.timeDealId(command.timeDealId().toString())
 				.productId(command.productId().toString())
@@ -76,28 +81,22 @@ public class RequestStockReservationStep {
 		try {
 			CreateOrderCommand command = data.getCommand();
 
-			// 각 주문 아이템에 대해 재고 예약 취소 이벤트 발행
-			command.orderItems().forEach(item -> {
-				try {
-					log.info("[Saga-{}] 보상: 재고 예약 취소 요청 (timeDealStockId={}, quantity={})",
-						context.getSagaId(), item.timeDealStockId(), item.quantity());
+			// 모든 주문 아이템의 stockId와 quantity를 Map으로 수집
+			Map<UUID, Long> stockReservations = command.orderItems().stream()
+				.collect(Collectors.toMap(
+					CreateOrderCommand.OrderItemCommand::timeDealStockId,
+					CreateOrderCommand.OrderItemCommand::quantity
+				));
 
-					stockEventPort.publishStockReservationCancelled(
-						data.getOrderId(),
-						item.timeDealStockId(),
-						item.quantity(),
-						"Saga 보상 트랜잭션"
-					);
+			log.info("[Saga-{}] 보상: 재고 예약 취소 배치 요청 (itemCount={})",
+				context.getSagaId(), stockReservations.size());
 
-					log.info("[Saga-{}] 보상: 재고 예약 취소 완료 (timeDealStockId={})",
-						context.getSagaId(), item.timeDealStockId());
-
-				} catch (Exception e) {
-					log.error("[Saga-{}] 보상: 재고 예약 취소 실패 (timeDealStockId={}) - {}",
-						context.getSagaId(), item.timeDealStockId(), e.getMessage(), e);
-					throw e;
-				}
-			});
+			stockEventPort.publishStockReservationCancelledBatch(
+				data.getOrderId(),
+				context.getSagaId(),
+				stockReservations,
+				"Saga 보상 트랜잭션"
+			);
 
 			log.info("[Saga-{}] 보상: {} 완료",
 				context.getSagaId(), SagaStepName.REQUEST_STOCK_RESERVATION_COMPENSATE.getDescription());
@@ -114,6 +113,7 @@ public class RequestStockReservationStep {
 	@Builder
 	public static class StockReservationRequestPayload {
 		private String sagaId;
+		private String orderId;
 		private Long userId;
 		private String timeDealId;
 		private String productId;

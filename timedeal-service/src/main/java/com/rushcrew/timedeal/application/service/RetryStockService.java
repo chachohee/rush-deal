@@ -90,9 +90,9 @@ public class RetryStockService {
 			log.error("[Saga-{}] 재고 예약 실패: {}",
 				command.orderId().getOrderId(), errorMsg);
 
-			// productId 추출 (stock에서 가져올 수 없으므로 command나 다른 방법 필요)
 			eventPublisher.publishEvent(
 				StockReservationFailedEvent.of(
+					command.sagaId().toString(),
 					command.orderId().getOrderId().toString(),
 					command.stockId().toString(), // stockId를 productId 대신 사용
 					errorMsg
@@ -108,6 +108,7 @@ public class RetryStockService {
 
 			eventPublisher.publishEvent(
 				StockReservationFailedEvent.of(
+					command.sagaId().toString(),
 					command.orderId().getOrderId().toString(),
 					command.stockId().toString(),
 					errorMsg

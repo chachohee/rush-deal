@@ -82,13 +82,26 @@ public interface OrderJpaRepository extends JpaRepository<Order, UUID> {
 	 * - PENDING 상태
 	 * - 생성 시간이 기준 시간보다 이전
 	 */
+	// @Query("""
+    //     SELECT o
+    //     FROM Order o
+    //     WHERE o.status = :status
+    //     AND o.orderedAt < :createdBefore
+    //     ORDER BY o.orderedAt ASC
+    // """)
+	// List<Order> findByStatusAndOrderedAtBefore(
+	// 	@Param("status") OrderStatus status,
+	// 	@Param("createdBefore") Instant createdBefore,
+	// 	Pageable pageable
+	// );
 	@Query("""
-        SELECT o 
-        FROM Order o 
-        WHERE o.status = :status 
-        AND o.orderedAt < :createdBefore 
-        ORDER BY o.orderedAt ASC
-    """)
+    SELECT DISTINCT o 
+    FROM Order o 
+    LEFT JOIN FETCH o.reservations
+    WHERE o.status = :status 
+    AND o.orderedAt < :createdBefore 
+    ORDER BY o.orderedAt ASC
+""")
 	List<Order> findByStatusAndOrderedAtBefore(
 		@Param("status") OrderStatus status,
 		@Param("createdBefore") Instant createdBefore,

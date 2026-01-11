@@ -6,6 +6,7 @@ import java.util.UUID;
 
 public record ReserveStockCommand(
     OrderId orderId,
+	UUID sagaId,
     UUID stockId,
     Quantity quantity,
     Long userId

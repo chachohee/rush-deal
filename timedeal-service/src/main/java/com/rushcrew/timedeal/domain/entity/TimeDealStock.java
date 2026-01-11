@@ -80,9 +80,9 @@ public class TimeDealStock extends BaseEntity {
     @Column(nullable = false)
     private Long version;
 
-    @OneToMany(mappedBy = "timeDealStock", fetch = FetchType.LAZY, cascade = CascadeType.PERSIST)
-    @Builder.Default
-    private List<StockLog> stockLogs = new ArrayList<>();
+	@OneToMany(mappedBy = "timeDealStock", fetch = FetchType.LAZY,
+		cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+	private List<StockLog> stockLogs = new ArrayList<>();
 
     public static TimeDealStock create(CreateStockCommand command,
         TimeDealProduct timeDealProduct) {

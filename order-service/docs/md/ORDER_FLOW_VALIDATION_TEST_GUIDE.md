@@ -82,6 +82,10 @@ rushdeal_zookeeper         Up
 rushdeal_*_redis (6개)     Up (healthy)
 ```
 
+![docker-compose-up.png](../images/docker-compose-up.png)
+
+![docker-desktop.png](../images/docker-desktop.png)
+
 ### 2.2 인프라 헬스체크
 
 자동화 스크립트에 포함되어 있지만, 수동으로도 확인 가능합니다:
@@ -269,9 +273,11 @@ curl -X POST http://localhost:8020/api/v1/products \
 ![product-postman.png](../images/product-postman.png)
 
 **DB에서`productId` 확인**
+
 ![product-db.png](../images/product-db.png)
 
 **상품 생성 시 상품 옵션도 함께 생성됨**
+
 ![product-option-db.png](../images/product-option-db.png)
 
 ### 4.2 타임딜 & 타임딜 상품 생성
@@ -317,9 +323,11 @@ curl -X POST http://localhost:8030/api/v1/timedeals \
 ![timedeal-postman.png](../images/timedeal-postman.png)
 
 **DB에서 `timeDealId`, `timeDealProductId` 확인**
+
 ![timedeal-db.png](../images/timedeal-db.png)
 
 **타임딜 생성 시 타임딜 상품도 함께 생성됨**
+
 ![timedeal-product-db.png](../images/timedeal-product-db.png)
 
 ### 4.3 재고 생성 (4개 타임딜 상품에 대해)
@@ -366,6 +374,7 @@ curl -X POST http://localhost:8030/api/v1/stocks \
 ![stock-postman.png](../images/stock-postman.png)
 
 **DB에서 `timeDealStockId` 확인**
+
 ![stock-db.png](../images/stock-db.png)
 
 ### 4.4 대기열 정책 생성
@@ -408,6 +417,7 @@ curl -X POST http://localhost:8040/api/v1/queue/policies \
     "ttl": 36000
   }'
 ```
+
 ![queue-postman.png](../images/queue-postman.png)
 
 ![queue-db.png](../images/queue-db.png)

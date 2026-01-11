@@ -92,7 +92,14 @@
 | 옵션별 재고 | 100개 | 총 400개 |
 | 구매 제한 | 5개/인 | - |
 
+
+**테스트 사용자 생성:**
+
 ![test-data-user.png](../images/test-data-user.png)
+
+**테스트 사용자 10,000 포인트 이력 생성:**
+
+![test-data-point-db.png](../images/test-data-point-db.png)
 
 ---
 
@@ -272,6 +279,16 @@ order-service/k6/outputs/order-flow-validation-test.log
   - Sold: 0개
   - Total: 400개 (불변) ✅
 ```
+
+### 6.4 재고 로그 결과
+
+**주문 예약:**
+
+![stock-log-reserve.png](../images/stock-log-reserve.png)
+
+**주문 복구:**
+
+![stock-log-reserve-cancel.png](../images/stock-log-reserve-cancel.png)
 
 ---
 

@@ -1,6 +1,6 @@
 # ⏰ Rush Deal
 > 트래픽 집중 상황을 고려한 MSA 기반 타임딜 이커머스 플랫폼
-
+> ![rushdeal.png](rushdeal.png)
 
 ## 목차
 - [프로젝트 소개](#-프로젝트-소개)

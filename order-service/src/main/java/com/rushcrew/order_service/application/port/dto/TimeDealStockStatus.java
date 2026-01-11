@@ -10,8 +10,7 @@ public enum TimeDealStockStatus {
 		try {
 			return TimeDealStockStatus.valueOf(status);
 		} catch (Exception e) {
-			// 알 수 없는 상태는 재고 정지로 처리
-			return PAUSED;
+			return PAUSED;	// 알 수 없는 상태는 재고 정지로 처리
 		}
 	}
 }

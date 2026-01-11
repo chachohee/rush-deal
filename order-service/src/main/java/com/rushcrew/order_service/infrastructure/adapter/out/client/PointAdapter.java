@@ -56,10 +56,4 @@ public class PointAdapter implements PointPort {
 			throw e;
 		}
 	}
-
-	@Override
-	public PointBalanceResponse getBalance(Long userId) {
-		log.info("포인트 잔액 조회: userId={}", userId);
-		return pointFeignClient.getBalance(userId);
-	}
 }

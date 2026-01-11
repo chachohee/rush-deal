@@ -101,7 +101,6 @@ public class OrderCreationSagaOrchestrator {
 		if (result.isFailure()) {
 			saga.fail(result.getErrorMessage());
 			sagaInstancePort.save(saga);
-
 			if (result.getErrorCode() != null) {
 				throw new BusinessException(result.getErrorCode());
 			} else {
@@ -115,7 +114,6 @@ public class OrderCreationSagaOrchestrator {
 	 */
 	private void compensateCompletedSteps(SagaInstance saga, SagaContext context, OrderCreationSagaData data) {
 		log.info("[Saga-{}] 보상 트랜잭션 시작", saga.getSagaId());
-
 		// USE_POINT가 완료되었다면 보상
 		if (saga.hasCompletedStep(SagaStepName.USE_POINT)) {
 			try {
@@ -127,7 +125,6 @@ public class OrderCreationSagaOrchestrator {
 					saga.getSagaId(), compensateError.getMessage(), compensateError);
 			}
 		}
-
 		log.info("[Saga-{}] 보상 트랜잭션 완료", saga.getSagaId());
 	}
 }

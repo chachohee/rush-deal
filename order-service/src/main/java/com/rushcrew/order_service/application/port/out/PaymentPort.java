@@ -4,9 +4,8 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 public interface PaymentPort {
-	/* 결제 요청 */
+	/** 결제 요청 */
 	boolean requestPayment(UUID orderId, Long userId, BigDecimal finalAmount);
-
-	/* 결제 취소 (환불) */
+	/** 결제 취소 (주문 환불 시) */
 	void cancelPayment(UUID orderId, Long userId);
 }

@@ -49,6 +49,39 @@ log_error() {
     echo -e "${RED}❌ $1${NC}"
 }
 
+# 재고 스냅샷 저장 함수 (가독성 개선)
+# Note: 이 함수는 사용하지 않습니다 (단일 파일로 통합)
+save_stock_snapshot() {
+    local output_file=$1
+    local title=$2
+
+    {
+        echo "========================================"
+        echo "$title"
+        echo "========================================"
+        echo ""
+        printf "%-38s | %9s | %9s | %9s | %9s\n" "Stock ID" "Available" "Reserved" "Sold" "Total"
+        echo "----------------------------------------|-----------|-----------|-----------|----------"
+
+        docker exec rushdeal_postgres psql -U rushdeal -d rushdeal -t -A -c "
+            SELECT
+                id,
+                available_stock,
+                reserved_stock,
+                sold_stock,
+                (available_stock + reserved_stock + sold_stock) as total
+            FROM time_deal_schema.p_time_deal_stock
+            ORDER BY id;
+        " | while IFS='|' read -r id avail resv sold total; do
+            printf "%-38s | %9s | %9s | %9s | %9s\n" "$id" "$avail" "$resv" "$sold" "$total"
+        done
+
+        echo ""
+        echo "Captured at: $(date '+%Y-%m-%d %H:%M:%S')"
+        echo ""
+    } > "$output_file"
+}
+
 # IP 주소 자동 감지 함수
 get_wsl_ip() {
     # 방법 1: cmd.exe 사용 (가장 안정적)
@@ -93,16 +126,8 @@ echo ""
 
 # Step 1: 인프라 확인
 log_info "Step 1: Checking infrastructure..."
-if ! docker exec rushdeal_postgres pg_isready -U rushdeal > /dev/null 2>&1; then
-    log_error "PostgreSQL is not ready!"
-    exit 1
-fi
-if ! docker exec rushdeal_kafka kafka-topics --bootstrap-server localhost:9092 --list > /dev/null 2>&1; then
-    log_error "Kafka is not ready!"
-    exit 1
-fi
-log_success "Infrastructure is ready"
-echo ""
+chmod +x "$SCRIPT_DIR/check-infrastructure.sh"
+"$SCRIPT_DIR/check-infrastructure.sh"
 
 # Step 2: 기존 데이터 정리 (선택사항)
 read -p "🧹 Clean existing test data? (y/N): " -n 1 -r
@@ -290,6 +315,39 @@ log_info "Waiting for database transactions to commit..."
 sleep 5
 echo ""
 
+# ✅ 주문 생성 직후 재고 스냅샷 저장 (Step 8 직후)
+log_info "📸 Saving stock snapshot after order creation..."
+{
+    echo "========================================"
+    echo "📦 STOCK COMPARISON REPORT"
+    echo "========================================"
+    echo ""
+    echo "🕐 Part 1: After Order Creation (Step 8)"
+    echo "Captured at: $(date '+%Y-%m-%d %H:%M:%S')"
+    echo ""
+    printf "%-38s | %9s | %9s | %9s | %9s\n" "Stock ID" "Available" "Reserved" "Sold" "Total"
+    echo "----------------------------------------|-----------|-----------|-----------|----------"
+
+    docker exec rushdeal_postgres psql -U rushdeal -d rushdeal -t -A -c "
+        SELECT
+            id,
+            available_stock,
+            reserved_stock,
+            sold_stock,
+            (available_stock + reserved_stock + sold_stock) as total
+        FROM time_deal_schema.p_time_deal_stock
+        ORDER BY id;
+    " | while IFS='|' read -r id avail resv sold total; do
+        printf "%-38s | %9s | %9s | %9s | %9s\n" "$id" "$avail" "$resv" "$sold" "$total"
+    done
+
+    echo ""
+    echo "=========================================="
+    echo ""
+} > "$OUTPUTS_DIR/stock-comparison.txt"
+log_success "Stock snapshot (Part 1) saved"
+echo ""
+
 # Step 9: 즉시 검증 (주문 생성 확인)
 log_info "Step 9: Initial verification (Order Creation Check)..."
 echo ""
@@ -368,7 +426,7 @@ echo ""
 
 # Step 10: 자동 취소 대기
 log_warning "Step 10: Waiting for auto-cancellation..."
-log_info "Waiting 5 minutes for pending order timeout (15min timeout - 10min elapsed)..."
+log_info "Waiting 5 minutes for pending order timeout..."
 log_info "Then waiting 2 more minutes for scheduler execution..."
 echo ""
 
@@ -385,6 +443,90 @@ done
 
 echo ""
 log_success "Waiting completed"
+echo ""
+
+# ✅ 자동 취소 후 재고 스냅샷 저장 (Step 10 직후)
+log_info "📸 Saving stock snapshot after auto-cancellation..."
+{
+    echo "🕐 Part 2: After Auto-Cancellation (Step 10)"
+    echo "Captured at: $(date '+%Y-%m-%d %H:%M:%S')"
+    echo ""
+    printf "%-38s | %9s | %9s | %9s | %9s\n" "Stock ID" "Available" "Reserved" "Sold" "Total"
+    echo "----------------------------------------|-----------|-----------|-----------|----------"
+
+    docker exec rushdeal_postgres psql -U rushdeal -d rushdeal -t -A -c "
+        SELECT
+            id,
+            available_stock,
+            reserved_stock,
+            sold_stock,
+            (available_stock + reserved_stock + sold_stock) as total
+        FROM time_deal_schema.p_time_deal_stock
+        ORDER BY id;
+    " | while IFS='|' read -r id avail resv sold total; do
+        printf "%-38s | %9s | %9s | %9s | %9s\n" "$id" "$avail" "$resv" "$sold" "$total"
+    done
+
+    echo ""
+    echo "=========================================="
+    echo "📊 COMPARISON SUMMARY"
+    echo "=========================================="
+    echo ""
+} >> "$OUTPUTS_DIR/stock-comparison.txt"
+
+# 비교 분석 추가
+{
+    printf "%-38s | %-11s | %-11s | %s\n" "Stock ID" "Before(A/R)" "After(A/R)" "Status"
+    echo "----------------------------------------|-------------|-------------|------------"
+
+    # Part 1 데이터 추출
+    declare -A stock_before
+    while IFS='|' read -r line; do
+        if [[ $line =~ ^[a-f0-9]{8}-[a-f0-9]{4} ]]; then
+            stock_id=$(echo "$line" | awk '{print $1}')
+            avail=$(echo "$line" | awk '{print $3}')
+            resv=$(echo "$line" | awk '{print $5}')
+            stock_before[$stock_id]="$avail/$resv"
+        fi
+    done < <(sed -n '/Part 1:/,/Part 2:/p' "$OUTPUTS_DIR/stock-comparison.txt")
+
+    # Part 2 데이터와 비교
+    while IFS='|' read -r line; do
+        if [[ $line =~ ^[a-f0-9]{8}-[a-f0-9]{4} ]]; then
+            stock_id=$(echo "$line" | awk '{print $1}')
+            avail_after=$(echo "$line" | awk '{print $3}')
+            resv_after=$(echo "$line" | awk '{print $5}')
+
+            before="${stock_before[$stock_id]}"
+            IFS='/' read -r avail_before resv_before <<< "$before"
+
+            # 상태 판단
+            total_before=$((avail_before + resv_before))  # 55 + 45 = 100
+            if [ "$avail_after" = "$total_before" ]; then  # 100 == 100? ✅
+                STATUS="✅ RESTORED"
+            elif [ "$resv_after" != "0" ]; then
+                STATUS="⚠️ RESERVED"
+            else
+                STATUS="❌ MISMATCH"
+            fi
+
+            printf "%-38s | %5s / %-3s  | %5s / %-3s  | %s\n" \
+                "$stock_id" \
+                "$avail_before" "$resv_before" \
+                "$avail_after" "$resv_after" \
+                "$STATUS"
+        fi
+    done < <(sed -n '/Part 2:/,/COMPARISON SUMMARY/p' "$OUTPUTS_DIR/stock-comparison.txt")
+
+    echo ""
+    echo "Legend: A=Available, R=Reserved, S=Sold"
+    echo "✅ RESTORED: Reserved stock returned to available"
+    echo "⚠️ RESERVED: Still has reserved stock"
+    echo "❌ MISMATCH: Available stock doesn't match original"
+    echo ""
+} >> "$OUTPUTS_DIR/stock-comparison.txt"
+
+log_success "Stock comparison report saved: $OUTPUTS_DIR/stock-comparison.txt"
 echo ""
 
 # Step 11: 최종 검증 (주문 취소 및 포인트 환불 확인)
@@ -412,10 +554,12 @@ echo "   - Initial verification: $OUTPUTS_DIR/initial-verification.log"
 echo "   - Final verification: $OUTPUTS_DIR/final-verification.log"
 echo "   - Queue tokens: $OUTPUTS_DIR/queue-tokens-output.log"
 echo "   - Load test output: $OUTPUTS_DIR/load-test-output.log"
+echo "   - Stock comparison: $OUTPUTS_DIR/stock-comparison.txt  ⭐ CHECK THIS!"
 echo ""
 
 echo "💡 Quick Summary:"
 echo ""
+echo "📊 1. ORDER STATUS"
 docker exec rushdeal_postgres psql -U rushdeal -d rushdeal -c "
 WITH recent_orders AS (
     SELECT order_id, status, user_id
@@ -424,25 +568,51 @@ WITH recent_orders AS (
     LIMIT 100
 )
 SELECT
-    '주문 상태' as category,
-    status as detail,
-    COUNT(*)::text as value
+    status,
+    COUNT(*) as count,
+    ROUND(COUNT(*)::numeric / SUM(COUNT(*)) OVER () * 100, 1) as percentage
 FROM recent_orders
 GROUP BY status
-UNION ALL
+ORDER BY count DESC;
+"
+
+echo ""
+echo "💰 2. POINT TRANSACTION"
+docker exec rushdeal_postgres psql -U rushdeal -d rushdeal -c "
+WITH recent_orders AS (
+    SELECT user_id
+    FROM order_schema.p_order
+    ORDER BY created_at DESC
+    LIMIT 100
+)
 SELECT
-    '포인트 타입',
-    type::text,
-    COUNT(*)::text
+    type,
+    COUNT(*) as count,
+    SUM(amount) as total_amount
 FROM user_schema.p_point_history ph
 WHERE ph.user_id IN (SELECT DISTINCT user_id FROM recent_orders)
   AND type IN ('USE_PENDING', 'USE_CANCEL', 'EARN_PENDING')
 GROUP BY type
-ORDER BY category, detail;
+ORDER BY
+    CASE type
+        WHEN 'USE_PENDING' THEN 1
+        WHEN 'USE_CANCEL' THEN 2
+        WHEN 'EARN_PENDING' THEN 3
+    END;
 "
 
 echo ""
+echo "📦 3. STOCK COMPARISON"
+echo ""
+if [ -f "$OUTPUTS_DIR/stock-comparison.txt" ]; then
+    cat "$OUTPUTS_DIR/stock-comparison.txt"
+else
+    log_error "Stock comparison file not found"
+fi
+
+echo ""
 echo "🔍 For detailed analysis:"
-echo "   - Order Creation:    cat $OUTPUTS_DIR/initial-verification.log"
-echo "   - Order Cancellation: cat $OUTPUTS_DIR/final-verification.log"
+echo "   - Order Creation:    cat $OUTPUTS_DIR/initial-verification.log  ⭐"
+echo "   - Order Cancellation: cat $OUTPUTS_DIR/final-verification.log  ⭐"
+echo "   - Stock Comparison:  cat $OUTPUTS_DIR/stock-comparison.txt  ⭐"
 echo "   - Point Refund:      $SCRIPT_DIR/check-point-refund.sh"

@@ -1,33 +1,26 @@
 #!/bin/bash
 # create-kafka-topics.sh
+# "주문 생성 ~ 5분 내 미결제 시 주문 자동 취소" 흐름에 관련된 토픽들
 
 echo "📋 Creating Kafka topics..."
 
 TOPICS=(
-  # Stock 관련
+  # Stock
   "stock.reserved"
   "stock.reservation.failed"
   "stock.reservation.requested"
-  "stock.reservation.cancelled"
+  "stock.restore.requested"
+  "stock.restore.failed"
 
-  # Order 관련
+  # Order
   "order.created"
-  "order.paid"
   "order.cancelled"
   "order.updated"
-  "order.refunded"
-  "order.purchase.confirmed"
 
-  # Payment 관련
-  "payment.completed"
-  "payment.cancelled"
-  "payment.refund.requested"
+  # Point
+  "point.use.cancel.requested"
 
-  # Point 관련
-  "point.earn.requested"
-  "point.refund.requested"
-
-  # Queue 관련
+  # Queue
   "order-complete-token-remove"
 )
 

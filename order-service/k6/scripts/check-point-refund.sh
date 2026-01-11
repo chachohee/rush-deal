@@ -1,6 +1,6 @@
 #!/bin/bash
 # check-point-refund.sh
-# 포인트 환불 상세 확인 스크립트
+# 포인트 사용 취소 상세 확인 스크립트
 
 echo "💰 Point Refund Detailed Check"
 echo "=============================="

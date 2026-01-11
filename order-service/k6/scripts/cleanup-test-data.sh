@@ -13,15 +13,23 @@ TRUNCATE TABLE
     order_schema.p_order_item,
     order_schema.p_order_history,
     order_schema.p_order_reservation,
+    order_schema.p_order,
     order_schema.p_saga_step,
     order_schema.p_saga_instance,
-    order_schema.p_order
+    order_schema.p_outbox_event
 RESTART IDENTITY CASCADE;
 " > /dev/null 2>&1
 echo "   ✅ Order data cleaned"
 
-# 2. 재고 복구
-echo "📈 2. Restoring STOCK data..."
+# 2. 재고 로그 초기화
+echo "📝 2. Cleaning STOCK LOG data..."
+docker exec rushdeal_postgres psql -U rushdeal -d rushdeal -c "
+TRUNCATE TABLE time_deal_schema.p_stock_log RESTART IDENTITY;
+" > /dev/null 2>&1
+echo "   ✅ Stock log cleaned"
+
+# 3. 재고 복구
+echo "📈 3. Restoring STOCK data..."
 docker exec rushdeal_postgres psql -U rushdeal -d rushdeal -c "
 UPDATE time_deal_schema.p_time_deal_stock
 SET available_stock = 100,
@@ -39,8 +47,8 @@ WHERE time_deal_product_id IN (
 " > /dev/null 2>&1
 echo "   ✅ Stock restored to 400 units"
 
-# 3. 포인트 이력 정리 (초기 적립 제외)
-echo "💰 3. Cleaning POINT history (keeping initial balance)..."
+# 4. 포인트 이력 정리 (초기 적립 제외)
+echo "💰 4. Cleaning POINT history (keeping initial balance)..."
 docker exec rushdeal_postgres psql -U rushdeal -d rushdeal -c "
 DELETE FROM user_schema.p_point_history
 WHERE type != 'EARN_CONFIRM'
@@ -48,43 +56,54 @@ WHERE type != 'EARN_CONFIRM'
 " > /dev/null 2>&1
 echo "   ✅ Point history cleaned"
 
-# 4. Redis 큐 토큰 삭제
-echo "🔑 4. Cleaning REDIS queue tokens..."
+# 5. Redis 데이터 삭제
+echo "🔑 5. Cleaning REDIS data..."
 
-# 현재 DB의 모든 키 삭제
+# 5-1. 큐 Redis
+echo "   🔹 Cleaning Queue Redis..."
 docker exec rushdeal_queue_redis redis-cli FLUSHDB > /dev/null 2>&1
-
-# Redis가 완전히 정리될 때까지 대기
-sleep 2
-
-# 검증: Redis 키 개수 확인
-REDIS_KEYS=$(docker exec rushdeal_queue_redis redis-cli DBSIZE | grep -oE '[0-9]+')
-if [ "$REDIS_KEYS" -le 2 ]; then
-    echo "   ✅ Queue tokens cleared ($REDIS_KEYS keys - scheduler tokens only)"
+sleep 1
+QUEUE_KEYS=$(docker exec rushdeal_queue_redis redis-cli DBSIZE | grep -oE '[0-9]+')
+if [ "$QUEUE_KEYS" -le 2 ]; then
+    echo "      ✅ Queue Redis cleared ($QUEUE_KEYS keys - scheduler tokens only)"
 else
-    echo "   ⚠️  Warning: $REDIS_KEYS keys remaining (expected ≤ 2)"
+    echo "      ⚠️  Warning: $QUEUE_KEYS keys remaining (expected ≤ 2)"
 fi
 
-# 5. Kafka 토픽 초기화 (선택사항)
-echo "📨 5. Resetting KAFKA topics..."
+# 5-2. 주문 Redis
+echo "   🔹 Cleaning Order Redis..."
+docker exec rushdeal_order_redis redis-cli FLUSHDB > /dev/null 2>&1
+sleep 1
+ORDER_KEYS=$(docker exec rushdeal_order_redis redis-cli DBSIZE | grep -oE '[0-9]+')
+echo "      ✅ Order Redis cleared ($ORDER_KEYS keys)"
+
+# 5-3. 타임딜 Redis
+echo "   🔹 Cleaning TimeDeal Redis..."
+docker exec rushdeal_timedeal_redis redis-cli FLUSHDB > /dev/null 2>&1
+sleep 1
+TIMEDEAL_KEYS=$(docker exec rushdeal_timedeal_redis redis-cli DBSIZE | grep -oE '[0-9]+')
+echo "      ✅ TimeDeal Redis cleared ($TIMEDEAL_KEYS keys)"
+
+# 5-4. 유저 Redis
+echo "   🔹 Cleaning User Redis..."
+docker exec rushdeal_user_redis redis-cli FLUSHDB > /dev/null 2>&1
+sleep 1
+USER_KEYS=$(docker exec rushdeal_user_redis redis-cli DBSIZE | grep -oE '[0-9]+')
+echo "      ✅ User Redis cleared ($USER_KEYS keys)"
+
+# 6. Kafka 토픽 초기화 (선택사항)
+echo "📨 6. Resetting KAFKA topics..."
 
 # 토픽 목록
 topics=(
   "stock.reserved"
   "stock.reservation.failed"
   "stock.reservation.requested"
-  "stock.reservation.cancelled"
+  "stock.restore.requested"
+  "stock.restore.failed"
   "order.created"
-  "order.paid"
   "order.cancelled"
-  "order.updated"
-  "order.refunded"
-  "order.purchase.confirmed"
-  "payment.completed"
-  "payment.cancelled"
-  "payment.refund.requested"
-  "point.earn.requested"
-  "point.refund.requested"
+  "point.use.cancel.requested"
   "order-complete-token-remove"
 )
 
@@ -115,6 +134,11 @@ SELECT
     '주문' as table_name,
     COUNT(*) as count
 FROM order_schema.p_order
+UNION ALL
+SELECT
+    '재고 로그',
+    COUNT(*)
+FROM time_deal_schema.p_stock_log
 UNION ALL
 SELECT
     '포인트 (초기 적립)',

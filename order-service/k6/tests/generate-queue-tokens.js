@@ -17,7 +17,7 @@ export const options = {
     },
 };
 
-const QUEUE_SERVICE = 'http://172.30.1.72:8040';
+const QUEUE_SERVICE = 'http://172.30.1.100:8040';
 const TEST_USERS = 100;
 const PRODUCT_ID = '2728e8db-cea7-42fd-bdde-ad665eccb5dc';
 

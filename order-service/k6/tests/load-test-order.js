@@ -81,7 +81,7 @@ const TEST_DATA = {
 
 // 서비스 URL (WSL2에서 Windows로 접근)
 // cmd에서 "ipconfig | findstr IPv4" 실행하여 IP 확인
-const ORDER_SERVICE = 'http://172.30.1.72:8050';
+const ORDER_SERVICE = 'http://172.30.1.100:8050';
 
 // ===== Setup 단계 =====
 // 테스트 시작 전 1회만 실행되는 초기화 함수

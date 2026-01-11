@@ -63,15 +63,15 @@ const TEST_USERS = 100;
 
 // ⚠️ 주의: ./get-test-ids.sh 스크립트 실행 결과로 교체 필요
 const TEST_DATA = {
-    productId: '2728e8db-cea7-42fd-bdde-ad665eccb5dc',    // 테스트 상품 ID
-    timeDealId: '59985464-4f6b-40e3-8e6a-8626005e77b2',   // 타임딜 ID
+    productId: '857daa45-d8a7-4e13-938e-5ea80dab2238',    // 테스트 상품 ID
+    timeDealId: 'a82bc130-66d3-4306-9c92-b6864b7436a5',   // 타임딜 ID
 
     // 4개 옵션의 재고 ID (각 옵션당 100개씩, 총 400개 재고)
     stockIds: [
-        '37d8e622-4146-4ecf-9170-e104b2c5c8d9',
-        '9fa33b34-2bc0-45c7-9b5b-9989a468a281',
-        '65e8fb15-0a9c-4388-84a1-467778ecb4d9',
-        '373d331d-42a3-456e-9e47-418d57f03289'
+        '42d44908-6b83-4ff1-8068-e9b4efe47629',
+        'ae7993be-386f-4d66-90f3-61866b4fdb30',
+        '57eff965-669e-4aea-86fb-d3eb92467d0e',
+        '46e7e4db-2ee1-48da-96cb-c672f986f230'
     ],
 
     productPrice: 95200,   // 상품 가격

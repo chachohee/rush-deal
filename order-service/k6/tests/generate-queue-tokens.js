@@ -19,7 +19,7 @@ export const options = {
 
 const QUEUE_SERVICE = 'http://172.30.1.100:8040';
 const TEST_USERS = 100;
-const PRODUCT_ID = '2728e8db-cea7-42fd-bdde-ad665eccb5dc';
+const PRODUCT_ID = '857daa45-d8a7-4e13-938e-5ea80dab2238';
 
 export function setup() {
     console.log('🎫 Queue Token Generation');

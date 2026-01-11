@@ -87,7 +87,7 @@ rushdeal_*_redis (6개)     Up (healthy)
 자동화 스크립트에 포함되어 있지만, 수동으로도 확인 가능합니다:
 
 ```bash
-cd k6/scripts
+cd order-service/k6/scripts
 chmod +x check-infrastructure.sh
 ./check-infrastructure.sh
 ```
@@ -95,6 +95,7 @@ chmod +x check-infrastructure.sh
 **예상 출력:**
 ```
 🔍 Checking infrastructure...
+
 PostgreSQL: ✅
 Redis (auth): ✅
 Redis (user): ✅
@@ -105,6 +106,18 @@ Redis (gateway): ✅
 Kafka: ✅
 Prometheus: ✅
 Grafana: ✅
+
+✅ All required infrastructure is ready!
+```
+
+### 2.3 애플리케이션 실행
+```
+DiscoveryServiceApplication     :8761/
+UserServiceApplication          :8060/
+ProductServiceApplication       :8020/
+TimeDealApplication             :8030/
+QueueServiceApplication         :8040/
+OrderServiceApplication         :8050/
 ```
 
 ---
@@ -113,11 +126,11 @@ Grafana: ✅
 
 ### 3.1 사용자 및 포인트 데이터 생성
 
-**스크립트 위치:** `k6/test-data.sql`
+**스크립트 위치:** `order-service/k6/scripts/test-data.sql`
 
 ```bash
 # 테스트 데이터 생성 (자동화 스크립트 실행 전 수동 실행)
-docker exec -i rushdeal_postgres psql -U rushdeal -d rushdeal < k6/test-data.sql
+docker exec -i rushdeal_postgres psql -U rushdeal -d rushdeal < test-data.sql
 ```
 
 **생성되는 데이터:**
@@ -125,6 +138,49 @@ docker exec -i rushdeal_postgres psql -U rushdeal -d rushdeal < k6/test-data.sql
 - `SELLER` 역할: 1명 (seller@test.com)
 - `MASTER` 역할: 1명 (master@test.com)
 - 각 USER에게 10,000 포인트 지급
+
+**예상 출력:**
+```
+============================================
+🔧 RushDeal User & Point Test Data Init START
+============================================
+
+👤 [1/3] Creating test users (USER x100)...
+DO
+✅ USER 100명 생성 완료
+
+🏪 Creating test seller...
+INSERT 0 1
+✅ SELLER 생성 완료
+
+🏪 Creating test seller...
+INSERT 0 1
+✅ MASTER 생성 완료
+
+💰 [3/3] Initializing points (10,000 per user)...
+INSERT 0 100
+✅ USER 100명 포인트 10,000 지급 완료
+
+📊 User Summary
+  role  | count 
+--------+-------
+ SELLER |     1
+ MASTER |     1
+ USER   |   100
+(3 rows)
+
+
+📊 Point Summary
+ users_with_point | total_points 
+------------------+--------------
+              100 |      1000000
+(1 row)
+
+
+============================================
+🎉 User & Point Test Data Init COMPLETED
+============================================
+```
 
 ### 3.2 데이터 검증
 
@@ -146,15 +202,23 @@ WHERE type = 'EARN_CONFIRM';
 
 **예상 출력:**
 ```
-test_users: 100
-total_points: 1000000
+     test_users     
+--------------------
+ 👥 Test Users: 100
+(1 row)
+```
+```
+       total_points       
+--------------------------
+ 💰 Total Points: 1000000
+(1 row)
 ```
 
 ---
 
 ## 4. 상품 및 타임딜 설정
 
-### 4.1 상품 생성 (Postman 또는 curl)
+### 4.1 상품 * 상품 옵션 생성 (Postman 또는 curl)
 
 **요청 (Postman):**
 ```http
@@ -202,10 +266,15 @@ curl -X POST http://localhost:8020/api/v1/products \
     ]
   }'
 ```
+![product-postman.png](../images/product-postman.png)
 
-**응답에서 `productId` 확인 및 저장**
+**DB에서`productId` 확인**
+![product-db.png](../images/product-db.png)
 
-### 4.2 타임딜 생성
+**상품 생성 시 상품 옵션도 함께 생성됨**
+![product-option-db.png](../images/product-option-db.png)
+
+### 4.2 타임딜 & 타임딜 상품 생성
 
 **요청 (Postman):**
 ```http
@@ -245,8 +314,13 @@ curl -X POST http://localhost:8030/api/v1/timedeals \
     "productId": "YOUR_PRODUCT_ID_HERE"
   }'
 ```
+![timedeal-postman.png](../images/timedeal-postman.png)
 
-**응답에서 `timeDealId` 확인**
+**DB에서 `timeDealId`, `timeDealProductId` 확인**
+![timedeal-db.png](../images/timedeal-db.png)
+
+**타임딜 생성 시 타임딜 상품도 함께 생성됨**
+![timedeal-product-db.png](../images/timedeal-product-db.png)
 
 ### 4.3 재고 생성 (4개 타임딜 상품에 대해)
 
@@ -289,6 +363,10 @@ curl -X POST http://localhost:8030/api/v1/stocks \
     "totalStock": 100
   }'
 ```
+![stock-postman.png](../images/stock-postman.png)
+
+**DB에서 `timeDealStockId` 확인**
+![stock-db.png](../images/stock-db.png)
 
 ### 4.4 대기열 정책 생성
 
@@ -330,13 +408,16 @@ curl -X POST http://localhost:8040/api/v1/queue/policies \
     "ttl": 36000
   }'
 ```
+![queue-postman.png](../images/queue-postman.png)
+
+![queue-db.png](../images/queue-db.png)
 
 ### 4.5 ID 확인
 
 생성된 ID들을 확인:
 
 ```bash
-cd k6/scripts
+cd order-service/k6/scripts
 chmod +x get-test-ids.sh
 ./get-test-ids.sh
 ```
@@ -347,22 +428,24 @@ chmod +x get-test-ids.sh
 ================
 
 🛍️ Product ID:
-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+857daa45-d8a7-4e13-938e-5ea80dab2238
 
 ⏰ TimeDeal ID:
-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+a82bc130-66d3-4306-9c92-b6864b7436a5
 
 📦 TimeDeal Product IDs:
-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+66b08977-c455-455b-b5eb-d75d2f9448f4
+3d2c9758-7f1f-42e7-b7d3-40546f5a9a64
+daaf2161-e56b-45e4-8926-db2177812251
+33b2b101-8000-4b46-81eb-5bc2135c41b8
 
 📦 Stock IDs:
-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+42d44908-6b83-4ff1-8068-e9b4efe47629
+ae7993be-386f-4d66-90f3-61866b4fdb30
+57eff965-669e-4aea-86fb-d3eb92467d0e
+46e7e4db-2ee1-48da-96cb-c672f986f230
+
+✅ Done!
 ```
 
 ---
@@ -378,16 +461,16 @@ xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 3. 📋 Kafka 토픽 생성
 4. 🔍 테스트 ID 조회 (Product, TimeDeal, Stock)
 5. 🎫 큐 토큰 발급 (100개)
-6. 🚀 부하테스트 실행 (100명 동시 주문)
+6. 🚀 주문 테스트 실행 (100명 동시 주문)
 7. 📊 초기 검증 (주문 생성 확인)
 8. ⏳ 자동 취소 대기 (7분)
-9. 📊 최종 검증 (주문 취소 및 재고 복구 확인)
+9. 📊 최종 검증 (주문 자동 취소 및 재고 복구 확인)
 
 ### 5.2 스크립트 실행
 
 ```bash
 # 스크립트 디렉토리로 이동
-cd k6/scripts
+cd order-service/k6/scripts
 
 # 실행 권한 부여
 chmod +x run-order-flow-validation-test.sh
@@ -402,24 +485,24 @@ chmod +x run-order-flow-validation-test.sh
 
 #### 1) WSL IP 주소 감지
 ```
-🔍 Detecting WSL IP address...
-✅ WSL IP detected: 172.30.1.xxx
-✅ Services will use: 172.30.1.xxx (Queue:8040, Order:8050)
+ℹ️  Detecting WSL IP address...
+✅ WSL IP detected: 172.30.1.100
+✅ Services will use: 172.30.1.100 (Queue:8040, Order:8050)
 ```
 
 IP가 자동 감지되지 않으면 수동 입력을 요청합니다.
 
 #### 2) 기존 데이터 정리
 ```
-🧹 Clean existing test data? (y/N):
+🧹 Clean existing test data? (y/N)
 ```
 
 - `y`: 기존 주문/재고 데이터 삭제 후 진행
 - `N` (기본): 기존 데이터 유지
 
-#### 3) 부하테스트 시작
+#### 3) 주문 테스트 시작
 ```
-⏳ This will create 100 orders (~70% expected to succeed, ~30% to fail due to purchase limit)
+⚠️  This will create 100 orders (~70% expected to succeed, ~30% to fail due to purchase limit)
 
 ▶️  Press Enter to start load test...
 ```
@@ -444,11 +527,11 @@ Continue verification anyway? (y/N):
 스크립트는 다음 과정을 자동으로 진행합니다:
 
 ```
-⚠️ Step 10: Waiting for auto-cancellation...
+⚠️  Step 10: Waiting for auto-cancellation...
 ℹ️  Waiting 5 minutes for pending order timeout...
 ℹ️  Then waiting 2 more minutes for scheduler execution...
 
-⏳ Remaining: 06:58
+⏳ Remaining: 07:00
 ```
 
 **대기 시간:**
@@ -462,61 +545,61 @@ Continue verification anyway? (y/N):
 
 ### 6.1 자동 생성되는 결과 파일
 
-스크립트 실행 완료 후 `k6/outputs/` 디렉토리에 다음 파일들이 생성됩니다:
+스크립트 실행 완료 후 `order-service/k6/outputs/` 디렉토리에 다음 파일들이 생성됩니다:
 
 ```
 k6/outputs/
-├── initial-verification.log      # 주문 생성 검증 결과
-├── final-verification.log        # 주문 취소 검증 결과
-├── stock-comparison.txt          # ⭐ 재고 변화 비교 (중요!)
+├── initial-verification.log      # ⭐ 주문 생성 검증 결과
+├── final-verification.log        # ⭐ 주문 취소 검증 결과
+├── stock-comparison.txt          # ⭐ 재고 변화 비교
 ├── queue-tokens-output.log       # 큐 토큰 발급 로그
-└── load-test-output.log          # k6 부하테스트 로그
+└── load-test-output.log          # ⭐ k6 주문 테스트 로그
 ```
 
 ### 6.2 재고 비교 리포트 확인 (⭐ 중요)
 
 ```bash
-cat k6/outputs/stock-comparison.txt
+cat order-service/k6/outputs/stock-comparison.txt
 ```
 
 **예상 출력:**
 ```
-==========================================
+========================================
 📦 STOCK COMPARISON REPORT
-==========================================
+========================================
 
 🕐 Part 1: After Order Creation (Step 8)
-Captured at: 2026-01-11 14:30:15
+Captured at: 2026-01-11 21:04:39
 
-Stock ID                               | Available | Reserved | Sold | Total
-----------------------------------------|-----------|----------|------|------
-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx   |        55 |       45 |    0 |  100
-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx   |        60 |       40 |    0 |  100
-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx   |        58 |       42 |    0 |  100
-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx   |        62 |       38 |    0 |  100
+Stock ID                               | Available |  Reserved |      Sold |     Total
+----------------------------------------|-----------|-----------|-----------|----------
+42d44908-6b83-4ff1-8068-e9b4efe47629   |        53 |        47 |         0 |       100
+46e7e4db-2ee1-48da-96cb-c672f986f230   |        40 |        60 |         0 |       100
+57eff965-669e-4aea-86fb-d3eb92467d0e   |        42 |        58 |         0 |       100
+ae7993be-386f-4d66-90f3-61866b4fdb30   |        46 |        54 |         0 |       100
 
 ==========================================
 
 🕐 Part 2: After Auto-Cancellation (Step 10)
-Captured at: 2026-01-11 14:37:20
+Captured at: 2026-01-11 21:12:15
 
-Stock ID                               | Available | Reserved | Sold | Total
-----------------------------------------|-----------|----------|------|------
-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx   |       100 |        0 |    0 |  100
-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx   |       100 |        0 |    0 |  100
-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx   |       100 |        0 |    0 |  100
-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx   |       100 |        0 |    0 |  100
+Stock ID                               | Available |  Reserved |      Sold |     Total
+----------------------------------------|-----------|-----------|-----------|----------
+42d44908-6b83-4ff1-8068-e9b4efe47629   |       100 |         0 |         0 |       100
+46e7e4db-2ee1-48da-96cb-c672f986f230   |       100 |         0 |         0 |       100
+57eff965-669e-4aea-86fb-d3eb92467d0e   |       100 |         0 |         0 |       100
+ae7993be-386f-4d66-90f3-61866b4fdb30   |       100 |         0 |         0 |       100
 
 ==========================================
 📊 COMPARISON SUMMARY
 ==========================================
 
-Stock ID                               | Before(A/R) | After(A/R) | Status
-----------------------------------------|-------------|------------|------------
-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx   |  55 /  45   | 100 /   0  | ✅ RESTORED
-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx   |  60 /  40   | 100 /   0  | ✅ RESTORED
-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx   |  58 /  42   | 100 /   0  | ✅ RESTORED
-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx   |  62 /  38   | 100 /   0  | ✅ RESTORED
+Stock ID                               | Before(A/R) | After(A/R)  | Status
+----------------------------------------|-------------|-------------|------------
+42d44908-6b83-4ff1-8068-e9b4efe47629   |    53 / 47   |   100 / 0    | ✅ RESTORED
+46e7e4db-2ee1-48da-96cb-c672f986f230   |    40 / 60   |   100 / 0    | ✅ RESTORED
+57eff965-669e-4aea-86fb-d3eb92467d0e   |    42 / 58   |   100 / 0    | ✅ RESTORED
+ae7993be-386f-4d66-90f3-61866b4fdb30   |    46 / 54   |   100 / 0    | ✅ RESTORED
 
 Legend: A=Available, R=Reserved, S=Sold
 ✅ RESTORED: Reserved stock returned to available
@@ -571,10 +654,11 @@ ORDER BY
 
 **예상 출력:**
 ```
-    type     | count | total_amount
+    type     | count | total_amount 
 -------------+-------+--------------
- USE_PENDING |    70 |       70000
- USE_CANCEL  |    70 |       70000
+ USE_PENDING |    73 |        73000
+ USE_CANCEL  |    73 |        73000
+(2 rows)
 ```
 
 - `USE_PENDING`: 주문 시 차감된 포인트 (1,000원 × 70건)
@@ -584,12 +668,12 @@ ORDER BY
 
 **주문 생성 검증:**
 ```bash
-cat k6/outputs/initial-verification.log
+cat order-service/k6/outputs/initial-verification.log
 ```
 
-**주문 취소 검증:**
+**주문 자동 취소 검증:**
 ```bash
-cat k6/outputs/final-verification.log
+cat order-service/k6/outputs/final-verification.log
 ```
 
 ### 6.6 Quick Summary (스크립트 실행 완료 시 자동 출력)
@@ -600,19 +684,47 @@ cat k6/outputs/final-verification.log
 💡 Quick Summary:
 
 📊 1. ORDER STATUS
-   status    | count | percentage
--------------+-------+------------
- CANCELLED   |    70 |       70.0
- FAILED      |    30 |       30.0
+  status   | count | percentage 
+-----------+-------+------------
+ CANCELLED |    73 |      100.0
+(1 row)
+
 
 💰 2. POINT TRANSACTION
-    type     | count | total_amount
+    type     | count | total_amount 
 -------------+-------+--------------
- USE_PENDING |    70 |       70000
- USE_CANCEL  |    70 |       70000
+ USE_PENDING |    73 |        73000
+ USE_CANCEL  |    73 |        73000
+(2 rows)
+
 
 📦 3. STOCK COMPARISON
-(재고 비교 테이블 출력)
+
+========================================
+📦 STOCK COMPARISON REPORT
+========================================
+
+🕐 Part 1: After Order Creation (Step 8)
+Captured at: 2026-01-11 21:04:39
+
+Stock ID                               | Available |  Reserved |      Sold |     Total
+----------------------------------------|-----------|-----------|-----------|----------
+42d44908-6b83-4ff1-8068-e9b4efe47629   |        53 |        47 |         0 |       100
+46e7e4db-2ee1-48da-96cb-c672f986f230   |        40 |        60 |         0 |       100
+57eff965-669e-4aea-86fb-d3eb92467d0e   |        42 |        58 |         0 |       100
+ae7993be-386f-4d66-90f3-61866b4fdb30   |        46 |        54 |         0 |       100
+
+==========================================
+
+🕐 Part 2: After Auto-Cancellation (Step 10)
+Captured at: 2026-01-11 21:12:15
+
+Stock ID                               | Available |  Reserved |      Sold |     Total
+----------------------------------------|-----------|-----------|-----------|----------
+42d44908-6b83-4ff1-8068-e9b4efe47629   |       100 |         0 |         0 |       100
+46e7e4db-2ee1-48da-96cb-c672f986f230   |       100 |         0 |         0 |       100
+57eff965-669e-4aea-86fb-d3eb92467d0e   |       100 |         0 |         0 |       100
+ae7993be-386f-4d66-90f3-61866b4fdb30   |       100 |         0 |         0 |       100
 ```
 
 ---
@@ -666,7 +778,7 @@ Enter your WSL IP address (e.g., 172.30.1.72): 172.30.1.xxx
 3. **Product/TimeDeal ID 오류**
    ```bash
    # ID 재확인
-   cd k6/scripts
+   cd order-service/k6/scripts
    ./get-test-ids.sh
    ```
 
@@ -771,7 +883,7 @@ docker exec -i rushdeal_postgres psql -U rushdeal -d rushdeal < k6/test-data.sql
 
 ```bash
 # 모든 스크립트에 실행 권한 부여
-cd k6/scripts
+cd order-service/k6/scripts
 chmod +x *.sh
 ```
 
@@ -802,7 +914,7 @@ chmod +x *.sh
 - Available 재고가 감소
 - Total은 항상 100 유지
 
-✅ **주문 취소:**
+✅ **주문 자동 취소:**
 - PENDING → CANCELLED 상태 변경
 - 약 70개 주문 취소 완료
 

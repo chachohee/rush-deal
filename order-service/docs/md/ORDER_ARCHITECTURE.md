@@ -11,51 +11,50 @@
 3. [주문 생성 플로우](#3-주문-생성-플로우)
 4. [Saga 패턴](#4-saga-패턴)
 5. [Outbox 패턴](#5-outbox-패턴)
-6. [동시성 제어](#6-동시성-제어)
+6. [서비스 간 통신](#6-서비스-간-통신)
+7. [동시성 제어](#7-동시성-제어)
 
 ---
 
 ## 1. 아키텍처 개요
 
 ### 전체 시스템 구성
-
 ```
-┌──────────────────────────────────────────────────────────────┐
-│                     API Gateway Layer                        │
-│  - Spring Cloud Gateway                                      │
-│  - 인증/인가 (JWT)                                           │
-└──────────────────────────────────────────────────────────────┘
-                              ↓
-┌──────────────────────────────────────────────────────────────┐
-│                      Order Service                           │
-│  ┌────────────────────────────────────────────────────┐     │
-│  │  Presentation Layer                               │     │
-│  │  - OrderCommandController                         │     │
-│  │  - OrderQueryController                           │     │
-│  └────────────────────────────────────────────────────┘     │
-│                              ↓                               │
-│  ┌────────────────────────────────────────────────────┐     │
-│  │  Application Layer                                │     │
-│  │  - OrderCreationSagaOrchestrator                  │     │
-│  │  - CreateOrderUseCase                             │     │
-│  │  - OrderQueryService                              │     │
-│  └────────────────────────────────────────────────────┘     │
-│                              ↓                               │
-│  ┌────────────────────────────────────────────────────┐     │
-│  │  Domain Layer                                      │     │
-│  │  - Order (Aggregate Root)                         │     │
-│  │  - OrderItem                                       │     │
-│  │  - SagaInstance                                    │     │
-│  └────────────────────────────────────────────────────┘     │
-│                              ↓                               │
-│  ┌────────────────────────────────────────────────────┐     │
-│  │  Infrastructure Layer                              │     │
-│  │  - OrderRepository (PostgreSQL)                   │     │
-│  │  - OutboxEventRepository                          │     │
-│  │  - Kafka (Event Bus)                               │     │
-│  │  - Feign Client (User Service)                     │     │
-│  └────────────────────────────────────────────────────┘     │
-└──────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────┐
+│                       API Gateway                          │
+│   - Spring Cloud Gateway / JWT 인증                        │
+└────────────────────────────────────────────────────────────┘
+                            ↓
+┌────────────────────────────────────────────────────────────┐
+│                      Order Service                         │
+│                                                            │
+│   ┌─────────────────────────────────────────────────────┐  │
+│   │  Presentation Layer                                 │  │
+│   │  • OrderCommandController                           │  │
+│   │  • OrderQueryController                             │  │
+│   └─────────────────────────────────────────────────────┘  │
+│                            ↓                               │
+│   ┌─────────────────────────────────────────────────────┐  │
+│   │  Application Layer                                  │  │
+│   │  • OrderCreationSagaOrchestrator (분산 트랜잭션)     │  │
+│   │  • CreateOrderUseCase (Command)                     │  │
+│   │  • OrderQueryService (Query)                        │  │
+│   └─────────────────────────────────────────────────────┘  │
+│                            ↓                               │
+│   ┌─────────────────────────────────────────────────────┐  │
+│   │  Domain Layer                                       │  │
+│   │  • Order (Aggregate Root)                           │  │
+│   │  • OrderItem, OrderReservation, SagaInstance        │  │
+│   │  • OrderAmount, ProductSnapshot (Value Object)      │  │
+│   └─────────────────────────────────────────────────────┘  │
+│                            ↓                               │
+│   ┌─────────────────────────────────────────────────────┐  │
+│   │  Infrastructure Layer                               │  │
+│   │  • PostgreSQL (Repository)                          │  │
+│   │  • Kafka (Event Bus)                                │  │
+│   │  • FeignClient (User, TimeDeal, Queue, Payment)     │  │
+│   └─────────────────────────────────────────────────────┘  │
+└────────────────────────────────────────────────────────────┘
 ```
 
 ### 핵심 컴포넌트
@@ -76,36 +75,55 @@
 ### Clean Architecture + DDD
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                  Presentation Layer                      │
-│  - OrderCommandController                               │
-│  - OrderQueryController                                  │
-│  - DTO 변환                                             │
-└─────────────────────────────────────────────────────────┘
-                        ↓
-┌─────────────────────────────────────────────────────────┐
-│                  Application Layer                      │
-│  - OrderCreationSagaOrchestrator (Saga 조율)            │
-│  - CreateOrderUseCase (Command CQRS)                     │
-│  - OrderQueryService (Query CQRS)                        │
-│  - Saga Steps (ValidateStock, UsePoint, etc.)           │
-└─────────────────────────────────────────────────────────┘
-                        ↓
-┌─────────────────────────────────────────────────────────┐
-│                    Domain Layer                         │
-│  - Aggregate Root: Order                               │
-│  - Entity: OrderItem, OrderReservation                  │
-│  - Entity: SagaInstance                                │
-│  - Domain Service                                        │
-└─────────────────────────────────────────────────────────┘
-                        ↓
-┌─────────────────────────────────────────────────────────┐
-│                 Infrastructure Layer                   │
-│  - @Repository (JPA)                                    │
-│  - FeignClient (User Service)                           │
-│  - KafkaTemplate (Event Publishing)                    │
-│  - @Scheduled (Scheduler)                              │
-└─────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────┐
+│                     Presentation Layer                     │
+│   - OrderCommandController                                 │
+│   - OrderQueryController                                   │
+│   - DTO 변환                                               │
+└────────────────────────────────────────────────────────────┘
+                               ↓
+┌────────────────────────────────────────────────────────────┐
+│                     Application Layer                      │
+│   - OrderCreationSagaOrchestrator (Saga 조율)              │
+│   - CreateOrderUseCase (Command CQRS)                      │
+│   - OrderQueryService (Query CQRS)                         │
+│   - Saga Steps (ValidateStock, UsePoint, etc.)             │
+└────────────────────────────────────────────────────────────┘
+                               ↓
+┌────────────────────────────────────────────────────────────┐
+│                        Domain Layer                        │
+│   Aggregate Root:                                          │
+│     • Order                                                │
+│   Entity:                                                  │
+│     • OrderItem                                            │
+│     • OrderReservation                                     │
+│     • OrderHistory                                         │
+│     • SagaInstance                                         │
+│     • SagaStep                                             │
+│   Value Object:                                            │
+│     • OrderAmount                                          │
+│     • ProductSnapshot                                      │
+│     • ShippingInfo                                         │
+│   Enum:                                                    │
+│     • OrderStatus, OrderEventType                          │
+│     • SagaStatus, SagaStepName                             │
+│     • ReservationStatus                                    │
+│   Common:                                                  │
+│     • BaseEntity                                           │
+└────────────────────────────────────────────────────────────┘
+                              ↓
+┌────────────────────────────────────────────────────────────┐
+│                    Infrastructure Layer                    │
+│   - @Repository (JPA)                                      │
+│   - FeignClient                                            │
+│       • User Service (포인트)                               │
+│       • TimeDeal Service (재고 조회)                        │
+│       • Queue Service (큐 토큰 검증)                        │
+│       • Payment Service (결제)                             │
+│   - KafkaTemplate (Event Publishing)                       │
+│   - @Scheduled (Scheduler)                                 │
+└────────────────────────────────────────────────────────────┘
+
 ```
 
 ### 의존성 규칙
@@ -130,44 +148,44 @@ Presentation → Application → Domain ← Infrastructure
 
 ```
 [Client Request]
-      ↓
+        ↓
 [OrderCommandController]
-      ↓
+        ↓
 [OrderCreationSagaOrchestrator]
-      ↓
-┌─────────────────────────────────────┐
-│  Step 1: ValidateStock             │
-│  - 큐 토큰 검증                     │
-│  - 타임딜 검증                      │
-│  - 주문 아이템 검증                  │
-│  - 구매 제한 검증 (5개/인)          │
-└─────────────────────────────────────┘
-      ↓
-┌─────────────────────────────────────┐
-│  Step 2: UsePoint                  │
-│  - 포인트 차감 (FeignClient 동기)   │
-│  - USE_PENDING 상태로 차감          │
-└─────────────────────────────────────┘
-      ↓
-┌─────────────────────────────────────┐
-│  Step 3: RequestStockReservation  │
-│  - OutboxEvent 저장 (PENDING)       │
-│  - [DB Transaction Commit]         │
-│  - Response to Client (sagaId)      │
-└─────────────────────────────────────┘
-      ↓
+        ↓
+┌──────────────────────────────────────────┐
+│  Step 1: ValidateStock                   │
+│   - 큐 토큰 검증 (Queue Service)          │
+│   - 타임딜 검증 (TimeDeal Service)        │
+│   - 주문 아이템 검증                      │
+│   - 구매 제한 검증 (5개/인)               │
+└──────────────────────────────────────────┘
+        ↓
+┌──────────────────────────────────────────┐
+│  Step 2: UsePoint                        │
+│   - 포인트 차감 (User Service - Feign)    │
+│   - USE_PENDING 상태로 차감               │
+└──────────────────────────────────────────┘
+        ↓
+┌──────────────────────────────────────────┐
+│  Step 3: RequestStockReservation         │
+│   - OutboxEvent 저장 (PENDING)           │
+│   - [DB Transaction Commit]              │
+│   - Response to Client (sagaId)          │
+└──────────────────────────────────────────┘
+        ↓
 [OutboxEventScheduler] (5초마다)
-      ↓
+        ↓
 [Kafka: stock.reservation.requested]
-      ↓
+        ↓
 [Stock Service]
-      ↓
+        ↓
 [Kafka: stock.reserved]
-      ↓
+        ↓
 [StockReservationEventListener]
-      ↓
+        ↓
 [CreateOrderStep]
-      ↓
+        ↓
 [Order 생성 완료]
 ```
 
@@ -250,7 +268,39 @@ FOR UPDATE SKIP LOCKED
 
 ---
 
-## 6. 동시성 제어
+## 6. 서비스 간 통신
+
+### 동기 통신 (FeignClient)
+
+| 서비스 | 용도 | 주요 기능 |
+|--------|------|----------|
+| **User Service** | 포인트 관리 | 포인트 차감, 환불, 잔액 조회 |
+| **TimeDeal Service** | 재고 조회 | 타임딜 정보, 재고 정보 조회 |
+| **Queue Service** | 대기열 관리 | 큐 토큰 검증 |
+| **Payment Service** | 결제 처리 | 결제 요청, 결제 취소 |
+
+**특징**
+- ✅ 즉각적인 응답 필요
+- ✅ 트랜잭션 일관성 중요
+- ✅ Circuit Breaker 적용 (Resilience4j)
+
+### 비동기 통신 (Kafka)
+
+| 이벤트 | 방향 | 용도 |
+|--------|------|------|
+| `stock.reservation.requested` | 발행 | 재고 예약 요청 |
+| `stock.reserved` | 구독 | 재고 예약 완료 |
+| `order.cancelled` | 발행 | 주문 취소 알림 |
+| `order.created` | 발행 | 주문 생성 완료 |
+
+**특징**
+- ✅ 느슨한 결합 (Loose Coupling)
+- ✅ 장애 격리 (Fault Isolation)
+- ✅ 높은 처리량
+
+---
+
+## 7. 동시성 제어
 
 ### Outbox 동시성 제어
 

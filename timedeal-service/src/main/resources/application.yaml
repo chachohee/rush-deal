@@ -30,6 +30,12 @@ spring:
   kafka:
     bootstrap-servers: ${KAFKA_BROKERS:localhost:9092}
 
+logging:
+  level:
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    org.hibernate.orm.jdbc.bind: TRACE
+
 eureka:
   client:
     service-url:

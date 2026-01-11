@@ -5,6 +5,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Component;
 
 import com.rushcrew.common.exception.BusinessException;
+import com.rushcrew.order_service.application.port.out.PointEventPort;
 import com.rushcrew.order_service.application.port.out.PointPort;
 import com.rushcrew.order_service.application.saga.dto.OrderCreationSagaData;
 import com.rushcrew.order_service.application.saga.dto.SagaContext;
@@ -22,6 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 public class UsePointStep {
 
 	private final PointPort pointPort;
+	private final PointEventPort pointEventPort;
 
 	public SagaStepResult execute(SagaContext context, OrderCreationSagaData data) {
 		log.info("[Saga-{}] Step 2: {} 시작",
@@ -97,7 +99,12 @@ public class UsePointStep {
 			log.info("[Saga-{}] 보상: {} 시작 (orderId={}, pointUsed={})",
 				sagaId, SagaStepName.USE_POINT_COMPENSATE.getDescription(), orderId, pointUsed);
 
-			pointPort.cancelPointUse(userId, orderId.toString(), sagaId);
+			pointEventPort.publishPointUseCancellRequested(
+				userId,
+				orderId,
+				sagaId,
+				pointUsed,
+				"Saga 보상으로 인한 포인트 사용 취소");
 
 			log.info("[Saga-{}] 보상: {} 완료",
 				sagaId, SagaStepName.USE_POINT_COMPENSATE.getDescription());

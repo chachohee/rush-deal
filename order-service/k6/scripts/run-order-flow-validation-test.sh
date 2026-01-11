@@ -1,6 +1,6 @@
 #!/bin/bash
-# run-full-test.sh
-# 전체 부하테스트 자동 실행 스크립트 (IP 자동 감지)
+# run-order-flow-validation-test.sh
+# Saga 통합 검증 테스트 자동 실행 스크립트 (IP 자동 감지)
 
 set -e  # 에러 발생 시 즉시 중단
 

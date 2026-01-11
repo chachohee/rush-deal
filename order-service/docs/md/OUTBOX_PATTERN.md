@@ -12,9 +12,7 @@
 4. [FOR UPDATE SKIP LOCKED](#4-for-update-skip-locked)
 5. [스케줄러 구현](#5-스케줄러-구현)
 6. [재시도 전략](#6-재시도-전략)
-7. [코드 구현 예시](#7-코드-구현-예시)
-8. [성능 최적화](#8-성능-최적화)
-9. [모니터링 및 운영](#9-모니터링-및-운영)
+7. [코드 구현](#7-코드-구현)
 
 ---
 
@@ -81,8 +79,6 @@ Step 2: Kafka 발행 시도 → 네트워크 오류 ❌
 → 데이터 불일치 발생!
 ```
 
----
-
 ### 문제 상황 2: 트랜잭션 롤백
 
 **시나리오**: Kafka 발행은 성공했지만 DB 트랜잭션 롤백
@@ -116,29 +112,6 @@ Step 3: 예외 발생 → DB ROLLBACK ❌
 → 유령 이벤트(Ghost Event) 발생!
 ```
 
----
-
-### 문제 상황 3: 분산 환경에서의 중복 발행
-
-**시나리오**: 여러 인스턴스에서 동시에 같은 이벤트 발행
-
-```
-[Instance 1] SELECT * FROM outbox WHERE status = 'PENDING'
-              ↓ (100개 조회)
-[Instance 2] SELECT * FROM outbox WHERE status = 'PENDING'
-              ↓ (같은 100개 조회)
-              
-[Instance 1] → Kafka 발행 (100개)
-[Instance 2] → Kafka 발행 (같은 100개) ← 중복!
-```
-
-**문제점**
-- 같은 이벤트가 2번 발행
-- Stock Service가 재고를 2번 예약
-- 데이터 정합성 깨짐
-
----
-
 ### Outbox 패턴의 해결책
 
 #### ✅ 해결책 1: 원자성 보장
@@ -151,11 +124,12 @@ public void createOrder(OrderRequest request) {
     Order order = orderRepository.save(new Order(request));
     
     // 2. Outbox 이벤트 저장 (같은 트랜잭션)
-    OutboxEvent event = OutboxEvent.builder()
-        .eventType("order.created")
-        .payload(toJson(order))
-        .status(OutboxEventStatus.PENDING)
-        .build();
+    OutboxEventEntity event = OutboxEventEntity.create(
+        "ORDER",
+        order.getOrderId(),
+        "ORDER_CREATED",
+        toJson(order)
+    );
     
     outboxEventRepository.save(event);
     
@@ -167,42 +141,26 @@ public void createOrder(OrderRequest request) {
 - DB 커밋 성공 = 이벤트 저장 성공
 - Kafka 장애와 무관하게 이벤트 보존
 
----
-
 #### ✅ 해결책 2: 중복 발행 방지
 
 ```sql
 -- FOR UPDATE SKIP LOCKED 사용
-SELECT * FROM outbox_event
+SELECT * FROM order_schema.p_outbox_event
 WHERE status = 'PENDING'
 ORDER BY created_at ASC
-LIMIT 10
+LIMIT 100
 FOR UPDATE SKIP LOCKED
 ```
 
 **동작 방식**
 ```
 [Instance 1] FOR UPDATE SKIP LOCKED
-              ↓ (Event 1~10 락 획득)
+              ↓ (Event 1~100 락 획득)
 [Instance 2] FOR UPDATE SKIP LOCKED
-              ↓ (Event 11~20 락 획득, 1~10은 SKIP)
+              ↓ (Event 101~200 락 획득, 1~100은 SKIP)
               
 각 인스턴스가 서로 다른 이벤트 처리 → 중복 없음!
 ```
-
----
-
-#### ✅ 해결책 3: 재시도 메커니즘
-
-```
-1차 시도 실패 → status = FAILED, retry_count = 1
-   ↓ (10분 후)
-2차 시도 실패 → status = FAILED, retry_count = 2
-   ↓ (10분 후)
-3차 시도 성공 → status = PUBLISHED ✅
-```
-
-**자동 복구율**: 95% 이상
 
 ---
 
@@ -212,26 +170,22 @@ FOR UPDATE SKIP LOCKED
 
 ```sql
 CREATE TABLE order_schema.p_outbox_event (
-    id UUID PRIMARY KEY,
-    aggregate_type VARCHAR(255) NOT NULL,      -- 'Order', 'Payment' 등
-    aggregate_id VARCHAR(255) NOT NULL,        -- 주문 ID, 결제 ID 등
-    event_type VARCHAR(255) NOT NULL,          -- 'order.created', 'order.cancelled' 등
-    payload JSONB NOT NULL,                    -- 이벤트 페이로드 (JSON)
-    status VARCHAR(50) NOT NULL,               -- 'PENDING', 'PUBLISHED', 'FAILED'
+    event_id UUID PRIMARY KEY,
+    aggregate_type VARCHAR(50) NOT NULL,      -- 'ORDER', 'ORDER_SAGA' 등
+    aggregate_id UUID NOT NULL,               -- 주문 ID, Saga ID 등
+    event_type VARCHAR(100) NOT NULL,         -- 'ORDER_CREATED', 'STOCK_RESERVATION_REQUESTED' 등
+    payload TEXT NOT NULL,                   -- 이벤트 페이로드 (JSON)
+    status VARCHAR(20) NOT NULL,              -- 'PENDING', 'PUBLISHED', 'FAILED'
     retry_count INTEGER DEFAULT 0,             -- 재시도 횟수
-    error_message TEXT,                        -- 실패 시 오류 메시지
-    created_at TIMESTAMP NOT NULL,             -- 생성 시각
-    published_at TIMESTAMP,                    -- 발행 시각
-    next_retry_at TIMESTAMP                    -- 다음 재시도 시각
+    error_message TEXT,                      -- 실패 시 오류 메시지
+    created_at TIMESTAMP NOT NULL,           -- 생성 시각
+    published_at TIMESTAMP,                   -- 발행 시각
+    failed_at TIMESTAMP                      -- 실패 시각
 );
 
 -- 인덱스
-CREATE INDEX idx_outbox_status_created 
-ON p_outbox_event(status, created_at);
-
-CREATE INDEX idx_outbox_next_retry 
-ON p_outbox_event(next_retry_at) 
-WHERE status = 'FAILED';
+CREATE INDEX idx_status_created_at ON p_outbox_event(status, created_at);
+CREATE INDEX idx_aggregate_id ON p_outbox_event(aggregate_id);
 ```
 
 ### 이벤트 상태 전이도
@@ -246,6 +200,17 @@ PENDING (초기 상태)
                       ├─→ [재시도 성공] → PUBLISHED
                       └─→ [3회 초과] → FAILED (수동 처리 필요)
 ```
+
+### 이벤트 타입
+
+| 이벤트 타입 | Kafka Topic | 설명 |
+|------------|-------------|------|
+| ORDER_CREATED | order.created | 주문 생성 완료 |
+| ORDER_CANCELLED | order.cancelled | 주문 취소 |
+| ORDER_PAID | order.paid | 결제 완료 |
+| STOCK_RESERVATION_REQUESTED | stock.reservation.requested | 재고 예약 요청 |
+| STOCK_ROLLBACK_REQUESTED | stock.restore.requested | 재고 복구 요청 |
+| POINT_USE_CANCEL_REQUESTED | point.use.cancel.requested | 포인트 사용 취소 요청 |
 
 ---
 
@@ -264,40 +229,40 @@ FOR UPDATE;
 
 **동작**
 ```
-Session 1: Row 1~10 락 획득 ✅
-Session 2: 같은 Row 1~10 락 대기... ⏳ (블로킹)
+Session 1: Row 1~100 락 획득 ✅
+Session 2: 같은 Row 1~100 락 대기... ⏳ (블로킹)
 ```
-
----
 
 #### FOR UPDATE SKIP LOCKED
 
 ```sql
 -- ✅ 해결: 락 걸린 행은 건너뜀
-SELECT * FROM outbox_event 
+SELECT * FROM order_schema.p_outbox_event 
 WHERE status = 'PENDING' 
+ORDER BY created_at ASC
+LIMIT 100
 FOR UPDATE SKIP LOCKED;
 ```
 
 **동작**
 ```
-Session 1: Row 1~10 락 획득 ✅
-Session 2: Row 1~10은 건너뛰고 Row 11~20 락 획득 ✅
+Session 1: Row 1~100 락 획득 ✅
+Session 2: Row 1~100은 건너뛰고 Row 101~200 락 획득 ✅
 ```
 
 ### 장점
 
 1. **데드락 방지**
-    - 대기 없이 바로 다른 행 처리
-    - 락 경합 최소화
+   - 대기 없이 바로 다른 행 처리
+   - 락 경합 최소화
 
 2. **수평 확장 가능**
-    - 여러 인스턴스 동시 실행 가능
-    - 자동으로 작업 분산
+   - 여러 인스턴스 동시 실행 가능
+   - 자동으로 작업 분산
 
 3. **성능 향상**
-    - 블로킹 없음
-    - 처리량 증가
+   - 블로킹 없음
+   - 처리량 증가
 
 ### RushDeal 적용 결과
 
@@ -315,7 +280,7 @@ List<OutboxEventEntity> findPendingEventsForUpdate(@Param("limit") int limit);
 
 **테스트 결과**
 - 3개 인스턴스 동시 실행: 중복 발행 0건
-- 평균 처리 시간: 200ms (배치 10개)
+- 평균 처리 시간: 200ms (배치 100개)
 - 이벤트 발행 성공률: 99.9%
 
 ---
@@ -330,65 +295,69 @@ List<OutboxEventEntity> findPendingEventsForUpdate(@Param("limit") int limit);
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class OutboxEventPublisher {
+public class OutboxEventScheduler {
     
-    private final OutboxEventRepository outboxEventRepository;
+    private final OutboxEventJpaRepository outboxRepository;
     private final KafkaTemplate<String, String> kafkaTemplate;
     
     @Scheduled(fixedDelay = 5000) // 5초마다
     @Transactional
     public void publishPendingEvents() {
         // 1. PENDING 이벤트 조회 (FOR UPDATE SKIP LOCKED)
-        List<OutboxEvent> pendingEvents = 
-            outboxEventRepository.findPendingEventsForUpdate(10);
+        List<OutboxEventEntity> pendingEvents =
+            outboxRepository.findPendingEventsForUpdate(100);
         
         if (pendingEvents.isEmpty()) {
             return;
         }
         
-        log.info("발행할 이벤트 {}건 조회", pendingEvents.size());
+        log.info("발행 대기 중인 Outbox 이벤트 {}개 발견", pendingEvents.size());
         
         // 2. 각 이벤트 발행
-        for (OutboxEvent event : pendingEvents) {
-            try {
-                publishEvent(event);
-            } catch (Exception e) {
-                handlePublishFailure(event, e);
-            }
+        for (OutboxEventEntity event : pendingEvents) {
+            publishEventWithTransaction(event);
         }
     }
     
-    private void publishEvent(OutboxEvent event) throws Exception {
-        // Kafka 발행 (타임아웃 5초)
-        SendResult<String, String> result = kafkaTemplate.send(
-            event.getEventType(),
-            event.getAggregateId(),
-            event.getPayload()
-        ).get(5, TimeUnit.SECONDS);
-        
-        // 발행 성공
-        event.setStatus(OutboxEventStatus.PUBLISHED);
-        event.setPublishedAt(LocalDateTime.now());
-        
-        log.info("이벤트 발행 성공: {}", event.getId());
+    @Transactional
+    public void publishEventWithTransaction(OutboxEventEntity event) {
+        try {
+            String topic = getTopicName(event.getEventType());
+            
+            // Kafka 발행 (동기 방식)
+            kafkaTemplate.send(topic, event.getAggregateId().toString(), event.getPayload())
+                .get(); // Future.get()으로 동기 대기
+            
+            // 발행 성공
+            event.markAsPublished();
+            outboxRepository.save(event);
+            
+        } catch (Exception e) {
+            log.error("Outbox 이벤트 발행 실패: eventId={}, eventType={}",
+                event.getEventId(), event.getEventType(), e);
+            
+            event.markAsFailed(e.getMessage());
+            outboxRepository.save(event);
+        }
     }
     
-    private void handlePublishFailure(OutboxEvent event, Exception e) {
-        log.error("이벤트 발행 실패: {}", event.getId(), e);
-        
-        event.setStatus(OutboxEventStatus.FAILED);
-        event.setRetryCount(event.getRetryCount() + 1);
-        event.setErrorMessage(e.getMessage());
-        
-        // 다음 재시도 시각 계산 (1시간 후)
-        event.setNextRetryAt(LocalDateTime.now().plusHours(1));
+    private String getTopicName(String eventType) {
+        return switch (eventType) {
+            case "ORDER_CREATED" -> "order.created";
+            case "ORDER_CANCELLED" -> "order.cancelled";
+            case "STOCK_RESERVATION_REQUESTED" -> "stock.reservation.requested";
+            case "STOCK_ROLLBACK_REQUESTED" -> "stock.restore.requested";
+            case "POINT_USE_CANCEL_REQUESTED" -> "point.use.cancel.requested";
+            default -> "order.events";
+        };
     }
 }
 ```
 
-**실행 주기**: 5초  
-**배치 크기**: 10개  
-**타임아웃**: 5초
+**설정**
+- 실행 주기: 5초
+- 배치 크기: 100개
+- 타임아웃: 5초
 
 ---
 
@@ -398,32 +367,36 @@ public class OutboxEventPublisher {
 
 ```java
 @Scheduled(fixedDelay = 600000) // 10분마다
-@Transactional
 public void retryFailedEvents() {
-    // 1. 재시도 가능한 FAILED 이벤트 조회
-    List<OutboxEvent> failedEvents = outboxEventRepository
-        .findFailedEventsForRetry(LocalDateTime.now(), 10);
+    Instant oneHourAgo = Instant.now().minus(1, ChronoUnit.HOURS);
+    
+    List<OutboxEventEntity> failedEvents =
+        outboxRepository.findFailedEventsForRetry(oneHourAgo, Pageable.ofSize(50));
     
     if (failedEvents.isEmpty()) {
         return;
     }
     
-    log.info("재시도할 이벤트 {}건 조회", failedEvents.size());
+    log.info("재시도 대상 Outbox 이벤트 {}개 발견", failedEvents.size());
     
-    // 2. 각 이벤트 재시도
-    for (OutboxEvent event : failedEvents) {
-        if (event.getRetryCount() >= 3) {
-            // 최대 재시도 횟수 초과
-            log.error("최대 재시도 횟수 초과: {}", event.getId());
-            notifyAdmin(event); // 관리자 알림
-            continue;
+    for (OutboxEventEntity event : failedEvents) {
+        if (event.canRetry()) {
+            retryEventWithTransaction(event);
         }
+    }
+}
+
+@Transactional
+public void retryEventWithTransaction(OutboxEventEntity event) {
+    try {
+        event.retry();
+        outboxRepository.save(event);
         
-        try {
-            publishEvent(event);
-        } catch (Exception e) {
-            handlePublishFailure(event, e);
-        }
+        // 즉시 발행 시도
+        publishEventWithTransaction(event);
+        
+    } catch (Exception e) {
+        log.error("이벤트 재시도 실패: eventId={}", event.getEventId(), e);
     }
 }
 ```
@@ -432,12 +405,13 @@ public void retryFailedEvents() {
 ```sql
 WHERE status = 'FAILED'
   AND retry_count < 3
-  AND next_retry_at <= :now
+  AND failed_at < :oneHourAgo
 ```
 
-**실행 주기**: 10분  
-**최대 재시도**: 3회  
-**재시도 간격**: 1시간
+**설정**
+- 실행 주기: 10분
+- 최대 재시도: 3회
+- 재시도 간격: 1시간
 
 ---
 
@@ -449,15 +423,12 @@ WHERE status = 'FAILED'
 @Scheduled(cron = "0 0 0 * * ?") // 매일 자정
 @Transactional
 public void cleanupOldEvents() {
-    LocalDateTime cutoffDate = LocalDateTime.now().minusDays(7);
+    Instant sevenDaysAgo = Instant.now().minus(7, ChronoUnit.DAYS);
+    int deletedCount = outboxRepository.deletePublishedEventsBefore(sevenDaysAgo);
     
-    int deletedCount = outboxEventRepository
-        .deleteByStatusAndPublishedAtBefore(
-            OutboxEventStatus.PUBLISHED, 
-            cutoffDate
-        );
-    
-    log.info("{}건의 오래된 이벤트 삭제 완료", deletedCount);
+    if (deletedCount > 0) {
+        log.info("오래된 Outbox 이벤트 {}개 삭제 완료", deletedCount);
+    }
 }
 ```
 
@@ -473,106 +444,137 @@ public void cleanupOldEvents() {
 
 ## 6. 재시도 전략
 
-### 지수 백오프 (Exponential Backoff)
-
-```
-1차 시도 실패 → 1시간 후 재시도
-2차 시도 실패 → 2시간 후 재시도
-3차 시도 실패 → 4시간 후 재시도 (최종)
-```
-
-**구현**
-```java
-private LocalDateTime calculateNextRetryAt(int retryCount) {
-    long hours = (long) Math.pow(2, retryCount);
-    return LocalDateTime.now().plusHours(hours);
-}
-```
-
 ### 재시도 한계
 
 **3회 초과 시**
-1. **로그 기록**: 상세 오류 정보 저장
-2. **관리자 알림**: Slack, Email 등으로 통지
-3. **수동 처리**: 관리자 대시보드에서 확인 및 처리
+- 상태: FAILED (최종)
+- 로그 기록: 상세 오류 정보 저장
+- 수동 처리: 관리자 확인 필요
 
-**Dead Letter Queue (DLQ)**
+### 재시도 조건
+
 ```java
-private void sendToDeadLetterQueue(OutboxEvent event) {
-    DeadLetterEvent dlq = DeadLetterEvent.builder()
-        .originalEvent(event)
-        .failureReason(event.getErrorMessage())
-        .retryCount(event.getRetryCount())
-        .build();
-    
-    deadLetterRepository.save(dlq);
-    
-    // 관리자 알림
-    alertService.sendAlert(
-        "Outbox 이벤트 최종 실패",
-        "Event ID: " + event.getId()
-    );
+public boolean canRetry() {
+    return this.retryCount < 3 && this.status == OutboxStatus.FAILED;
+}
+
+public void retry() {
+    if (!canRetry()) {
+        throw new IllegalStateException("재시도 불가능한 상태입니다.");
+    }
+    this.status = OutboxStatus.PENDING;
+    this.errorMessage = null;
 }
 ```
 
+**재시도 간격**: 1시간 후
+
 ---
 
-## 7. 코드 구현 예시
+## 7. 코드 구현
 
-### OutboxEvent 엔티티
+### OutboxEventEntity
 
 ```java
 @Entity
 @Table(name = "p_outbox_event", schema = "order_schema")
 @Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
-public class OutboxEvent extends BaseEntity {
+public class OutboxEventEntity {
     
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private String id;
+    private UUID eventId;
     
-    @Column(name = "aggregate_type", nullable = false)
-    private String aggregateType; // "Order", "Payment" 등
+    @Column(nullable = false, length = 50)
+    private String aggregateType; // "ORDER", "ORDER_SAGA" 등
     
-    @Column(name = "aggregate_id", nullable = false)
-    private String aggregateId; // 주문 ID, 결제 ID 등
+    @Column(nullable = false)
+    private UUID aggregateId; // 주문 ID, Saga ID 등
     
-    @Column(name = "event_type", nullable = false)
-    private String eventType; // "order.created", "order.cancelled" 등
+    @Column(nullable = false, length = 100)
+    private String eventType; // "ORDER_CREATED", "STOCK_RESERVATION_REQUESTED" 등
     
-    @Column(name = "payload", nullable = false, columnDefinition = "jsonb")
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String payload; // JSON 문자열
     
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
-    private OutboxEventStatus status; // PENDING, PUBLISHED, FAILED
+    @Column(nullable = false, length = 20)
+    private OutboxStatus status; // PENDING, PUBLISHED, FAILED
     
-    @Column(name = "retry_count")
+    @Column(nullable = false)
     @Builder.Default
     private Integer retryCount = 0;
     
-    @Column(name = "error_message", columnDefinition = "TEXT")
+    @Column(columnDefinition = "TEXT")
     private String errorMessage;
     
-    @Column(name = "published_at")
-    private LocalDateTime publishedAt;
+    @Column(nullable = false)
+    private Instant createdAt;
     
-    @Column(name = "next_retry_at")
-    private LocalDateTime nextRetryAt;
+    private Instant publishedAt;
+    private Instant failedAt;
+    
+    public static OutboxEventEntity create(
+        String aggregateType,
+        UUID aggregateId,
+        String eventType,
+        String payload
+    ) {
+        return OutboxEventEntity.builder()
+            .eventId(UUID.randomUUID())
+            .aggregateType(aggregateType)
+            .aggregateId(aggregateId)
+            .eventType(eventType)
+            .payload(payload)
+            .status(OutboxStatus.PENDING)
+            .createdAt(Instant.now())
+            .retryCount(0)
+            .build();
+    }
+    
+    public void markAsPublished() {
+        this.status = OutboxStatus.PUBLISHED;
+        this.publishedAt = Instant.now();
+    }
+    
+    public void markAsFailed(String errorMessage) {
+        this.status = OutboxStatus.FAILED;
+        this.failedAt = Instant.now();
+        this.errorMessage = errorMessage;
+        this.retryCount++;
+    }
+    
+    public boolean canRetry() {
+        return this.retryCount < 3 && this.status == OutboxStatus.FAILED;
+    }
+    
+    public void retry() {
+        if (!canRetry()) {
+            throw new IllegalStateException("재시도 불가능한 상태입니다.");
+        }
+        this.status = OutboxStatus.PENDING;
+        this.errorMessage = null;
+    }
+    
+    public enum OutboxStatus {
+        PENDING,
+        PUBLISHED,
+        FAILED
+    }
 }
 ```
 
-### OutboxEventRepository
+### OutboxEventJpaRepository
 
 ```java
-public interface OutboxEventRepository extends JpaRepository<OutboxEvent, String> {
+public interface OutboxEventJpaRepository extends JpaRepository<OutboxEventEntity, UUID> {
     
     /**
-     * PENDING 이벤트 조회 (FOR UPDATE SKIP LOCKED)
+     * PENDING 상태의 이벤트 조회 (동시성 제어 포함)
+     * FOR UPDATE SKIP LOCKED를 사용하여 여러 인스턴스가 동시에 실행해도
+     * 같은 이벤트를 중복 처리하지 않도록 보장
      */
     @Query(
         value = "SELECT * FROM order_schema.p_outbox_event o " +
@@ -582,18 +584,18 @@ public interface OutboxEventRepository extends JpaRepository<OutboxEvent, String
             "FOR UPDATE SKIP LOCKED",
         nativeQuery = true
     )
-    List<OutboxEvent> findPendingEventsForUpdate(@Param("limit") int limit);
+    List<OutboxEventEntity> findPendingEventsForUpdate(@Param("limit") int limit);
     
     /**
-     * 재시도 가능한 FAILED 이벤트 조회
+     * 재시도 대상 FAILED 이벤트 조회
      */
-    @Query("SELECT o FROM OutboxEvent o " +
+    @Query("SELECT o FROM OutboxEventEntity o " +
            "WHERE o.status = 'FAILED' " +
            "AND o.retryCount < 3 " +
-           "AND o.nextRetryAt <= :now " +
-           "ORDER BY o.createdAt ASC")
-    List<OutboxEvent> findFailedEventsForRetry(
-        @Param("now") LocalDateTime now,
+           "AND o.failedAt < :oneHourAgo " +
+           "ORDER BY o.failedAt ASC")
+    List<OutboxEventEntity> findFailedEventsForRetry(
+        @Param("oneHourAgo") Instant oneHourAgo,
         Pageable pageable
     );
     
@@ -601,227 +603,30 @@ public interface OutboxEventRepository extends JpaRepository<OutboxEvent, String
      * 오래된 PUBLISHED 이벤트 삭제
      */
     @Modifying
-    @Query("DELETE FROM OutboxEvent o " +
+    @Query("DELETE FROM OutboxEventEntity o " +
            "WHERE o.status = 'PUBLISHED' " +
-           "AND o.publishedAt < :cutoffDate")
-    int deleteByStatusAndPublishedAtBefore(
-        @Param("cutoffDate") LocalDateTime cutoffDate
+           "AND o.publishedAt < :before")
+    int deletePublishedEventsBefore(@Param("before") Instant before);
+}
+```
+
+### 사용 예시
+
+```java
+// RequestStockReservationStep.java
+public SagaStepResult execute(SagaContext context, OrderCreationSagaData data) {
+    // Outbox 이벤트 저장
+    outboxPort.createAndSave(
+        "ORDER_SAGA",
+        context.getSagaId(),
+        OutboxEventType.STOCK_RESERVATION_REQUESTED,
+        objectMapper.writeValueAsString(payload)
     );
+    
+    // ⚡ 여기서 클라이언트에 즉시 응답 반환
+    return SagaStepResult.success();
 }
 ```
-
-### OutboxEventService
-
-```java
-@Service
-@RequiredArgsConstructor
-@Transactional
-public class OutboxEventService {
-    
-    private final OutboxEventRepository outboxEventRepository;
-    private final ObjectMapper objectMapper;
-    
-    /**
-     * Outbox 이벤트 생성 및 저장
-     */
-    public OutboxEvent createEvent(
-        String aggregateType,
-        String aggregateId,
-        String eventType,
-        Object payload
-    ) {
-        try {
-            String payloadJson = objectMapper.writeValueAsString(payload);
-            
-            OutboxEvent event = OutboxEvent.builder()
-                .aggregateType(aggregateType)
-                .aggregateId(aggregateId)
-                .eventType(eventType)
-                .payload(payloadJson)
-                .status(OutboxEventStatus.PENDING)
-                .retryCount(0)
-                .build();
-            
-            return outboxEventRepository.save(event);
-            
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException("JSON 변환 실패", e);
-        }
-    }
-    
-    /**
-     * 주문 생성 이벤트 발행
-     */
-    public void publishOrderCreatedEvent(Order order) {
-        OrderCreatedEvent event = OrderCreatedEvent.builder()
-            .orderId(order.getId())
-            .userId(order.getUserId())
-            .items(order.getItems())
-            .totalAmount(order.getTotalAmount())
-            .build();
-        
-        createEvent(
-            "Order",
-            order.getId(),
-            "order.created",
-            event
-        );
-    }
-    
-    /**
-     * 주문 취소 이벤트 발행
-     */
-    public void publishOrderCancelledEvent(Order order) {
-        OrderCancelledEvent event = OrderCancelledEvent.builder()
-            .orderId(order.getId())
-            .userId(order.getUserId())
-            .items(order.getItems())
-            .usePoint(order.getUsePoint())
-            .build();
-        
-        createEvent(
-            "Order",
-            order.getId(),
-            "order.cancelled",
-            event
-        );
-    }
-}
-```
-
----
-
-## 8. 성능 최적화
-
-### 1. 배치 처리
-
-**AS-IS**: 이벤트 하나씩 처리
-```java
-for (OutboxEvent event : events) {
-    publishEvent(event); // 개별 처리
-}
-```
-
-**TO-BE**: 배치 처리
-```java
-kafkaTemplate.send(events).forEach(future -> {
-    future.addCallback(
-        result -> handleSuccess(result),
-        ex -> handleFailure(ex)
-    );
-});
-```
-
-**효과**
-- 처리 시간: 50% 단축
-- 네트워크 오버헤드 감소
-
----
-
-### 2. 인덱스 최적화
-
-```sql
--- 상태별 조회 최적화
-CREATE INDEX idx_outbox_status_created 
-ON p_outbox_event(status, created_at);
-
--- 재시도 대상 조회 최적화
-CREATE INDEX idx_outbox_next_retry 
-ON p_outbox_event(next_retry_at) 
-WHERE status = 'FAILED';
-
--- 이벤트 타입별 조회 (모니터링용)
-CREATE INDEX idx_outbox_event_type 
-ON p_outbox_event(event_type, created_at DESC);
-```
-
----
-
-### 3. 파티셔닝
-
-**월별 파티셔닝**
-```sql
-CREATE TABLE p_outbox_event_2026_01 PARTITION OF p_outbox_event
-FOR VALUES FROM ('2026-01-01') TO ('2026-02-01');
-
-CREATE TABLE p_outbox_event_2026_02 PARTITION OF p_outbox_event
-FOR VALUES FROM ('2026-02-01') TO ('2026-03-01');
-```
-
-**효과**
-- 쿼리 성능 향상
-- 오래된 데이터 삭제 용이
-
----
-
-## 9. 모니터링 및 운영
-
-### 주요 모니터링 지표
-
-#### 1. 이벤트 발행 지연 시간
-
-```sql
-SELECT 
-    event_type,
-    AVG(EXTRACT(EPOCH FROM (published_at - created_at))) as avg_delay_seconds
-FROM p_outbox_event
-WHERE status = 'PUBLISHED'
-  AND created_at >= NOW() - INTERVAL '1 hour'
-GROUP BY event_type;
-```
-
-**목표**: 평균 5초 이내
-
----
-
-#### 2. 실패율
-
-```sql
-SELECT 
-    DATE_TRUNC('hour', created_at) as hour,
-    COUNT(CASE WHEN status = 'FAILED' THEN 1 END) * 100.0 / COUNT(*) as failure_rate
-FROM p_outbox_event
-WHERE created_at >= NOW() - INTERVAL '24 hours'
-GROUP BY hour
-ORDER BY hour DESC;
-```
-
-**목표**: 1% 이하
-
----
-
-#### 3. 재시도 현황
-
-```sql
-SELECT 
-    retry_count,
-    COUNT(*) as count
-FROM p_outbox_event
-WHERE status = 'FAILED'
-GROUP BY retry_count
-ORDER BY retry_count;
-```
-
----
-
-### Grafana 대시보드
-
-**패널 구성**
-1. **발행 성공률** (Gauge)
-2. **평균 발행 지연** (Graph)
-3. **이벤트 타입별 발행 수** (Bar Chart)
-4. **FAILED 이벤트 수** (Single Stat)
-5. **재시도 횟수 분포** (Pie Chart)
-
----
-
-### 알림 설정
-
-**Slack 알림 조건**
-1. 발행 실패율 > 5%
-2. FAILED 이벤트 > 100건
-3. 평균 발행 지연 > 60초
-4. 재시도 3회 초과 이벤트 발생
 
 ---
 
@@ -829,13 +634,12 @@ ORDER BY retry_count;
 
 ✅ **원자성 보장**: DB 트랜잭션과 이벤트 발행 원자적 처리  
 ✅ **FOR UPDATE SKIP LOCKED**: 중복 발행 방지 및 수평 확장  
-✅ **자동 재시도**: 3회까지 자동 재시도 (95% 복구율)  
+✅ **자동 재시도**: 3회까지 자동 재시도  
 ✅ **이벤트 발행 성공률 99.9%**: Kafka 장애에도 유실 없음  
-✅ **At-Least-Once 보장**: 최소 1회 전송 보장  
-✅ **모니터링 및 알림**: 실시간 장애 감지 및 대응
+✅ **At-Least-Once 보장**: 최소 1회 전송 보장
 
 ---
 
 **작성일**: 2026-01-12  
 **작성자**: 차초희  
-**버전**: 1.0
+**버전**: 2.0

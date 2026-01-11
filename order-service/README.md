@@ -426,191 +426,22 @@ FOR UPDATE SKIP LOCKED
 
 ## ⏰ 스케줄러
 
-Order Service는 6개의 스케줄러를 통해 이벤트 발행, 주문 상태 관리, 성능 최적화를 자동화합니다.
+Order Service는 **7개의 스케줄러**를 통해 이벤트 발행, 주문 상태 관리, 성능 최적화, 장애 복구를 자동화합니다.
 
-### 1. Outbox Event Publisher Scheduler
+### 주요 스케줄러
 
-**역할**: PENDING 상태의 Outbox 이벤트를 Kafka로 발행
+| 스케줄러 | 실행 주기 | 역할 | 성공률 |
+|----------|-----------|------|--------|
+| Outbox Event Publisher | 5초 | PENDING 이벤트 Kafka 발행 | 99.9% |
+| Failed Event Retry | 10분 | FAILED 이벤트 재시도 | 95% |
+| Outbox Cleanup | 매일 자정 | 오래된 이벤트 삭제 | 100% |
+| Pending Order Timeout | 1분 | 타임아웃 주문 자동 취소 | 100% |
+| Cache Warming | 시작 시 + 6시간마다 | 인기 주문 캐시 적재 | 100% |
+| Cache Cleanup | 매일 새벽 2시 | 오래된 캐시 삭제 | 100% |
+| Auto Confirm | 1분 | 자동 구매 확정 | 100% |
+| Saga Recovery | 10분 | 타임아웃 Saga 복구 | 100% |
 
-```java
-@Scheduled(fixedDelay = 5000) // 5초마다
-public void publishPendingEvents() {
-    // 1. PENDING 이벤트 조회 (FOR UPDATE SKIP LOCKED)
-    // 2. Kafka 발행 시도
-    // 3. 성공 시 PUBLISHED, 실패 시 FAILED로 상태 변경
-}
-```
-
-**설정**
-- 실행 주기: 5초
-- 배치 크기: 10개씩
-- 동시성 제어: FOR UPDATE SKIP LOCKED
-
-**효과**
-- 이벤트 발행 성공률: 99.9%
-- 평균 발행 지연: 5초 이내
-
----
-
-### 2. Failed Event Retry Scheduler
-
-**역할**: FAILED 상태의 이벤트 재시도
-
-```java
-@Scheduled(fixedDelay = 600000) // 10분마다
-public void retryFailedEvents() {
-    // 1. FAILED 이벤트 중 재시도 가능한 것 조회
-    // 2. 재시도 (최대 3회)
-    // 3. 3회 초과 시 로그 기록 및 알림
-}
-```
-
-**설정**
-- 실행 주기: 10분
-- 최대 재시도: 3회
-- 재시도 간격: 1시간
-
-**효과**
-- 자동 복구율: 95% 이상
-- 수동 개입 최소화
-
----
-
-### 3. Outbox Cleanup Scheduler
-
-**역할**: 오래된 PUBLISHED 이벤트 삭제
-
-```java
-@Scheduled(cron = "0 0 0 * * ?") // 매일 자정
-public void cleanupOldEvents() {
-    // 7일 이상 지난 PUBLISHED 이벤트 삭제
-}
-```
-
-**설정**
-- 실행 주기: 매일 자정
-- 보관 기간: 7일
-
-**효과**
-- DB 용량 관리
-- 쿼리 성능 유지
-
----
-
-### 4. Pending Order Timeout Scheduler
-
-**역할**: 5분 이상 PENDING 상태인 주문 자동 취소
-
-```java
-@Scheduled(cron = "0 * * * * ?") // 매 분마다
-public void cancelPendingOrders() {
-    // 1. 5분 초과 PENDING 주문 조회
-    // 2. CANCELLED로 상태 변경
-    // 3. order.cancelled 이벤트 발행
-}
-```
-
-**설정**
-- 실행 주기: 1분
-- 타임아웃: 5분
-- 처리 방식: 배치 처리 (100개씩)
-
-**효과**
-- 평균 취소 처리 시간: 5분 55초
-- 재고 복구율: 100%
-- 포인트 환불율: 100%
-
-**테스트 결과**
-```
-취소된 주문: 73건
-최소 취소 시간: 5분 54초
-평균 취소 시간: 5분 55초
-최대 취소 시간: 5분 56초
-
-보상 트랜잭션:
-- 재고 복구: 219개 → 400개 (100%)
-- 포인트 환불: 73,000원 (100%)
-```
-
----
-
-### 5. Cache Warming Scheduler
-
-**역할**: 인기 주문 데이터를 Redis 캐시에 미리 적재
-
-```java
-@Scheduled(cron = "0 */30 * * * ?") // 30분마다
-public void warmUpCache() {
-    // 1. 최근 1시간 내 조회된 주문 ID 수집
-    // 2. Redis에 캐시 적재
-    // 3. TTL 설정 (1시간)
-}
-```
-
-**설정**
-- 실행 주기: 30분마다
-- 대상: 최근 1시간 내 조회된 주문
-- 캐시 TTL: 1시간
-
-**효과**
-- Cache Hit Rate: 85~90%
-- Cold Start 방지
-- 조회 성능 향상 (500ms → 10ms)
-
-**캐시 워밍 전략**
-1. **접근 빈도 기반**: 최근 자주 조회된 주문 우선
-2. **사용자 패턴 분석**: 피크 시간대 직전 실행
-3. **메모리 효율**: 상위 1000개만 캐싱
-
----
-
-### 6. Auto Confirm Scheduler
-
-**역할**: 배송 완료 후 7일 경과 시 자동 구매 확정
-
-```java
-@Scheduled(cron = "0 0 2 * * ?") // 매일 새벽 2시
-public void autoConfirmOrders() {
-    // 1. DELIVERED 상태 + 7일 경과 주문 조회
-    // 2. CONFIRMED로 상태 변경
-    // 3. order.confirmed 이벤트 발행
-}
-```
-
-**설정**
-- 실행 주기: 매일 새벽 2시
-- 대기 기간: 배송 완료 후 7일
-- 처리 방식: 배치 처리 (1000개씩)
-
-**효과**
-- 자동 정산 프로세스 지원
-- 판매자 정산 속도 향상
-- 고객 편의성 증대
-
-**자동 확정 조건**
-```
-주문 상태: DELIVERED
-경과 시간: deliveredAt + 7일
-고객 클레임: 없음
-```
-
-**구매 확정 후 처리**
-1. **포인트 적립**: 주문 금액의 1% 적립
-2. **판매자 정산**: 정산 대상으로 등록
-3. **리뷰 작성 알림**: 고객에게 리뷰 작성 요청
-
----
-
-## 📊 스케줄러 성능 지표
-
-| 스케줄러 | 실행 주기 | 평균 처리 시간 | 처리 성공률 |
-|----------|-----------|----------------|-------------|
-| Outbox Publisher | 5초 | 200ms | 99.9% |
-| Failed Event Retry | 10분 | 500ms | 95% |
-| Outbox Cleanup | 매일 자정 | 2초 | 100% |
-| Pending Timeout | 1분 | 1.5초 | 100% |
-| Cache Warming | 30분 | 3초 | 100% |
-| Auto Confirm | 매일 02:00 | 5초 | 100% |
+**→ [스케줄러 상세 문서](docs/md/SCHEDULER.md)** - 각 스케줄러의 구현, 설정, 성능 지표
 
 ---
 
@@ -898,14 +729,23 @@ X-User-Id: {userId}
 
 ## 🔗 관련 문서
 
-- **[Saga 패턴 상세](docs/md/SAGA_PATTERN.md)** - Saga 구현 상세
-- **[Outbox 패턴 상세](docs/md/OUTBOX_PATTERN.md)** - Outbox 구현 상세
+**아키텍처 및 패턴:**
 - **[시스템 아키텍처](docs/md/ORDER_ARCHITECTURE.md)** - 전체 시스템 구조
+- **[Saga 패턴 상세](docs/md/SAGA_PATTERN.md)** - 분산 트랜잭션 관리
+- **[Outbox 패턴 상세](docs/md/OUTBOX_PATTERN.md)** - 이벤트 발행 신뢰성
+- **[스케줄러 상세](docs/md/SCHEDULER.md)** - 스케줄러 구현 및 운영
+
+**테스트 문서:**
 - **[테스트 실행 가이드](docs/md/ORDER_FLOW_VALIDATION_TEST_GUIDE.md)** - 단계별 테스트 방법
-- **[테스트 결과 보고서](docs/md/ORDER_FLOW_VALIDATION_TEST_RESULT.md)** - 상세 검증 결과
+- **[테스트 결과 요약](docs/md/ORDER_FLOW_VALIDATION_TEST_SUMMARY.md)** - 핵심 성과 지표
+- **[테스트 결과 상세](docs/md/ORDER_FLOW_VALIDATION_TEST_RESULT.md)** - 상세 검증 결과
 
 ---
 
 ## 📈 주요 성과
 
-✅ **100명 동시 주문 처리** - P95 응답시간 2.5초 달성
+✅ **100명 동시 주문 처리** - P95 응답시간 2.51초 달성  
+✅ **이벤트 발행 성공률 99.9%** - Outbox 패턴 적용  
+✅ **재고 복구율 100%** - 자동 취소 메커니즘  
+✅ **포인트 환불 정확도 100%** - 보상 트랜잭션  
+✅ **조회 성능 50배 향상** - CQRS + 2-Tier 캐싱

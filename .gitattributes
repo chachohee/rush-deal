@@ -1,0 +1,11 @@
+# Shell scripts must use LF
+*.sh text eol=lf
+
+# JavaScript files
+*.js text eol=lf
+
+# Markdown files
+*.md text eol=lf
+
+# All text files should use LF in the repository
+* text=auto eol=lf

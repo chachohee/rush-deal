@@ -28,9 +28,14 @@
 | jq | 최신 | `jq --version` | JSON 파싱 |
 | curl | 내장 | `curl --version` | HTTP 요청 |
 
-### 1.2 k6 설치 (WSL에서 실행)
+### 1.2 k6 설치 
+
+**Windows 환경 (WSL에서 실행)**
 
 ```bash
+# Windows PowerShell에서 WSL 실행
+wsl
+
 # GPG 키 추가
 sudo gpg --no-default-keyring \
   --keyring /usr/share/keyrings/k6-archive-keyring.gpg \
@@ -49,14 +54,13 @@ sudo apt-get install k6
 k6 version
 ```
 
-### 1.3 프로젝트 경로 이동
-
+**MacOS 환경 - Homebrew로 설치**
 ```bash
-# Windows PowerShell에서 WSL 실행
-wsl
+# 설치
+brew install k6
 
-# 프로젝트 디렉토리로 이동
-cd /mnt/c/Users/<사용자명>/IdeaProjects/sparta/project/fork/rush-deal
+# 확인
+k6 version
 ```
 
 ---
@@ -86,12 +90,33 @@ rushdeal_*_redis (6개)     Up (healthy)
 
 ![docker-desktop.png](../images/docker-desktop.png)
 
-### 2.2 인프라 헬스체크
+
+### 2.2 테스트 폴더로 경로 이동
+**Windows**
+```bash
+cd order-service/k6/scripts
+
+# Windows PowerShell에서 WSL 실행
+wsl
+```
+
+**MacOS**
+```bash
+cd order-service/k6/scripts
+```
+
+### 2.3 .sh 파일 권한 주기
+
+```bash
+chmod +x *.sh
+```
+
+### 2.4 인프라 헬스체크
 
 자동화 스크립트에 포함되어 있지만, 수동으로도 확인 가능합니다:
 
 ```bash
-cd order-service/k6/scripts
+# order-service/k6/scripts 경로에서 실행
 chmod +x check-infrastructure.sh
 ./check-infrastructure.sh
 ```
@@ -114,7 +139,110 @@ Grafana: ✅
 ✅ All required infrastructure is ready!
 ```
 
-### 2.3 애플리케이션 실행
+### 2.5 애플리케이션 환경변수 설정
+**루트 경로에 .env 파일 생성 후 각 애플리케이션 구성편집에서 환경변수 적용**
+
+```
+# .env 파일
+
+# ============================================
+# Spring Profile
+# ============================================
+SPRING_PROFILES_ACTIVE=local
+
+# ============================================
+# Database (PostgreSQL) - Docker 컨테이너
+# ============================================
+DB_URL=jdbc:postgresql://localhost:15432/rushdeal
+DB_USERNAME=rushdeal
+DB_PASSWORD=rushdeal
+
+# JPA Settings
+JPA_DDL_AUTO=update
+SHOW_SQL=true
+SQL_INIT_MODE=never
+
+# ============================================
+# Redis - Docker 컨테이너 (각각 다른 호스트 포트)
+# ============================================
+# API Gateway & 공통
+REDIS_HOST=localhost
+REDIS_PORT=6380
+REDIS_PASSWORD=
+
+# Auth Service
+AUTH_REDIS_HOST=localhost
+AUTH_REDIS_PORT=6378
+
+# User Service
+USER_REDIS_HOST=localhost
+USER_REDIS_PORT=6383
+
+# Order Service
+ORDER_REDIS_HOST=localhost
+ORDER_REDIS_PORT=6381
+
+# Queue Service
+QUEUE_REDIS_HOST=localhost
+QUEUE_REDIS_PORT=6380
+
+# Timedeal Service
+TIMEDEAL_REDIS_HOST=localhost
+TIMEDEAL_REDIS_PORT=6382
+
+# ============================================
+# Kafka - Docker 컨테이너
+# ============================================
+KAFKA_BROKERS=localhost:9092
+
+# ============================================
+# Eureka - IntelliJ에서 실행
+# ============================================
+EUREKA_URL=http://localhost:8761/eureka/
+EUREKA_ENABLED=true
+
+# ============================================
+# JWT Secrets (개발용)
+# ============================================
+JWT_ACCESS_EXPIRED=60480000
+JWT_ACCESS_SECRET=N6WSY55g7gYEPvCAazUfZw/DkMLlOyzotH1xCju5L78=
+JWT_REFRESH_EXPIRED=120960000
+JWT_REFRESH_SECRET=tbfb4D86amt6/7x5KHuVl7rzZXfs40IV6FWimTzImuQ=
+
+# ============================================
+# Auth Service
+# ============================================
+AUTH_MAX_CONCURRENT_SESSIONS=3
+
+# ============================================
+# Service Ports (IntelliJ에서 실행)
+# ============================================
+API_GATEWAY_PORT=8080
+AUTH_SERVER_PORT=8000
+USER_SERVER_PORT=8060
+ORDER_SERVER_PORT=8050
+PAYMENT_SERVER_PORT=8010
+PRODUCT_SERVER_PORT=8020
+QUEUE_SERVER_PORT=8040
+TIMEDEAL_SERVER_PORT=8030
+
+# ============================================
+# PortOne (PG 결제)
+# ============================================
+PORTONE_API_SECRET=PdbdC9D9u0VE0sU2cQXTOMLdTYEJZJholVo5xO6MW0APy37t3YXkHGz2BKNH0cUv2WFNRtD7RxnmKTWc
+PORTONE_WEBHOOK=whsec_FdNwj288RhKYUr3xhnGbyGZJM/bKRUdUsgMpq4zr4TE=
+PORTONE_CHANNEL_KEY=channel-key-e557d17d-e040-40e9-a5fd-28018b0ee382
+PORTONE_STORE_ID=store-03451ff4-921e-460b-95ae-8691178056a5
+
+# ============================================
+# 로컬 개발 전용
+# ============================================
+SQL_LOG_LEVEL=DEBUG
+SQL_TYPE_LOG_LEVEL=TRACE
+ 
+```
+
+### 2.6 애플리케이션 실행
 ```
 DiscoveryServiceApplication     :8761/
 UserServiceApplication          :8060/
@@ -123,6 +251,7 @@ TimeDealApplication             :8030/
 QueueServiceApplication         :8040/
 OrderServiceApplication         :8050/
 ```
+**DB 스키마 생성을 위해 실행**
 
 ---
 
@@ -130,9 +259,10 @@ OrderServiceApplication         :8050/
 
 ### 3.1 사용자 및 포인트 데이터 생성
 
-**스크립트 위치:** `order-service/k6/scripts/test-data.sql`
+**sql 파일 위치:** `order-service/k6/scripts/test-data.sql`
 
 ```bash
+# order-service/k6/scripts 경로에서 실행
 # 테스트 데이터 생성 (자동화 스크립트 실행 전 수동 실행)
 docker exec -i rushdeal_postgres psql -U rushdeal -d rushdeal < test-data.sql
 ```
@@ -330,7 +460,7 @@ curl -X POST http://localhost:8030/api/v1/timedeals \
 
 ![timedeal-product-db.png](../images/timedeal-product-db.png)
 
-### 4.3 재고 생성 (4개 타임딜 상품에 대해)
+### 4.3 재고 생성 (4개의 타임딜 상품에 대해)
 
 먼저 타임딜 상품 ID들을 조회:
 
@@ -478,9 +608,9 @@ ae7993be-386f-4d66-90f3-61866b4fdb30
 
 ### 5.2 스크립트 실행
 
+**Windows**
 ```bash
-# 스크립트 디렉토리로 이동
-cd order-service/k6/scripts
+# order-service/k6/scripts 경로에서 실행
 
 # 실행 권한 부여
 chmod +x run-order-flow-validation-test.sh
@@ -489,11 +619,22 @@ chmod +x run-order-flow-validation-test.sh
 ./run-order-flow-validation-test.sh
 ```
 
+**MacOs**
+```bash
+# order-service/k6/scripts 경로에서 실행
+
+# 실행 권한 부여
+chmod +x run-order-flow-validation-test-mac.sh
+
+# 스크립트 실행
+./run-order-flow-validation-test-mac.sh
+```
+
 ### 5.3 실행 중 인터랙션
 
 스크립트 실행 중 다음과 같은 프롬프트가 나타납니다:
 
-#### 1) WSL IP 주소 감지
+#### 1) IP 주소 감지
 ```
 ℹ️  Detecting WSL IP address...
 ✅ WSL IP detected: 172.30.1.100
@@ -743,7 +884,7 @@ ae7993be-386f-4d66-90f3-61866b4fdb30   |       100 |         0 |         0 |    
 
 ### 7.1 일반적인 문제
 
-#### 1) WSL IP 자동 감지 실패
+#### 1) IP 자동 감지 실패
 
 **증상:**
 ```
@@ -751,12 +892,21 @@ ae7993be-386f-4d66-90f3-61866b4fdb30   |       100 |         0 |         0 |    
 ```
 
 **해결:**
+- Windows
 ```bash
 # Windows PowerShell에서 IP 확인
 ipconfig | findstr IPv4
 
 # 수동으로 입력
 Enter your WSL IP address (e.g., 172.30.1.72): 172.30.1.xxx
+```
+
+- MacOS
+```bash
+# IP 확인
+ipconfig getifaddr en0
+
+# 수동으로 입력
 ```
 
 #### 2) 주문이 생성되지 않음
@@ -792,7 +942,38 @@ Enter your WSL IP address (e.g., 172.30.1.72): 172.30.1.xxx
    ./get-test-ids.sh
    ```
 
-#### 3) 재고가 복구되지 않음
+#### 3) 통계 결과 로그가 DB와 일치하지 않음
+
+**증상:**
+```
+-- 📦 1. ORDER STATISTICS
+PENDING | 28 | 7,711,200원 | 28,000 포인트
+
+-- 📦 1-1. RECENT 100 ORDERS  
+PENDING | 31 | 8,472,800원 | 31,000 포인트
+
+-- 📊 2. ORDER ITEMS
+orders_with_items: 32 | total_items: 59 | total_quantity: 94
+
+-- 💰 3. POINT USAGE
+USE_PENDING | 34건 | 34,000원
+
+-- 📦 8. STOCK RESERVATION
+총 예약 재고: 64 + 69 + 58 + 49 = 240개
+```
+
+**원인:**
+
+트랜잭션 커밋 지연으로 인한 조회 시점 불일치로 예약은 성공했지만 주문 생성이 아직 완료되지 않았을 가능성이 높습니다.
+
+**해결:**
+```bash
+# 현재: sleep 5
+# 권장: 10~15초 대기 후 조회
+sleep 15
+```
+
+#### 4) 재고가 복구되지 않음
 
 **증상:**
 ```
@@ -872,21 +1053,23 @@ SET available_stock = 100,
 인프라 전체 재시작이 필요한 경우:
 
 ```bash
-# 전체 중지 및 볼륨 삭제
+# 전체 중지 및 볼륨 삭제 (루트 경로에서)
 docker-compose down -v
 
-# 재시작
+# 재시작 (루트 경로에서)
 docker-compose up -d
 
 # 헬스체크
-cd k6/scripts
+cd order-service/k6/scripts
 ./check-infrastructure.sh
 
 # Kafka 토픽 재생성
+cd order-service/k6/scripts
 ./create-kafka-topics.sh
 
 # 테스트 데이터 재생성
-docker exec -i rushdeal_postgres psql -U rushdeal -d rushdeal < k6/test-data.sql
+cd order-service/k6/scripts
+docker exec -i rushdeal_postgres psql -U rushdeal -d rushdeal < test-data.sql
 ```
 
 ### 7.5 스크립트 권한 오류

@@ -730,7 +730,7 @@ X-User-Id: {userId}
 ## 🔗 관련 문서
 
 **아키텍처 및 패턴:**
-- **[시스템 아키텍처](docs/md/ORDER_ARCHITECTURE.md)** - 전체 시스템 구조
+- **[시스템 아키텍처](docs/md/ORDER_ARCHITECTURE.md)** - 주문 시스템 구조
 - **[Saga 패턴 상세](docs/md/SAGA_PATTERN.md)** - 분산 트랜잭션 관리
 - **[Outbox 패턴 상세](docs/md/OUTBOX_PATTERN.md)** - 이벤트 발행 신뢰성
 - **[스케줄러 상세](docs/md/SCHEDULER.md)** - 스케줄러 구현 및 운영

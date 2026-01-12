@@ -19,7 +19,7 @@
 
 ## 📚 상세 문서
 
-**→ [Order Service README](./order-service/README.md)** - 전체 개요 및 API 명세
+**→ [Order Service README](./order-service/README.md)** - 전체 개요 및 API 명세 ✅🙏
 
 **아키텍처 및 패턴 문서:**
 - [시스템 아키텍처](./order-service/docs/md/ORDER_ARCHITECTURE.md) - 전체 시스템 구조

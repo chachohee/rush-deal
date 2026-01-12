@@ -1,4 +1,4 @@
-# 📦 Order Service (주문 서비스)
+# 담당 Part: 📦Order Service (주문 서비스)
 
 > Saga 패턴과 Outbox 패턴 기반의 고신뢰성 분산 주문 처리 서비스
 

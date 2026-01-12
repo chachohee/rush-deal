@@ -12,6 +12,8 @@ services:
       POSTGRES_DB: rushdeal
       POSTGRES_USER: rushdeal
       POSTGRES_PASSWORD: rushdeal
+      TZ: Asia/Seoul
+      PGTZ: Asia/Seoul
     ports:
       - "15432:5432"
     volumes:

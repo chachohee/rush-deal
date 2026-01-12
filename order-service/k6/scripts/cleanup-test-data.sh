@@ -51,10 +51,9 @@ echo "   ✅ Stock restored to 400 units"
 echo "💰 4. Cleaning POINT history (keeping initial balance)..."
 docker exec rushdeal_postgres psql -U rushdeal -d rushdeal -c "
 DELETE FROM user_schema.p_point_history
-WHERE type != 'EARN_CONFIRM'
-   OR created_at > NOW() - INTERVAL '1 hour';
+WHERE type != 'EARN_CONFIRM';
 " > /dev/null 2>&1
-echo "   ✅ Point history cleaned"
+echo "   ✅ Point history cleaned (EARN_CONFIRM preserved)"
 
 # 5. Redis 데이터 삭제
 echo "🔑 5. Cleaning REDIS data..."

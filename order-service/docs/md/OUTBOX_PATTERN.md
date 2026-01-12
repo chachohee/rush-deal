@@ -641,5 +641,7 @@ public SagaStepResult execute(SagaContext context, OrderCreationSagaData data) {
 ---
 
 **작성일**: 2026-01-12  
-**작성자**: 차초희  
+**작성자:** 차초희  
+**검토자:** 차초희  
+**최종 수정일:** 2026-01-13  
 **버전**: 2.0

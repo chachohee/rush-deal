@@ -400,4 +400,7 @@ rate(order.creation.duration_seconds_sum[5m]) / rate(order.creation.duration_sec
 ---
 
 **작성일**: 2026-01-12  
-**작성자**: 차초희
+**작성자:** 차초희  
+**검토자:** 차초희  
+**최종 수정일:** 2026-01-13  
+**버전**: 1.0

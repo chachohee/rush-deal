@@ -1,0 +1,112 @@
+========================================
+📊 Initial Verification - Order Creation
+========================================
+
+🔍 Order Creation Verification (Before Auto-Cancel)
+====================================================
+
+📊 Checking last 1000 orders
+
+📦 1. ORDER STATISTICS (Expected: PENDING status)
+ status  | order_count | total_amount | total_points_used 
+---------+-------------+--------------+-------------------
+ PENDING |         753 | 219721600.00 |            753000
+(1 row)
+
+
+📦 1-1. RECENT 1000 ORDERS STATISTICS
+ status  | order_count | total_amount | total_points_used 
+---------+-------------+--------------+-------------------
+ PENDING |         753 | 219721600.00 |            753000
+(1 row)
+
+
+📊 2. ORDER ITEMS SUMMARY
+ orders_with_items | total_items | total_quantity 
+-------------------+-------------+----------------
+               753 |        1528 |           2308
+(1 row)
+
+
+💰 3. POINT USAGE SUMMARY
+  거래 유형  | 건수 | 총 금액 | 평균 금액 
+-------------+------+---------+-----------
+ USE_PENDING |  753 |  753000 |   1000.00
+(1 row)
+
+
+🔗 4. ORDER vs POINT VERIFICATION
+ PENDING 주문 | 주문 포인트 | USE_PENDING | 차감 금액 | verification 
+--------------+-------------+-------------+-----------+--------------
+          753 |      753000 |         753 |    753000 | ✅ MATCH
+(1 row)
+
+
+⏱️  5. ORDER CREATION RATE
+       minute        | orders_per_minute | amount_per_minute 
+---------------------+-------------------+-------------------
+ 2026-01-16 17:24:00 |               520 |      150320800.00
+ 2026-01-16 17:23:00 |               233 |       69400800.00
+(2 rows)
+
+
+🎯 6. ORDER STATUS DISTRIBUTION
+ status  | count | percentage 
+---------+-------+------------
+ PENDING |   753 |     100.00
+(1 row)
+
+
+⏱️  7. ORDER PROCESSING TIME
+ min_ms | avg_ms | max_ms | p95_ms 
+--------+--------+--------+--------
+   0.00 |   0.00 |   0.00 |   0.00
+(1 row)
+
+
+📦 8. STOCK RESERVATION CHECK
+          time_deal_stock_id          | 가용 재고 | 예약 재고 | 판매 재고 | 기존 재고 
+--------------------------------------+-----------+-----------+-----------+-----------
+ 34aa164d-8bbb-4322-8a85-fc33c00bbaea |       421 |       579 |         0 |      1000
+ 3b80ff15-c8fe-46ce-8777-2d475ac06ee0 |       391 |       609 |         0 |      1000
+ 7e0d0623-e03f-4335-85c9-3072a20572e6 |       447 |       553 |         0 |      1000
+ 91ca85d1-b750-46da-b36a-b5b8de6aea5b |       433 |       567 |         0 |      1000
+(4 rows)
+
+
+💰 9. USER BALANCE VERIFICATION
+ 사용자 수 | 최소 잔액 | 최대 잔액 | 평균 잔액 | 총 잔액 
+-----------+-----------+-----------+-----------+---------
+       753 |      9000 |      9000 |   9000.00 | 6777000
+(1 row)
+
+
+👥 10. SAMPLE USER BALANCES (10 users)
+ 사용자 ID | 현재 잔액 | 마지막 거래 |   시각   
+-----------+-----------+-------------+----------
+         1 |      9000 | USE_PENDING | 17:23:43
+         2 |      9000 | USE_PENDING | 17:23:44
+         3 |      9000 | USE_PENDING | 17:23:44
+         4 |      9000 | USE_PENDING | 17:23:43
+         5 |      9000 | USE_PENDING | 17:23:45
+         6 |      9000 | USE_PENDING | 17:23:46
+         8 |      9000 | USE_PENDING | 17:23:44
+         9 |      9000 | USE_PENDING | 17:23:46
+        12 |      9000 | USE_PENDING | 17:23:44
+        15 |      9000 | USE_PENDING | 17:23:45
+(10 rows)
+
+
+✅ Order Creation Verification Complete!
+
+💡 Summary:
+   ✅ 주문 상태: 모두 PENDING이어야 함
+   ✅ 포인트: USE_PENDING으로 차감되어야 함
+   ✅ 재고: reserved_stock에 반영되어야 함
+   ⏳ 다음 단계: 5분 후 자동 취소 대기
+
+📌 Expected State:
+   - Order Status: PENDING (100%)
+   - Point Type: USE_PENDING (차감 대기)
+   - Stock: Reserved > 0 (예약됨)
+   - User Balance: 9,000원 (10,000 - 1,000)

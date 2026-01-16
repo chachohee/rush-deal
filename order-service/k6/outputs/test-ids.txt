@@ -1,0 +1,22 @@
+📋 Test Data IDs
+================
+
+🛍️ Product ID:
+017b6d7f-9f46-4f75-a039-f0e6c7cf9826
+
+⏰ TimeDeal ID:
+99112350-0122-4966-8bfc-01c57b091880
+
+📦 TimeDeal Product IDs:
+a8218a9f-0506-4520-8237-50c37e663abe
+14bbad66-d29a-4ae9-ad9b-ce1f1a16a8d4
+abdbe6f1-ce7e-4d91-8777-671415f46996
+daf80c19-44b3-4569-acb9-17f74da7ff8e
+
+📦 Stock IDs:
+34aa164d-8bbb-4322-8a85-fc33c00bbaea
+91ca85d1-b750-46da-b36a-b5b8de6aea5b
+7e0d0623-e03f-4335-85c9-3072a20572e6
+3b80ff15-c8fe-46ce-8777-2d475ac06ee0
+
+✅ Done!

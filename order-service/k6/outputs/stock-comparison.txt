@@ -1,0 +1,42 @@
+========================================
+📦 STOCK COMPARISON REPORT
+========================================
+
+🕐 Part 1: After Order Creation (Step 8)
+Captured at: 2026-01-16 17:24:52
+
+Stock ID                               | Available |  Reserved |      Sold |     Total
+----------------------------------------|-----------|-----------|-----------|----------
+34aa164d-8bbb-4322-8a85-fc33c00bbaea   |       421 |       579 |         0 |      1000
+3b80ff15-c8fe-46ce-8777-2d475ac06ee0   |       391 |       609 |         0 |      1000
+7e0d0623-e03f-4335-85c9-3072a20572e6   |       447 |       553 |         0 |      1000
+91ca85d1-b750-46da-b36a-b5b8de6aea5b   |       433 |       567 |         0 |      1000
+
+==========================================
+
+🕐 Part 2: After Auto-Cancellation (Step 10)
+Captured at: 2026-01-16 17:37:31
+
+Stock ID                               | Available |  Reserved |      Sold |     Total
+----------------------------------------|-----------|-----------|-----------|----------
+34aa164d-8bbb-4322-8a85-fc33c00bbaea   |      1000 |         0 |         0 |      1000
+3b80ff15-c8fe-46ce-8777-2d475ac06ee0   |      1000 |         0 |         0 |      1000
+7e0d0623-e03f-4335-85c9-3072a20572e6   |      1000 |         0 |         0 |      1000
+91ca85d1-b750-46da-b36a-b5b8de6aea5b   |      1000 |         0 |         0 |      1000
+
+==========================================
+📊 COMPARISON SUMMARY
+==========================================
+
+Stock ID                               | Before(A/R) | After(A/R)  | Status
+----------------------------------------|-------------|-------------|------------
+34aa164d-8bbb-4322-8a85-fc33c00bbaea   |   421 / 579  |  1000 / 0    | ✅ RESTORED
+3b80ff15-c8fe-46ce-8777-2d475ac06ee0   |   391 / 609  |  1000 / 0    | ✅ RESTORED
+7e0d0623-e03f-4335-85c9-3072a20572e6   |   447 / 553  |  1000 / 0    | ✅ RESTORED
+91ca85d1-b750-46da-b36a-b5b8de6aea5b   |   433 / 567  |  1000 / 0    | ✅ RESTORED
+
+Legend: A=Available, R=Reserved, S=Sold
+✅ RESTORED: Reserved stock returned to available
+⚠️ RESERVED: Still has reserved stock
+❌ MISMATCH: Available stock doesn't match original
+

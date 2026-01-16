@@ -1,0 +1,124 @@
+========================================
+📊 Final Verification - Order Cancellation
+========================================
+
+🔍 Order Cancellation Verification (After Auto-Cancel)
+=======================================================
+
+📊 Checking last 1000 orders
+
+📦 1. ORDER STATISTICS (Expected: CANCELLED status)
+  status   | order_count | total_amount | total_points_used 
+-----------+-------------+--------------+-------------------
+ CANCELLED |         753 | 219721600.00 |            753000
+(1 row)
+
+
+📦 1-1. RECENT 1000 ORDERS STATISTICS
+  status   | order_count | total_amount | total_points_used 
+-----------+-------------+--------------+-------------------
+ CANCELLED |         753 | 219721600.00 |            753000
+(1 row)
+
+
+📊 2. ORDER ITEMS SUMMARY
+ orders_with_items | total_items | total_quantity 
+-------------------+-------------+----------------
+               753 |        1528 |           2308
+(1 row)
+
+
+💰 3. POINT TRANSACTION SUMMARY (Including Refunds)
+  거래 유형  | 건수 | 총 금액 | 평균 금액 
+-------------+------+---------+-----------
+ USE_PENDING |  753 |  753000 |   1000.00
+ USE_CANCEL  |  753 |  753000 |   1000.00
+(2 rows)
+
+
+🔗 4. ORDER vs POINT VERIFICATION
+ 취소된 주문 | 주문 포인트 | USE_PENDING | 차감 금액 | USE_CANCEL | 환불 금액 |    환불 상태    
+-------------+-------------+-------------+-----------+------------+-----------+-----------------
+         753 |      753000 |         753 |    753000 |        753 |    753000 | ✅ REFUND MATCH
+(1 row)
+
+
+⏱️  5. CANCELLATION TIMING
+ 최소 취소 시간 | 평균 취소 시간 | 최대 취소 시간 
+----------------+----------------+----------------
+ 5m 36s         | 8m 43s         | 12m 15s
+(1 row)
+
+
+🎯 6. ORDER STATUS DISTRIBUTION
+  status   | count | percentage 
+-----------+-------+------------
+ CANCELLED |   753 |     100.00
+(1 row)
+
+
+📦 7. STOCK RESTORATION CHECK
+          time_deal_stock_id          | 가용 재고 | 예약 재고 | 판매 재고 | 기존 재고 
+--------------------------------------+-----------+-----------+-----------+-----------
+ 34aa164d-8bbb-4322-8a85-fc33c00bbaea |      1000 |         0 |         0 |      1000
+ 3b80ff15-c8fe-46ce-8777-2d475ac06ee0 |      1000 |         0 |         0 |      1000
+ 7e0d0623-e03f-4335-85c9-3072a20572e6 |      1000 |         0 |         0 |      1000
+ 91ca85d1-b750-46da-b36a-b5b8de6aea5b |      1000 |         0 |         0 |      1000
+(4 rows)
+
+
+💰 8. USER BALANCE VERIFICATION
+ 사용자 수 | 최소 잔액 | 최대 잔액 | 평균 잔액 | 총 잔액 
+-----------+-----------+-----------+-----------+---------
+       753 |     10000 |     10000 |  10000.00 | 7530000
+(1 row)
+
+
+👥 9. SAMPLE USER BALANCES (10 users)
+ 사용자 ID | 현재 잔액 | 마지막 거래 |   시각   
+-----------+-----------+-------------+----------
+         1 |     10000 | USE_CANCEL  | 17:29:29
+         2 |     10000 | USE_CANCEL  | 17:30:30
+         3 |     10000 | USE_CANCEL  | 17:30:31
+         4 |     10000 | USE_CANCEL  | 17:29:29
+         5 |     10000 | USE_CANCEL  | 17:31:37
+         6 |     10000 | USE_CANCEL  | 17:33:42
+         8 |     10000 | USE_CANCEL  | 17:31:31
+         9 |     10000 | USE_CANCEL  | 17:33:42
+        12 |     10000 | USE_CANCEL  | 17:30:41
+        15 |     10000 | USE_CANCEL  | 17:31:42
+(10 rows)
+
+
+🎉 10. REFUND COMPLETION CHECK
+  환불 상태   | USE_PENDING | USE_CANCEL | EARN_PENDING | 차감 총액 | 환불 총액 |    정합성    
+--------------+-------------+------------+--------------+-----------+-----------+--------------
+ ✅ 환불 완료 |         753 |        753 |            0 |    753000 |    753000 | ✅ 금액 일치
+(1 row)
+
+
+🔔 11. KAFKA EVENT CHECK
+   ℹ️  Kafka 이벤트 발행 확인 (수동):
+
+   # point.refund.requested 토픽 메시지 확인
+   docker exec rushdeal_kafka kafka-console-consumer \
+     --bootstrap-server localhost:9092 \
+     --topic point.refund.requested \
+     --from-beginning \
+     --max-messages 10 \
+     --timeout-ms 5000
+
+✅ Order Cancellation Verification Complete!
+
+💡 Summary:
+   ✅ 주문 상태: 모두 CANCELLED이어야 함
+   ✅ 포인트: USE_CANCEL로 환불되어야 함
+   ✅ 재고: reserved_stock이 0으로 복구되어야 함
+   ✅ 사용자 잔액: 10,000원으로 복구되어야 함
+
+📌 Expected State:
+   - Order Status: CANCELLED (100%)
+   - Point Types: USE_PENDING + USE_CANCEL (환불 완료)
+   - Stock: Reserved = 0 (복구됨)
+   - User Balance: 10,000원 (복구됨)
+   - Refund Match: USE_PENDING count = USE_CANCEL count

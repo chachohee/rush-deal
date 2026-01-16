@@ -1,6 +1,13 @@
 # queue-service
 server:
   port: ${QUEUE_SERVER_PORT:8040}
+  tomcat:
+    threads:
+      max: 1000              # 최대 스레드 수 (기본 200 → 1000)
+      min-spare: 100         # 최소 유지 스레드 (기본 10 → 100)
+    max-connections: 2000    # 최대 동시 연결 수 (기본 8192이지만 명시)
+    accept-count: 1000       # 대기 큐 크기 (기본 100 → 1000)
+    connection-timeout: 20000 # 연결 타임아웃 20초
 
 spring:
   application:

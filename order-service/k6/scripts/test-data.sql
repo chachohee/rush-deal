@@ -3,16 +3,16 @@
 \echo '============================================'
 
 -- =====================================================
--- 1. USERS (USER ROLE 100명)
+-- 1. USERS (USER ROLE 1000명)
 -- =====================================================
 \echo ''
-\echo '👤 [1/3] Creating test users (USER x100)...'
+\echo '👤 [1/3] Creating test users (USER x1000)...'
 
 DO $$
 DECLARE
 i INT;
 BEGIN
-FOR i IN 1..100 LOOP
+FOR i IN 1..1000 LOOP
         INSERT INTO user_schema.p_user (
             email,
             password,
@@ -33,7 +33,7 @@ FOR i IN 1..100 LOOP
 END LOOP;
 END $$;
 
-\echo '✅ USER 100명 생성 완료'
+\echo '✅ USER 1000명 생성 완료'
 
 -- =====================================================
 -- 2. SELLER
@@ -65,7 +65,7 @@ ON CONFLICT (email) DO NOTHING;
 -- 3. MASTER
 -- =====================================================
 \echo ''
-\echo '🏪 Creating test seller...'
+\echo '👑 Creating master user...'
 
 INSERT INTO user_schema.p_user (
     email,
@@ -88,7 +88,7 @@ ON CONFLICT (email) DO NOTHING;
 \echo '✅ MASTER 생성 완료'
 
 -- =====================================================
--- 3. POINT INITIALIZATION (USER 100명 → 10,000 포인트)
+-- 4. POINT INITIALIZATION (USER 1000명 → 10,000 포인트)
 -- =====================================================
 \echo ''
 \echo '💰 [3/3] Initializing points (10,000 per user)...'
@@ -123,7 +123,7 @@ WHERE u.role = 'USER'
       AND ph.type = 'EARN_CONFIRM'
 );
 
-\echo '✅ USER 100명 포인트 10,000 지급 완료'
+\echo '✅ USER 1000명 포인트 10,000 지급 완료'
 
 -- =====================================================
 -- SUMMARY

@@ -249,8 +249,8 @@ grep "✅ User" "$OUTPUTS_DIR/queue-tokens-output.log" | \
   grep -oE '[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}' > "$OUTPUTS_DIR/tokens.txt"
 
 TOKEN_COUNT=$(wc -l < "$OUTPUTS_DIR/tokens.txt")
-if [ "$TOKEN_COUNT" -ne 100 ]; then
-    log_warning "Expected 100 tokens, got $TOKEN_COUNT"
+if [ "$TOKEN_COUNT" -ne 1000 ]; then
+    log_warning "Expected 1000 tokens, got $TOKEN_COUNT"
     log_info "Check $OUTPUTS_DIR/queue-tokens-output.log for details"
     if [ "$TOKEN_COUNT" -eq 0 ]; then
         log_error "No tokens generated. Aborting."
@@ -300,7 +300,7 @@ echo ""
 
 # Step 8: 부하 테스트 실행
 log_info "Step 8: Running load test..."
-log_warning "This will create 100 orders (~70% expected to succeed, ~30% to fail due to purchase limit)"
+log_warning "This will create 1000 orders (~70% expected to succeed, ~30% to fail due to purchase limit)"
 echo ""
 
 read -p "▶️  Press Enter to start load test..."
@@ -310,9 +310,9 @@ k6 run "$TESTS_DIR/load-test-order.js" 2>&1 | tee "$OUTPUTS_DIR/load-test-output
 log_success "Load test completed"
 echo ""
 
-# 바로 검증하면 조회가 되지 않아서 5초 대기
+# 바로 검증하면 트랜잭션 커밋이 완료되지 않아 조회 결과가 일치하지 않는 경우가 생겨서 잠시 대기
 log_info "Waiting for database transactions to commit..."
-sleep 5
+sleep 35
 echo ""
 
 # ✅ 주문 생성 직후 재고 스냅샷 저장 (Step 8 직후)
@@ -347,6 +347,7 @@ log_info "📸 Saving stock snapshot after order creation..."
 } > "$OUTPUTS_DIR/stock-comparison.txt"
 log_success "Stock snapshot (Part 1) saved"
 echo ""
+
 
 # Step 9: 즉시 검증 (주문 생성 확인)
 log_info "Step 9: Initial verification (Order Creation Check)..."
@@ -421,7 +422,7 @@ echo "========================================" | tee "$OUTPUTS_DIR/initial-veri
 echo "📊 Initial Verification - Order Creation" | tee -a "$OUTPUTS_DIR/initial-verification.log"
 echo "========================================" | tee -a "$OUTPUTS_DIR/initial-verification.log"
 echo "" | tee -a "$OUTPUTS_DIR/initial-verification.log"
-"$SCRIPT_DIR/verify-order-creation.sh" 100 2>&1 | tee -a "$OUTPUTS_DIR/initial-verification.log"
+"$SCRIPT_DIR/verify-order-creation.sh" 2>&1 | tee -a "$OUTPUTS_DIR/initial-verification.log"
 echo ""
 
 # Step 10: 자동 취소 대기
@@ -443,6 +444,11 @@ done
 
 echo ""
 log_success "Waiting completed"
+echo ""
+
+# 주문 취소의 경우는 이미 위에서 2분 여유 시간을 줬으므로 5초만 대기
+log_info "Waiting for database transactions to commit..."
+sleep 5
 echo ""
 
 # ✅ 자동 취소 후 재고 스냅샷 저장 (Step 10 직후)
@@ -501,8 +507,8 @@ log_info "📸 Saving stock snapshot after auto-cancellation..."
             IFS='/' read -r avail_before resv_before <<< "$before"
 
             # 상태 판단
-            total_before=$((avail_before + resv_before))  # 55 + 45 = 100
-            if [ "$avail_after" = "$total_before" ]; then  # 100 == 100? ✅
+            total_before=$((avail_before + resv_before))
+            if [ "$avail_after" = "$total_before" ]; then
                 STATUS="✅ RESTORED"
             elif [ "$resv_after" != "0" ]; then
                 STATUS="⚠️ RESERVED"
@@ -541,7 +547,7 @@ echo "========================================" | tee "$OUTPUTS_DIR/final-verifi
 echo "📊 Final Verification - Order Cancellation" | tee -a "$OUTPUTS_DIR/final-verification.log"
 echo "========================================" | tee -a "$OUTPUTS_DIR/final-verification.log"
 echo "" | tee -a "$OUTPUTS_DIR/final-verification.log"
-"$SCRIPT_DIR/verify-order-cancellation.sh" 100 2>&1 | tee -a "$OUTPUTS_DIR/final-verification.log"
+"$SCRIPT_DIR/verify-order-cancellation.sh" 2>&1 | tee -a "$OUTPUTS_DIR/final-verification.log"
 echo ""
 
 log_success "===================================="
@@ -565,7 +571,7 @@ WITH recent_orders AS (
     SELECT order_id, status, user_id
     FROM order_schema.p_order
     ORDER BY created_at DESC
-    LIMIT 100
+    LIMIT 1000
 )
 SELECT
     status,
@@ -583,7 +589,7 @@ WITH recent_orders AS (
     SELECT user_id
     FROM order_schema.p_order
     ORDER BY created_at DESC
-    LIMIT 100
+    LIMIT 1000
 )
 SELECT
     type,

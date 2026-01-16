@@ -310,9 +310,9 @@ k6 run "$TESTS_DIR/load-test-order.js" 2>&1 | tee "$OUTPUTS_DIR/load-test-output
 log_success "Load test completed"
 echo ""
 
-# 바로 검증하면 트랜잭션 커밋이 완료되지 않아 조회 결과가 일치하지 않는 경우가 생겨서 잠시 대기
+# 바로 검증하면 트랜잭션 커밋이 완료되지 않아 조회 결과가 일치하지 않는 경우가 생겨서 대기
 log_info "Waiting for database transactions to commit..."
-sleep 35
+sleep 60
 echo ""
 
 # ✅ 주문 생성 직후 재고 스냅샷 저장 (Step 8 직후)
@@ -446,9 +446,9 @@ echo ""
 log_success "Waiting completed"
 echo ""
 
-# 주문 취소의 경우는 이미 위에서 2분 여유 시간을 줬으므로 5초만 대기
+# 바로 검증하면 트랜잭션 커밋이 완료되지 않아 조회 결과가 일치하지 않는 경우가 생겨서 대기
 log_info "Waiting for database transactions to commit..."
-sleep 5
+sleep 300
 echo ""
 
 # ✅ 자동 취소 후 재고 스냅샷 저장 (Step 10 직후)

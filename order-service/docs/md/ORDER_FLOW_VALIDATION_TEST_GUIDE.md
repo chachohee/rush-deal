@@ -1,6 +1,6 @@
 # 🧪 RushDeal 주문 플로우 검증 테스트 실행 가이드
 
-> **자동화 스크립트로 100명 동시 주문 테스트 실행하기**
+> **자동화 스크립트로 1000명 동시 주문 테스트 실행하기**
 
 ---
 
@@ -28,7 +28,7 @@
 | jq | 최신 | `jq --version` | JSON 파싱 |
 | curl | 내장 | `curl --version` | HTTP 요청 |
 
-### 1.2 k6 설치 
+### 1.2 k6 설치
 
 **Windows 환경 (WSL에서 실행)**
 
@@ -268,7 +268,7 @@ docker exec -i rushdeal_postgres psql -U rushdeal -d rushdeal < test-data.sql
 ```
 
 **생성되는 데이터:**
-- `USER` 역할: 100명 (testuser1@test.com ~ testuser100@test.com)
+- `USER` 역할: 1000명 (testuser1@test.com ~ testuser1000@test.com)
 - `SELLER` 역할: 1명 (seller@test.com)
 - `MASTER` 역할: 1명 (master@test.com)
 - 각 USER에게 10,000 포인트 지급
@@ -279,41 +279,55 @@ docker exec -i rushdeal_postgres psql -U rushdeal -d rushdeal < test-data.sql
 🔧 RushDeal User & Point Test Data Init START
 ============================================
 
-👤 [1/3] Creating test users (USER x100)...
+👤 [1/3] Creating test users (USER x1000)...
 DO
-✅ USER 100명 생성 완료
+✅ USER 1000명 생성 완료
 
 🏪 Creating test seller...
 INSERT 0 1
 ✅ SELLER 생성 완료
 
-🏪 Creating test seller...
+👑 Creating master user...
 INSERT 0 1
 ✅ MASTER 생성 완료
 
 💰 [3/3] Initializing points (10,000 per user)...
-INSERT 0 100
-✅ USER 100명 포인트 10,000 지급 완료
+INSERT 0 1000
+✅ USER 1000명 포인트 10,000 지급 완료
 
 📊 User Summary
   role  | count 
 --------+-------
- SELLER |     1
+ USER   |  1000
  MASTER |     1
- USER   |   100
+ SELLER |     1
 (3 rows)
 
 
 📊 Point Summary
  users_with_point | total_points 
 ------------------+--------------
-              100 |      1000000
+             1000 |     10000000
 (1 row)
 
 
 ============================================
 🎉 User & Point Test Data Init COMPLETED
 ============================================
+   ✅ test-data.sql executed
+
+📊 Verification:
+  role  | count 
+--------+-------
+ USER   |  1000
+ MASTER |     1
+ SELLER |     1
+(3 rows)
+
+ users_with_points 
+-------------------
+              1000
+(1 row)
 ```
 
 ### 3.2 데이터 검증
@@ -336,15 +350,15 @@ WHERE type = 'EARN_CONFIRM';
 
 **예상 출력:**
 ```
-     test_users     
---------------------
- 👥 Test Users: 100
+     test_users      
+---------------------
+ 👥 Test Users: 1000
 (1 row)
 ```
 ```
-       total_points       
---------------------------
- 💰 Total Points: 1000000
+       total_points        
+---------------------------
+ 💰 Total Points: 10000000
 (1 row)
 ```
 
@@ -358,12 +372,12 @@ WHERE type = 'EARN_CONFIRM';
 ```http
 POST http://localhost:8020/api/v1/products
 Content-Type: application/json
-X-User-Id: 102
+X-User-Id: 1002
 X-User-Email: master@test.com
 X-User-Role: MASTER
 
 {
-  "sellerId": 101,
+  "sellerId": 1001,
   "companyName": "나이키코리아",
   "productName": "후드집업",
   "description": "우먼스 기모 후드집업",
@@ -382,11 +396,11 @@ X-User-Role: MASTER
 ```bash
 curl -X POST http://localhost:8020/api/v1/products \
   -H "Content-Type: application/json" \
-  -H "X-User-Id: 102" \
+  -H "X-User-Id: 1002" \
   -H "X-User-Email: master@test.com" \
   -H "X-User-Role: MASTER" \
   -d '{
-    "sellerId": 101,
+    "sellerId": 1001,
     "companyName": "나이키코리아",
     "productName": "후드집업",
     "description": "우먼스 기모 후드집업",
@@ -416,7 +430,7 @@ curl -X POST http://localhost:8020/api/v1/products \
 ```http
 POST http://localhost:8030/api/v1/timedeals
 Content-Type: application/json
-X-User-Id: 102
+X-User-Id: 1002
 X-User-Email: master@test.com
 X-User-Role: MASTER
 
@@ -436,7 +450,7 @@ X-User-Role: MASTER
 ```bash
 curl -X POST http://localhost:8030/api/v1/timedeals \
   -H "Content-Type: application/json" \
-  -H "X-User-Id: 102" \
+  -H "X-User-Id: 1002" \
   -H "X-User-Email: master@test.com" \
   -H "X-User-Role: MASTER" \
   -d '{
@@ -479,13 +493,13 @@ ORDER BY created_at;
 ```http
 POST http://localhost:8030/api/v1/stocks
 Content-Type: application/json
-X-User-Id: 102
+X-User-Id: 1002
 X-User-Email: master@test.com
 X-User-Role: MASTER
 
 {
   "productId": "{{timeDealProductId}}",
-  "totalStock": 100
+  "totalStock": 1000
 }
 ```
 
@@ -493,12 +507,12 @@ X-User-Role: MASTER
 ```bash
 curl -X POST http://localhost:8030/api/v1/stocks \
   -H "Content-Type: application/json" \
-  -H "X-User-Id: 102" \
+  -H "X-User-Id: 1002" \
   -H "X-User-Email: master@test.com" \
   -H "X-User-Role: MASTER" \
   -d '{
     "productId": "TIMEDEAL_PRODUCT_ID_1",
-    "totalStock": 100
+    "totalStock": 1000
   }'
 ```
 ![stock-postman.png](../images/stock-postman.png)
@@ -513,7 +527,7 @@ curl -X POST http://localhost:8030/api/v1/stocks \
 ```http
 POST http://localhost:8040/api/v1/queue/policies
 Content-Type: application/json
-X-User-Id: 102
+X-User-Id: 1002
 X-User-Role: MASTER
 
 {
@@ -523,7 +537,7 @@ X-User-Role: MASTER
   "startTime": "2026-01-01T00:00:00",
   "endTime": "2026-12-30T23:59:59",
   "maxCapacity": 10000,
-  "limitSize": 100,
+  "limitSize": 1000,
   "queueGap": 2,
   "ttl": 36000
 }
@@ -533,7 +547,7 @@ X-User-Role: MASTER
 ```bash
 curl -X POST http://localhost:8040/api/v1/queue/policies \
   -H "Content-Type: application/json" \
-  -H "X-User-Id: 102" \
+  -H "X-User-Id: 1002" \
   -H "X-User-Role: MASTER" \
   -d '{
     "productId": "YOUR_PRODUCT_ID_HERE",
@@ -542,7 +556,7 @@ curl -X POST http://localhost:8040/api/v1/queue/policies \
     "startTime": "2026-01-01T00:00:00",
     "endTime": "2026-12-30T23:59:59",
     "maxCapacity": 10000,
-    "limitSize": 100,
+    "limitSize": 1000,
     "queueGap": 2,
     "ttl": 36000
   }'
@@ -600,8 +614,8 @@ ae7993be-386f-4d66-90f3-61866b4fdb30
 2. 🧹 기존 테스트 데이터 정리 (선택사항)
 3. 📋 Kafka 토픽 생성
 4. 🔍 테스트 ID 조회 (Product, TimeDeal, Stock)
-5. 🎫 큐 토큰 발급 (100개)
-6. 🚀 주문 테스트 실행 (100명 동시 주문)
+5. 🎫 큐 토큰 발급 (1000개)
+6. 🚀 주문 테스트 실행 (1000명 동시 주문)
 7. 📊 초기 검증 (주문 생성 확인)
 8. ⏳ 자동 취소 대기 (7분)
 9. 📊 최종 검증 (주문 자동 취소 및 재고 복구 확인)
@@ -653,7 +667,7 @@ IP가 자동 감지되지 않으면 수동 입력을 요청합니다.
 
 #### 3) 주문 테스트 시작
 ```
-⚠️  This will create 100 orders (~70% expected to succeed, ~30% to fail due to purchase limit)
+⚠️  This will create 1000 orders
 
 ▶️  Press Enter to start load test...
 ```
@@ -700,14 +714,51 @@ Continue verification anyway? (y/N):
 
 ```
 k6/outputs/
-├── initial-verification.log      # ⭐ 주문 생성 검증 결과
 ├── final-verification.log        # ⭐ 주문 취소 검증 결과
-├── stock-comparison.txt          # ⭐ 재고 변화 비교
+├── initial-verification.log      # ⭐ 주문 생성 검증 결과
+├── load-test-output.log          # ⭐ k6 주문 테스트 로그
 ├── queue-tokens-output.log       # 큐 토큰 발급 로그
-└── load-test-output.log          # ⭐ k6 주문 테스트 로그
+├── stock-comparison.txt          # ⭐ 재고 변화 비교
+├── test-ids.txt                  # 포스트맨 요청으로 생성된 ID 확인
+└── tokens.txt                    # 큐 토큰 목록
 ```
 
-### 6.2 재고 비교 리포트 확인 (⭐ 중요)
+### 6.2 테스트 결과 요약
+
+#### 📊 큐 토큰 발급 성공률
+```
+CHECKS: 100.00% (2000/2000)
+- ✓ status is 200 or 201: 100%
+- ✓ has token: 100%
+
+HTTP 성능:
+- p(95) Duration: 1.38s (목표: <5s) ✅
+- 실패율: 0.00% ✅
+
+발급 속도: 592.15 tokens/s
+총 발급: 1000개 토큰
+실행 시간: 1.7초
+```
+
+#### 🚀 주문 생성 테스트 결과
+```
+CHECKS: 75.30% (1506/2000)
+- ✓ order: status 200 or 201: 75.30% (753건)
+- ✗ order: has sagaId: 75.30% (753건)
+
+성공/실패:
+- ✅ PENDING 주문 생성: 753건 (75.30%)
+- ❌ 구매 제한 초과 실패: 247건 (24.70%)
+
+주문 성능:
+- 평균 응답시간: 3.29초
+- p(95) Duration: 6.01초
+- p(99) Duration: 6.21초
+- 총 주문 수량: 2,308개
+- 실행 시간: 6.5초
+```
+
+### 6.3 재고 비교 리포트 확인 (⭐ 중요)
 
 ```bash
 cat order-service/k6/outputs/stock-comparison.txt
@@ -720,26 +771,28 @@ cat order-service/k6/outputs/stock-comparison.txt
 ========================================
 
 🕐 Part 1: After Order Creation (Step 8)
-Captured at: 2026-01-11 21:04:39
+Captured at: 2026-01-16 17:24:52
 
 Stock ID                               | Available |  Reserved |      Sold |     Total
 ----------------------------------------|-----------|-----------|-----------|----------
-42d44908-6b83-4ff1-8068-e9b4efe47629   |        53 |        47 |         0 |       100
-46e7e4db-2ee1-48da-96cb-c672f986f230   |        40 |        60 |         0 |       100
-57eff965-669e-4aea-86fb-d3eb92467d0e   |        42 |        58 |         0 |       100
-ae7993be-386f-4d66-90f3-61866b4fdb30   |        46 |        54 |         0 |       100
+34aa164d-8bbb-4322-8a85-fc33c00bbaea   |       421 |       579 |         0 |      1000
+3b80ff15-c8fe-46ce-8777-2d475ac06ee0   |       391 |       609 |         0 |      1000
+7e0d0623-e03f-4335-85c9-3072a20572e6   |       447 |       553 |         0 |      1000
+91ca85d1-b750-46da-b36a-b5b8de6aea5b   |       433 |       567 |         0 |      1000
+
+Total Reserved: 2,308개 (총 주문 수량과 일치)
 
 ==========================================
 
 🕐 Part 2: After Auto-Cancellation (Step 10)
-Captured at: 2026-01-11 21:12:15
+Captured at: 2026-01-16 17:37:31
 
 Stock ID                               | Available |  Reserved |      Sold |     Total
 ----------------------------------------|-----------|-----------|-----------|----------
-42d44908-6b83-4ff1-8068-e9b4efe47629   |       100 |         0 |         0 |       100
-46e7e4db-2ee1-48da-96cb-c672f986f230   |       100 |         0 |         0 |       100
-57eff965-669e-4aea-86fb-d3eb92467d0e   |       100 |         0 |         0 |       100
-ae7993be-386f-4d66-90f3-61866b4fdb30   |       100 |         0 |         0 |       100
+34aa164d-8bbb-4322-8a85-fc33c00bbaea   |      1000 |         0 |         0 |      1000
+3b80ff15-c8fe-46ce-8777-2d475ac06ee0   |      1000 |         0 |         0 |      1000
+7e0d0623-e03f-4335-85c9-3072a20572e6   |      1000 |         0 |         0 |      1000
+91ca85d1-b750-46da-b36a-b5b8de6aea5b   |      1000 |         0 |         0 |      1000
 
 ==========================================
 📊 COMPARISON SUMMARY
@@ -747,10 +800,10 @@ ae7993be-386f-4d66-90f3-61866b4fdb30   |       100 |         0 |         0 |    
 
 Stock ID                               | Before(A/R) | After(A/R)  | Status
 ----------------------------------------|-------------|-------------|------------
-42d44908-6b83-4ff1-8068-e9b4efe47629   |    53 / 47   |   100 / 0    | ✅ RESTORED
-46e7e4db-2ee1-48da-96cb-c672f986f230   |    40 / 60   |   100 / 0    | ✅ RESTORED
-57eff965-669e-4aea-86fb-d3eb92467d0e   |    42 / 58   |   100 / 0    | ✅ RESTORED
-ae7993be-386f-4d66-90f3-61866b4fdb30   |    46 / 54   |   100 / 0    | ✅ RESTORED
+34aa164d-8bbb-4322-8a85-fc33c00bbaea   |   421 / 579  |  1000 / 0    | ✅ RESTORED
+3b80ff15-c8fe-46ce-8777-2d475ac06ee0   |   391 / 609  |  1000 / 0    | ✅ RESTORED
+7e0d0623-e03f-4335-85c9-3072a20572e6   |   447 / 553  |  1000 / 0    | ✅ RESTORED
+91ca85d1-b750-46da-b36a-b5b8de6aea5b   |   433 / 567  |  1000 / 0    | ✅ RESTORED
 
 Legend: A=Available, R=Reserved, S=Sold
 ✅ RESTORED: Reserved stock returned to available
@@ -758,7 +811,7 @@ Legend: A=Available, R=Reserved, S=Sold
 ❌ MISMATCH: Available stock doesn't match original
 ```
 
-### 6.3 주문 상태 확인
+### 6.4 주문 상태 확인
 
 ```bash
 docker exec rushdeal_postgres psql -U rushdeal -d rushdeal -c "
@@ -776,14 +829,14 @@ ORDER BY count DESC;
 ```
    status    | count | percentage
 -------------+-------+------------
- CANCELLED   |    70 |       70.0
- FAILED      |    30 |       30.0
+ CANCELLED   |    753 |      75.30
+ FAILED      |    247 |      24.70
 ```
 
-- `CANCELLED`: 정상 주문 후 타임아웃으로 취소된 주문 (~70%)
-- `FAILED`: 구매 제한 초과로 실패한 주문 (~30%)
+- `CANCELLED`: 정상 주문 후 타임아웃으로 취소된 주문 (75.30%)
+- `FAILED`: 구매 제한 초과로 실패한 주문 (24.70%)
 
-### 6.4 포인트 트랜잭션 확인
+### 6.5 포인트 트랜잭션 확인
 
 ```bash
 docker exec rushdeal_postgres psql -U rushdeal -d rushdeal -c "
@@ -807,15 +860,15 @@ ORDER BY
 ```
     type     | count | total_amount 
 -------------+-------+--------------
- USE_PENDING |    73 |        73000
- USE_CANCEL  |    73 |        73000
+ USE_PENDING |    753 |       753000
+ USE_CANCEL  |    753 |       753000
 (2 rows)
 ```
 
-- `USE_PENDING`: 주문 시 차감된 포인트 (1,000원 × 70건)
-- `USE_CANCEL`: 취소로 환불된 포인트 (1,000원 × 70건)
+- `USE_PENDING`: 주문 시 차감된 포인트 (1,000원 × 753건)
+- `USE_CANCEL`: 취소로 환불된 포인트 (1,000원 × 753건)
 
-### 6.5 검증 로그 상세 확인
+### 6.6 검증 로그 상세 확인
 
 **주문 생성 검증:**
 ```bash
@@ -827,7 +880,7 @@ cat order-service/k6/outputs/initial-verification.log
 cat order-service/k6/outputs/final-verification.log
 ```
 
-### 6.6 Quick Summary (스크립트 실행 완료 시 자동 출력)
+### 6.7 Quick Summary (스크립트 실행 완료 시 자동 출력)
 
 스크립트 완료 시 다음과 같은 요약 정보가 출력됩니다:
 
@@ -837,15 +890,16 @@ cat order-service/k6/outputs/final-verification.log
 📊 1. ORDER STATUS
   status   | count | percentage 
 -----------+-------+------------
- CANCELLED |    73 |      100.0
-(1 row)
+ CANCELLED |   753 |      75.30
+ FAILED    |   247 |      24.70
+(2 rows)
 
 
 💰 2. POINT TRANSACTION
     type     | count | total_amount 
 -------------+-------+--------------
- USE_PENDING |    73 |        73000
- USE_CANCEL  |    73 |        73000
+ USE_PENDING |   753 |       753000
+ USE_CANCEL  |   753 |       753000
 (2 rows)
 
 
@@ -856,26 +910,42 @@ cat order-service/k6/outputs/final-verification.log
 ========================================
 
 🕐 Part 1: After Order Creation (Step 8)
-Captured at: 2026-01-11 21:04:39
+Captured at: 2026-01-16 17:24:52
 
 Stock ID                               | Available |  Reserved |      Sold |     Total
 ----------------------------------------|-----------|-----------|-----------|----------
-42d44908-6b83-4ff1-8068-e9b4efe47629   |        53 |        47 |         0 |       100
-46e7e4db-2ee1-48da-96cb-c672f986f230   |        40 |        60 |         0 |       100
-57eff965-669e-4aea-86fb-d3eb92467d0e   |        42 |        58 |         0 |       100
-ae7993be-386f-4d66-90f3-61866b4fdb30   |        46 |        54 |         0 |       100
+34aa164d-8bbb-4322-8a85-fc33c00bbaea   |       421 |       579 |         0 |      1000
+3b80ff15-c8fe-46ce-8777-2d475ac06ee0   |       391 |       609 |         0 |      1000
+7e0d0623-e03f-4335-85c9-3072a20572e6   |       447 |       553 |         0 |      1000
+91ca85d1-b750-46da-b36a-b5b8de6aea5b   |       433 |       567 |         0 |      1000
 
 ==========================================
 
 🕐 Part 2: After Auto-Cancellation (Step 10)
-Captured at: 2026-01-11 21:12:15
+Captured at: 2026-01-16 17:37:31
 
 Stock ID                               | Available |  Reserved |      Sold |     Total
 ----------------------------------------|-----------|-----------|-----------|----------
-42d44908-6b83-4ff1-8068-e9b4efe47629   |       100 |         0 |         0 |       100
-46e7e4db-2ee1-48da-96cb-c672f986f230   |       100 |         0 |         0 |       100
-57eff965-669e-4aea-86fb-d3eb92467d0e   |       100 |         0 |         0 |       100
-ae7993be-386f-4d66-90f3-61866b4fdb30   |       100 |         0 |         0 |       100
+34aa164d-8bbb-4322-8a85-fc33c00bbaea   |      1000 |         0 |         0 |      1000
+3b80ff15-c8fe-46ce-8777-2d475ac06ee0   |      1000 |         0 |         0 |      1000
+7e0d0623-e03f-4335-85c9-3072a20572e6   |      1000 |         0 |         0 |      1000
+91ca85d1-b750-46da-b36a-b5b8de6aea5b   |      1000 |         0 |         0 |      1000
+
+==========================================
+📊 COMPARISON SUMMARY
+==========================================
+
+Stock ID                               | Before(A/R) | After(A/R)  | Status
+----------------------------------------|-------------|-------------|------------
+34aa164d-8bbb-4322-8a85-fc33c00bbaea   |   421 / 579  |  1000 / 0    | ✅ RESTORED
+3b80ff15-c8fe-46ce-8777-2d475ac06ee0   |   391 / 609  |  1000 / 0    | ✅ RESTORED
+7e0d0623-e03f-4335-85c9-3072a20572e6   |   447 / 553  |  1000 / 0    | ✅ RESTORED
+91ca85d1-b750-46da-b36a-b5b8de6aea5b   |   433 / 567  |  1000 / 0    | ✅ RESTORED
+
+Legend: A=Available, R=Reserved, S=Sold
+✅ RESTORED: Reserved stock returned to available
+⚠️ RESERVED: Still has reserved stock
+❌ MISMATCH: Available stock doesn't match original
 ```
 
 ---
@@ -931,7 +1001,7 @@ ipconfig getifaddr en0
    # 토큰 수 확인
    wc -l k6/outputs/tokens.txt
    
-   # 0개면 Queue Service 확인
+   # 1000개가 아니면 Queue Service 확인
    curl http://localhost:8040/actuator/health
    ```
 
@@ -968,9 +1038,9 @@ USE_PENDING | 34건 | 34,000원
 
 **해결:**
 ```bash
-# 현재: sleep 5
-# 권장: 10~15초 대기 후 조회
-sleep 15
+# 현재: sleep 60
+# 해결: sleep 시간을 여유있게 수정
+sleep 120
 ```
 
 #### 4) 재고가 복구되지 않음
@@ -1034,7 +1104,7 @@ DELETE FROM user_schema.p_point_history WHERE type != 'EARN_CONFIRM';
 # 재고 초기화
 docker exec rushdeal_postgres psql -U rushdeal -d rushdeal -c "
 UPDATE time_deal_schema.p_time_deal_stock
-SET available_stock = 100,
+SET available_stock = 1000,
     reserved_stock = 0,
     sold_stock = 0;
 "
@@ -1098,27 +1168,34 @@ chmod +x *.sh
 
 테스트가 성공적으로 완료되었다면:
 
+✅ **큐 토큰 발급:**
+- 1000개 토큰 발급 완료
+- 성공률 100%
+- p(95) 응답시간 5초 이내
+
 ✅ **주문 생성:**
-- 약 70개 주문이 PENDING 상태로 생성
-- 약 30개 주문이 구매 제한 초과로 실패
+- 약 750개 주문이 PENDING 상태로 생성
+- 약 250개 주문이 구매 제한 초과로 실패
+- 총 성공률 약 75%
 
 ✅ **재고 예약:**
 - Part 1에서 Reserved 재고가 증가
 - Available 재고가 감소
-- Total은 항상 100 유지
+- Total은 항상 1000 유지
+- 총 예약 재고 ≈ 총 주문 수량 (2,300개 내외)
 
 ✅ **주문 자동 취소:**
 - PENDING → CANCELLED 상태 변경
-- 약 70개 주문 취소 완료
+- 약 750개 주문 취소 완료
 
 ✅ **재고 복구:**
 - Part 2에서 Reserved가 0으로 복구
-- Available이 100으로 복구
+- Available이 1000으로 복구
 - 모든 Stock이 ✅ RESTORED 상태
 
 ✅ **포인트 환불:**
 - USE_PENDING == USE_CANCEL (건수 및 금액 일치)
-- 사용자 포인트가 초기 상태로 복구
+- 사용자 포인트가 초기 상태 10,000원으로 복구
 
 ---
 
@@ -1169,5 +1246,5 @@ chmod +x *.sh
 **작성일**: 2026-01-09  
 **작성자:** 차초희  
 **검토자:** 차초희  
-**최종 수정일:** 2026-01-13  
-**버전**: 4.0
+**최종 수정일:** 2026-01-16  
+**버전**: 5.0 (1000명 테스트)

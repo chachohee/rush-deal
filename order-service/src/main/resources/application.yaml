@@ -39,8 +39,7 @@ spring:
       password: ${REDIS_PASSWORD:}
   sql:
     init:
-      mode: always
-#      mode: ${SQL_INIT_MODE:never}
+      mode: ${SQL_INIT_MODE:never}
       encoding: UTF-8
       schema-locations:
         - classpath:sql/batch-schema.sql

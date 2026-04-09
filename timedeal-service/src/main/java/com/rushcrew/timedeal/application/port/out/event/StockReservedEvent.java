@@ -28,6 +28,9 @@ public record StockReservedEvent(
 		String productId,
 		String optionId,
 		Long quantity,
-		BigDecimal discountedPrice  // 할인된 최종 가격만
+		BigDecimal discountedPrice,
+		BigDecimal originalPrice,
+		String timeDealTitle,
+		Long sellerId
 	) {}
 }

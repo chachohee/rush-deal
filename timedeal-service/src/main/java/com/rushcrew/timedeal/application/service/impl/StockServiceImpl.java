@@ -20,6 +20,7 @@ import com.rushcrew.timedeal.application.result.ReserveStockResult;
 import com.rushcrew.timedeal.application.result.StockLogResult;
 import com.rushcrew.timedeal.application.result.StockResult;
 import com.rushcrew.timedeal.application.result.UpdateStockCountResult;
+import com.rushcrew.timedeal.application.model.ProductInfo;
 import com.rushcrew.timedeal.application.service.RetryStockService;
 import com.rushcrew.timedeal.application.service.StockPolicy;
 import com.rushcrew.timedeal.application.service.StockService;
@@ -28,6 +29,7 @@ import com.rushcrew.timedeal.domain.entity.TimeDeal;
 import com.rushcrew.timedeal.domain.entity.TimeDealProduct;
 import com.rushcrew.timedeal.domain.entity.TimeDealStock;
 import com.rushcrew.timedeal.domain.exception.TimeDealErrorCode;
+import com.rushcrew.timedeal.domain.port.ProductClient;
 import com.rushcrew.timedeal.domain.port.StockCache;
 import com.rushcrew.timedeal.domain.repository.StockRepository;
 import com.rushcrew.timedeal.domain.repository.TimeDealRepository;
@@ -64,6 +66,7 @@ public class StockServiceImpl implements StockService {
 	private final StockRepository stockRepository;
 	private final ApplicationEventPublisher eventPublisher;
 	private final StockCache stockCache;
+	private final ProductClient productClient;
 
 	private final StockPolicy stockPolicy;
 	private final RetryStockService retryStockService;
@@ -75,7 +78,10 @@ public class StockServiceImpl implements StockService {
 			timeDealRepository.findProductByProductId(command.productId())
 				.orElseThrow(() -> new BusinessException(TimeDealErrorCode.NOT_FOUND_PRODUCT));
 
-		TimeDealStock newStock = TimeDealStock.create(command, timeDealProduct);
+		ProductInfo productInfo = productClient.getProductItemIds(command.productId());
+		BigDecimal originalPrice = BigDecimal.valueOf(productInfo.price().getAmount());
+
+		TimeDealStock newStock = TimeDealStock.create(command, timeDealProduct, originalPrice);
 		stockRepository.save(newStock);
 
 		eventPublisher.publishEvent(new StockCreatedEvent(newStock.getId(), command.totalStock()));
@@ -359,7 +365,10 @@ public class StockServiceImpl implements StockService {
 					product.getItemIds().getProductId().toString(),
 					product.getItemIds().getOptionId().toString(),
 					command.quantity().getQuantity(),
-					discountPrice
+					discountPrice,
+					stock.getOriginalPrice(),
+					timeDeal.getTimeDealInfo().getTitle(),
+					timeDeal.getTimeDealInfo().getSellerId()
 				));
 
 				log.debug("[Saga-{}] 재고 예약 완료: stockId={}, quantity={}",

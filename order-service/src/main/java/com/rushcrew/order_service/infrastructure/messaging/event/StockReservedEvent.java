@@ -15,6 +15,9 @@ public record StockReservedEvent(
 		String productId,
 		String optionId,
 		Long quantity,
-		BigDecimal discountedPrice
+		BigDecimal discountedPrice,
+		BigDecimal originalPrice,
+		String timeDealTitle,
+		Long sellerId
 	) {}
 }

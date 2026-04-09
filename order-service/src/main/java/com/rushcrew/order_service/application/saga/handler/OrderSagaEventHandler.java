@@ -50,25 +50,23 @@ public class OrderSagaEventHandler {
 		SagaContext context = SagaContext.restore(saga);
 		OrderCreationSagaData data = saga.restoreData();
 
-		// 🔴 여기서 스냅샷 구성
+		// 스냅샷 구성
 		List<ProductSnapshot> snapshots =
 			event.reservedItems().stream()
 				.map(item -> ProductSnapshot.builder()
 					.timeDealStockId(item.timeDealStockId())
 					.productId(item.productId())
 					.optionId(item.optionId())
-					.originalPrice(item.discountedPrice()) // 임시
+					.originalPrice(item.originalPrice())
 					.timeDealId(event.timeDealId())
-
-					// ❗ 지금은 못 채우는 필드들
+					.timeDealTitle(item.timeDealTitle())
+					.sellerId(item.sellerId() != null ? item.sellerId().toString() : null)
+					.discountRate(calculateDiscountRate(item.originalPrice(), item.discountedPrice()))
 					.productName(null)
 					.productDescription(null)
 					.optionName(null)
-					.sellerId(null)
 					.sellerName(null)
-					.discountRate(null)
 					.category(null)
-					.timeDealTitle(null)
 					.build()
 				)
 				.toList();
@@ -161,6 +159,16 @@ public class OrderSagaEventHandler {
 			// 보상 실패는 별도 모니터링/알림 필요
 			throw new RuntimeException("보상 트랜잭션 실패", compensateError);
 		}
+	}
+
+	private Integer calculateDiscountRate(java.math.BigDecimal originalPrice, java.math.BigDecimal discountedPrice) {
+		if (originalPrice == null || originalPrice.compareTo(java.math.BigDecimal.ZERO) == 0) {
+			return null;
+		}
+		java.math.BigDecimal discount = originalPrice.subtract(discountedPrice);
+		return discount.divide(originalPrice, 2, java.math.RoundingMode.HALF_UP)
+			.multiply(java.math.BigDecimal.valueOf(100))
+			.intValue();
 	}
 
 	/* 토큰 만료 이벤트 발행 */

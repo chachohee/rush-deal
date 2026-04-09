@@ -45,13 +45,25 @@ public class CreateOrderStep {
 		// 1. OrderItem 생성 stock.reserved 수신한 StockReservedEvent 사용
 		var orderItems = event.reservedItems().stream()
 			.map(reservedItem -> {
+				Integer discountRate = null;
+				if (reservedItem.originalPrice() != null
+					&& reservedItem.originalPrice().compareTo(java.math.BigDecimal.ZERO) > 0) {
+					discountRate = reservedItem.originalPrice()
+						.subtract(reservedItem.discountedPrice())
+						.divide(reservedItem.originalPrice(), 2, java.math.RoundingMode.HALF_UP)
+						.multiply(java.math.BigDecimal.valueOf(100))
+						.intValue();
+				}
 
 				ProductSnapshot snapshot = ProductSnapshot.builder()
 					.timeDealStockId(reservedItem.timeDealStockId())
 					.productId(reservedItem.productId())
 					.optionId(reservedItem.optionId())
 					.timeDealId(event.timeDealId())
-					.originalPrice(reservedItem.discountedPrice()) // 임시: 할인 적용가
+					.originalPrice(reservedItem.originalPrice())
+					.timeDealTitle(reservedItem.timeDealTitle())
+					.sellerId(reservedItem.sellerId() != null ? reservedItem.sellerId().toString() : null)
+					.discountRate(discountRate)
 					.build();
 
 				return OrderItem.create(

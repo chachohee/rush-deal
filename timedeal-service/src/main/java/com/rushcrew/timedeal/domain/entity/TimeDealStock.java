@@ -29,6 +29,7 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -80,13 +81,16 @@ public class TimeDealStock extends BaseEntity {
     @Column(nullable = false)
     private Long version;
 
+    @Column(name = "original_price", precision = 12, scale = 2)
+    private BigDecimal originalPrice;
+
 	@OneToMany(mappedBy = "timeDealStock", fetch = FetchType.LAZY,
 		cascade = {CascadeType.PERSIST, CascadeType.MERGE})
 	@Builder.Default
 	private List<StockLog> stockLogs = new ArrayList<>();
 
     public static TimeDealStock create(CreateStockCommand command,
-        TimeDealProduct timeDealProduct) {
+        TimeDealProduct timeDealProduct, BigDecimal originalPrice) {
         TimeDealStock stock = TimeDealStock.builder()
             .timeDealProduct(timeDealProduct)
             .timeDealId(timeDealProduct.getTimeDeal().getId())
@@ -94,6 +98,7 @@ public class TimeDealStock extends BaseEntity {
                 ProductItemIds.of(command.productId(), timeDealProduct.getItemIds().getOptionId()))
             .stockCounts(StockCounts.init(command.totalStock()))
             .status(TimeDealStockStatus.AVAILABLE)
+            .originalPrice(originalPrice)
             .build();
 
         timeDealProduct.updateStatus(TimeDealProductStatus.IN_STOCK);

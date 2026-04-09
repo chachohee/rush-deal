@@ -11,14 +11,12 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
-import com.querydsl.core.types.Projections;
-import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.rushcrew.order_service.application.query.dto.OrderDetailDto;
 import com.rushcrew.order_service.application.query.dto.OrderItemQueryDto;
 import com.rushcrew.order_service.application.query.dto.OrderListDto;
 import com.rushcrew.order_service.application.query.dto.OrderSearchCriteria;
 import com.rushcrew.order_service.application.query.port.out.OrderQueryPort;
-import com.rushcrew.order_service.domain.model.order.QOrder;
+import com.rushcrew.order_service.domain.vo.ShippingInfo;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
@@ -30,93 +28,93 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class OrderQueryAdapter implements OrderQueryPort {
 
-	private final JPAQueryFactory queryFactory;
 	private final EntityManager entityManager;
 
 	@Override
 	public Optional<OrderDetailDto> findOrderDetail(UUID orderId) {
-		QOrder order = QOrder.order;
-
-		// 1. Order 정보 조회 (QueryDSL)
-		OrderDetailDto orderDetail = queryFactory
-			.select(Projections.constructor(OrderDetailDto.class,
-				order.orderId,
-				order.userId,
-				order.status.stringValue(),
-				order.amount.totalAmount,
-				order.amount.pointUsed,
-				order.amount.finalAmount,
-				order.orderedAt,
-				order.paymentCompletedAt,
-				order.purchaseConfirmedAt,
-				order.cancelledAt,
-				order.autoConfirmScheduledAt,
-				order.shippingInfo
-			))
-			.from(order)
-			.where(order.orderId.eq(orderId))
-			.fetchOne();
-
-		if (orderDetail == null) {
-			return Optional.empty();
-		}
-
-		// 2. Order Items 조회
 		String sql = """
-			SELECT 
-				oi.order_item_id,
-				oi.quantity,
-				oi.discount_price,
-				oi.subtotal
-			FROM order_schema.p_order_item oi
-			WHERE oi.order_id = :orderId
+			SELECT
+			    o.order_id,
+			    o.user_id,
+			    o.status,
+			    o.total_amount,
+			    o.point_used,
+			    o.final_amount,
+			    o.ordered_at,
+			    o.payment_completed_at,
+			    o.purchase_confirmed_at,
+			    o.cancelled_at,
+			    o.auto_confirm_scheduled_at,
+			    o.recipient_name,
+			    o.recipient_phone,
+			    o.zip_code,
+			    o.address_base,
+			    o.address_detail,
+			    o.delivery_message,
+			    oi.order_item_id,
+			    oi.quantity,
+			    oi.unit_price,
+			    oi.discount_price,
+			    oi.subtotal,
+			    oi.product_snapshot->>'productName' AS product_name,
+			    oi.product_snapshot->>'optionName'  AS option_name
+			FROM order_schema.p_order o
+			LEFT JOIN order_schema.p_order_item oi ON o.order_id = oi.order_id
+			WHERE o.order_id = :orderId
 			ORDER BY oi.created_at
-		""";
+			""";
 
 		Query query = entityManager.createNativeQuery(sql);
 		query.setParameter("orderId", orderId);
 
 		@SuppressWarnings("unchecked")
-		List<Object[]> results = query.getResultList();
+		List<Object[]> rows = query.getResultList();
 
-		List<OrderItemQueryDto> orderItems = results.stream()
-			.map(row -> {
-				try {
-					OrderItemQueryDto dto = OrderItemQueryDto.builder()
-						.orderItemId(row[0] instanceof UUID ? (UUID) row[0] : UUID.fromString(row[0].toString()))
-						.productName(null)
-						.optionName(null)
-						.quantity(row[1] != null ? ((Number) row[1]).longValue() : 0L)
-						.unitPrice(null)
-						.discountPrice(row[2] != null ? (BigDecimal) row[2] : BigDecimal.ZERO)
-						.subtotal(row[3] != null ? (BigDecimal) row[3] : BigDecimal.ZERO)
-						.build();
-					return dto;
-				} catch (Exception e) {
-					return null;
-				}
-			})
-			.filter(item -> item != null)
+		if (rows.isEmpty()) {
+			return Optional.empty();
+		}
+
+		Object[] first = rows.get(0);
+
+		ShippingInfo shippingInfo = ShippingInfo.builder()
+			.recipientName((String) first[11])
+			.recipientPhone((String) first[12])
+			.zipCode((String) first[13])
+			.addressBase((String) first[14])
+			.addressDetail((String) first[15])
+			.deliveryMessage((String) first[16])
+			.build();
+
+		List<OrderItemQueryDto> orderItems = rows.stream()
+			.filter(row -> row[17] != null)
+			.map(row -> OrderItemQueryDto.builder()
+				.orderItemId(UUID.fromString(row[17].toString()))
+				.productName((String) row[22])
+				.optionName((String) row[23])
+				.quantity(((Number) row[18]).longValue())
+				.unitPrice(row[19] != null ? (BigDecimal) row[19] : null)
+				.discountPrice(row[20] != null ? (BigDecimal) row[20] : BigDecimal.ZERO)
+				.subtotal(row[21] != null ? (BigDecimal) row[21] : BigDecimal.ZERO)
+				.build())
 			.toList();
 
-		// 3. OrderItems를 포함한 완전한 DTO 반환
-		OrderDetailDto finalDto = OrderDetailDto.builder()
-			.orderId(orderDetail.getOrderId())
-			.userId(orderDetail.getUserId())
-			.orderStatus(orderDetail.getOrderStatus())
-			.totalAmount(orderDetail.getTotalAmount())
-			.pointUsed(orderDetail.getPointUsed())
-			.finalAmount(orderDetail.getFinalAmount())
-			.orderedAt(orderDetail.getOrderedAt())
-			.paymentCompletedAt(orderDetail.getPaymentCompletedAt())
-			.purchaseConfirmedAt(orderDetail.getPurchaseConfirmedAt())
-			.cancelledAt(orderDetail.getCancelledAt())
-			.autoConfirmScheduledAt(orderDetail.getAutoConfirmScheduledAt())
-			.shippingInfo(orderDetail.getShippingInfo())
+		OrderDetailDto result = OrderDetailDto.builder()
+			.orderId(UUID.fromString(first[0].toString()))
+			.userId(((Number) first[1]).longValue())
+			.orderStatus((String) first[2])
+			.totalAmount((BigDecimal) first[3])
+			.pointUsed(((Number) first[4]).longValue())
+			.finalAmount((BigDecimal) first[5])
+			.orderedAt((Instant) first[6])
+			.paymentCompletedAt(first[7] != null ? (Instant) first[7] : null)
+			.purchaseConfirmedAt(first[8] != null ? (Instant) first[8] : null)
+			.cancelledAt(first[9] != null ? (Instant) first[9] : null)
+			.autoConfirmScheduledAt(first[10] != null ? (Instant) first[10] : null)
+			.shippingInfo(shippingInfo)
 			.orderItems(orderItems)
 			.build();
 
-		return Optional.of(finalDto);
+		return Optional.of(result);
 	}
 
 	@Override

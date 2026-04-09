@@ -28,40 +28,6 @@ public class OrderDetailDto {
 	private ShippingInfo shippingInfo;
 	private List<OrderItemQueryDto> orderItems;
 
-	/**
-	 * QueryDSL Projections.constructor용 생성자
-	 * Order 정보만 받고, orderItems는 나중에 설정
-	 */
-	public OrderDetailDto(
-		UUID orderId,
-		Long userId,
-		String orderStatus,
-		BigDecimal totalAmount,
-		Long pointUsed,
-		BigDecimal finalAmount,
-		Instant orderedAt,
-		Instant paymentCompletedAt,
-		Instant purchaseConfirmedAt,
-		Instant cancelledAt,
-		Instant autoConfirmScheduledAt,
-		ShippingInfo shippingInfo
-	) {
-		this.orderId = orderId;
-		this.userId = userId;
-		this.orderStatus = orderStatus;
-		this.totalAmount = totalAmount;
-		this.pointUsed = pointUsed;
-		this.finalAmount = finalAmount;
-		this.orderedAt = orderedAt;
-		this.paymentCompletedAt = paymentCompletedAt;
-		this.purchaseConfirmedAt = purchaseConfirmedAt;
-		this.cancelledAt = cancelledAt;
-		this.autoConfirmScheduledAt = autoConfirmScheduledAt;
-		this.shippingInfo = shippingInfo;
-		this.orderItems = new ArrayList<>();
-	}
-
-	// 빌더용 전체 생성자
 	public OrderDetailDto(
 		UUID orderId,
 		Long userId,

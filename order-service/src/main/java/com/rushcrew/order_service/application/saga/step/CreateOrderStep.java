@@ -1,5 +1,7 @@
 package com.rushcrew.order_service.application.saga.step;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,15 +47,9 @@ public class CreateOrderStep {
 		// 1. OrderItem 생성 stock.reserved 수신한 StockReservedEvent 사용
 		var orderItems = event.reservedItems().stream()
 			.map(reservedItem -> {
-				Integer discountRate = null;
-				if (reservedItem.originalPrice() != null
-					&& reservedItem.originalPrice().compareTo(java.math.BigDecimal.ZERO) > 0) {
-					discountRate = reservedItem.originalPrice()
-						.subtract(reservedItem.discountedPrice())
-						.divide(reservedItem.originalPrice(), 2, java.math.RoundingMode.HALF_UP)
-						.multiply(java.math.BigDecimal.valueOf(100))
-						.intValue();
-				}
+				Integer discountRate = calculateDiscountRate(
+					reservedItem.originalPrice(), reservedItem.discountedPrice()
+				);
 
 				ProductSnapshot snapshot = ProductSnapshot.builder()
 					.timeDealStockId(reservedItem.timeDealStockId())
@@ -124,6 +120,26 @@ public class CreateOrderStep {
 		}
 
 		log.info("[Saga-{}] CreateOrderStep 완료: orderId={}", context.getSagaId(), savedOrder.getOrderId());
+	}
+
+	/**
+	 * 원가와 할인가를 기반으로 할인율(%)을 계산한다.
+	 * 원가가 null이거나 0인 경우 null을 반환한다.
+	 *
+	 * @param originalPrice   상품 원가
+	 * @param discountedPrice 타임딜 할인가
+	 * @return 할인율 (정수 %)
+	 * @since 2026-04-09
+	 * @author cch
+	 */
+	private Integer calculateDiscountRate(BigDecimal originalPrice, BigDecimal discountedPrice) {
+		if (originalPrice == null || originalPrice.compareTo(BigDecimal.ZERO) == 0) {
+			return null;
+		}
+		BigDecimal discount = originalPrice.subtract(discountedPrice);
+		return discount.divide(originalPrice, 2, RoundingMode.HALF_UP)
+			.multiply(BigDecimal.valueOf(100))
+			.intValue();
 	}
 
 	private Map<String, Object> toOrderCreatedPayload(

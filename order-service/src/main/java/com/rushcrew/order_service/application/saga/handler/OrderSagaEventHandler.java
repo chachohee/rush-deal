@@ -1,5 +1,7 @@
 package com.rushcrew.order_service.application.saga.handler;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 
 import org.springframework.stereotype.Component;
@@ -161,13 +163,23 @@ public class OrderSagaEventHandler {
 		}
 	}
 
-	private Integer calculateDiscountRate(java.math.BigDecimal originalPrice, java.math.BigDecimal discountedPrice) {
-		if (originalPrice == null || originalPrice.compareTo(java.math.BigDecimal.ZERO) == 0) {
+	/**
+	 * 원가와 할인가를 기반으로 할인율(%)을 계산한다.
+	 * 원가가 null이거나 0인 경우 null을 반환한다.
+	 *
+	 * @param originalPrice   상품 원가
+	 * @param discountedPrice 타임딜 할인가
+	 * @return 할인율 (정수 %)
+	 * @since 2026-04-09
+	 * @author cch
+	 */
+	private Integer calculateDiscountRate(BigDecimal originalPrice, BigDecimal discountedPrice) {
+		if (originalPrice == null || originalPrice.compareTo(BigDecimal.ZERO) == 0) {
 			return null;
 		}
-		java.math.BigDecimal discount = originalPrice.subtract(discountedPrice);
-		return discount.divide(originalPrice, 2, java.math.RoundingMode.HALF_UP)
-			.multiply(java.math.BigDecimal.valueOf(100))
+		BigDecimal discount = originalPrice.subtract(discountedPrice);
+		return discount.divide(originalPrice, 2, RoundingMode.HALF_UP)
+			.multiply(BigDecimal.valueOf(100))
 			.intValue();
 	}
 

@@ -65,42 +65,32 @@ public class OrderItem extends BaseEntity {
 	//                 도메인 로직
 	// ============================================
 
-	// TODO: OrderItem 만들 때 ProductSnapShot 생성해서 주문 당시의 상품 정보가 같이 저장되도록
 	public static OrderItem create(
 		UUID timeDealStockId,
 		Long quantity,
-		// BigDecimal unitPrice,
 		BigDecimal discountPrice,
 		ProductSnapshot productSnapshot
 	) {
 		if (quantity == null || quantity <= 0) {
 			throw new IllegalArgumentException("수량은 1개 이상이어야 합니다.");
 		}
-		// if (unitPrice == null || unitPrice.compareTo(BigDecimal.ZERO) <= 0) {
-		// 	throw new IllegalArgumentException("상품 가격은 0보다 커야 합니다.");
-		// }
 		if (discountPrice == null || discountPrice.compareTo(BigDecimal.ZERO) < 0) {
 			throw new IllegalArgumentException("할인가는 0 이상이어야 합니다.");
 		}
-		// if (discountPrice.compareTo(unitPrice) > 0) {
-		// 	throw new IllegalArgumentException(
-		// 		"할인가[%S] 는 원가[%s] 보다 클 수 없습니다.".formatted(discountPrice, unitPrice)
-		// 	);
-		// }
 		if (productSnapshot == null) {
 			throw new IllegalArgumentException("상품 스냅샷은 필수입니다.");
 		}
 
+		BigDecimal unitPrice = productSnapshot.originalPrice();
 		BigDecimal subtotal = discountPrice.multiply(BigDecimal.valueOf(quantity));
 
 		return OrderItem.builder()
 			.orderItemId(UUID.randomUUID())
 			.timeDealStockId(timeDealStockId)
 			.quantity(quantity)
-			// .unitPrice(unitPrice)
+			.unitPrice(unitPrice)
 			.discountPrice(discountPrice)
 			.subtotal(subtotal)
-			// .timeDealId(UUID.fromString(productSnapshot.timeDealId()))
 			.productSnapshot(productSnapshot)
 			.build();
 	}
@@ -120,7 +110,7 @@ public class OrderItem extends BaseEntity {
 
 	// 할인율
 	public BigDecimal getDiscountRate() {
-		if (unitPrice.compareTo(BigDecimal.ZERO) == 0) {
+		if (unitPrice == null || unitPrice.compareTo(BigDecimal.ZERO) == 0) {
 			return BigDecimal.ZERO;
 		}
 		// (원가 - 할인가) / 원가 x 100
@@ -132,6 +122,9 @@ public class OrderItem extends BaseEntity {
 
 	// 할인 금액
 	public BigDecimal getTotalDiscount() {
+		if (unitPrice == null) {
+			return BigDecimal.ZERO;
+		}
 		// (원가 - 할인가) x 수량
 		return unitPrice.subtract(discountPrice).multiply(BigDecimal.valueOf(quantity));
 	}

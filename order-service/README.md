@@ -233,6 +233,103 @@ public Optional<OrderDetailDto> getFromCache(UUID orderId) {
 
 ---
 
+## 📁 패키지 구조
+
+DDD + Hexagonal Architecture (Ports & Adapters) + CQRS 기반의 패키지 구조입니다.
+
+```
+com.rushcrew.order_service/
+│
+├── domain/                          # 순수 비즈니스 로직 (외부 의존 없음)
+│   ├── model/
+│   │   ├── order/                   # Order Aggregate (Order, OrderItem, OrderHistory, OrderReservation)
+│   │   └── saga/                    # SagaInstance, SagaStep
+│   ├── vo/                          # Value Objects (OrderAmount, ProductSnapshot, ShippingInfo)
+│   ├── enums/                       # OrderStatus, SagaStatus, SagaStepName 등
+│   └── common/                      # BaseEntity
+│
+├── application/                     # Use Case 정의 및 조율
+│   ├── command/
+│   │   ├── usecase/                 # Input Port (CreateOrderUseCase 등) ← Controller가 호출
+│   │   ├── service/                 # UseCase 구현체 (CreateOrderService 등)
+│   │   ├── mapper/                  # Command → Domain 변환
+│   │   └── dto/command/, result/    # Command/Result DTO
+│   ├── query/
+│   │   ├── usecase/                 # Input Port (GetOrderDetailUseCase 등)
+│   │   ├── service/                 # OrderQueryService, OrderSagaQueryService
+│   │   └── dto/                     # OrderDetailDto, OrderListDto 등
+│   ├── saga/
+│   │   ├── orchestrator/            # OrderCreationSagaOrchestrator
+│   │   ├── step/                    # Saga 단계별 로직 (ValidateStock, UsePoint 등)
+│   │   ├── handler/                 # Kafka 이벤트 수신 후 Saga 진행
+│   │   ├── service/                 # SagaRecoveryService
+│   │   └── dto/                     # SagaContext, SagaStepResult 등
+│   ├── validator/                   # 도메인 검증 (OrderItemValidator, PurchaseLimitValidator 등)
+│   └── port/                        # Output Port 인터페이스 (모두 통합)
+│       ├── out/                     # OrderCommandPort, OrderQueryPort, OrderCachePort,
+│       │                            # SagaInstancePort, SagaQueryPort, OutboxPort,
+│       │                            # PaymentPort, PointPort, QueuePort, StockEventPort,
+│       │                            # TimeDealStockPort, MetricsPort 등
+│       └── dto/                     # Port 공유 DTO (OutboxEvent, TimeDealInfo 등)
+│
+├── infrastructure/                  # 기술 구현체 (Port 구현, 외부 연동)
+│   ├── persistence/                 # DB 관련 - 도메인 개념 기준으로 구성
+│   │   ├── order/                   # OrderCommandAdapter, OrderQueryAdapter, OrderJpaRepository
+│   │   ├── saga/                    # SagaInstanceAdapter, SagaQueryAdapter, SagaInstanceJpaRepository
+│   │   └── outbox/                  # OutboxAdapter, OutboxEventEntity, OutboxEventJpaRepository
+│   ├── cache/                       # OrderQueryCacheAdapter (L1+L2), NoOpOrderCacheAdapter (test)
+│   ├── client/                      # 외부 서비스 클라이언트 - 서비스별로 묶음
+│   │   ├── payment/                 # PaymentFeignClient, PaymentAdapter, dto/
+│   │   ├── point/                   # PointFeignClient, PointAdapter, dto/
+│   │   ├── queue/                   # QueueFeignClient, QueueAdapter
+│   │   └── timedeal/                # TimeDealStockFeignClient, TimeDealStockAdapter, dto/
+│   ├── messaging/
+│   │   ├── consumer/                # OrderEventConsumer, SagaEventConsumer (Kafka 수신)
+│   │   ├── publisher/               # StockEventPublisher, PointEventPublisher, QueueEventPublisher
+│   │   └── event/                   # Kafka 이벤트 DTO (StockReservedEvent 등)
+│   ├── batch/                       # Spring Batch
+│   │   ├── config/                  # BatchConfig
+│   │   └── job/                     # AutoConfirmPurchaseBatchJob
+│   ├── scheduler/                   # 스케줄러 7종
+│   │   ├── OutboxEventScheduler     # 5초마다 PENDING 이벤트 발행
+│   │   ├── PendingOrderTimeoutScheduler  # 1분마다 5분 초과 주문 자동 취소
+│   │   ├── SagaRecoveryScheduler    # 10분마다 타임아웃 Saga 복구
+│   │   ├── CacheWarmingScheduler    # 6시간마다 캐시 워밍
+│   │   └── AutoConfirmScheduler     # 매시간 자동 구매확정 배치 실행
+│   ├── monitoring/                  # CustomMetrics, OutboxMetrics (Micrometer)
+│   └── config/                      # KafkaConfig, RedisConfig, LocalCacheConfig 등
+│
+├── presentation/                    # 진입점
+│   ├── api/
+│   │   ├── command/                 # OrderCommandController
+│   │   ├── query/                   # OrderQueryController, OrderSagaQueryController
+│   │   └── batch/                   # BatchController
+│   ├── dto/request/, response/      # HTTP 요청/응답 DTO
+│   └── mapper/                      # Request → Command 변환
+│
+└── global/                          # 서비스 전역 설정
+    ├── advice/                      # OrderErrorCode, SagaErrorCode
+    ├── security/                    # SecurityConfig, AuthorizationFilter, UserDetailsImpl
+    └── util/                        # RoleChecker
+```
+
+### 레이어별 의존 방향
+
+```
+Presentation → Application ← Infrastructure
+                   ↓
+                 Domain
+```
+
+- **Domain**: 외부 의존 없음. 순수 비즈니스 로직만 포함
+- **Application**: Domain을 사용하고, Port 인터페이스로 Infrastructure를 추상화
+  - `usecase/` = Input Port (Controller가 호출하는 진입점)
+  - `port/out/` = Output Port (DB, 캐시, 외부 서비스 등의 추상화)
+- **Infrastructure**: Application의 Port를 구현. 기술 세부사항 담당
+- **Presentation**: Application의 UseCase를 호출. HTTP 요청/응답 처리
+
+---
+
 ## 🏗 아키텍처 패턴
 
 ### Saga Pattern (Orchestration)
@@ -848,4 +945,4 @@ X-User-Id: {userId}
 **작성자:** 차초희  
 **검토자:** 차초희  
 **최종 수정일:** 2026-04-09  
-**버전:** 4.0 (Caffeine L1+Redis L2 2단계 캐시, N+1 쿼리 개선, 버그 수정 반영)
+**버전:** 5.0 (DDD 패키지 구조 개편 - Port 통합, Client/Persistence 도메인 기준 재구성)

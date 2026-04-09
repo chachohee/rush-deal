@@ -13,7 +13,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rushcrew.common.exception.BusinessException;
 import com.rushcrew.order_service.application.command.dto.command.CancelOrderCommand;
 import com.rushcrew.order_service.application.command.dto.result.CancelOrderResult;
-import com.rushcrew.order_service.application.command.port.out.OrderCommandPort;
+import com.rushcrew.order_service.application.port.out.OrderCommandPort;
 import com.rushcrew.order_service.application.command.usecase.CancelOrderUseCase;
 import com.rushcrew.order_service.application.port.out.OutboxPort;
 import com.rushcrew.order_service.application.port.out.PointEventPort;

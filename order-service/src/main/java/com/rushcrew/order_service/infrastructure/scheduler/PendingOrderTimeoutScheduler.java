@@ -10,7 +10,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import com.rushcrew.order_service.application.command.dto.command.CancelOrderCommand;
-import com.rushcrew.order_service.application.command.port.out.OrderCommandPort;
+import com.rushcrew.order_service.application.port.out.OrderCommandPort;
 import com.rushcrew.order_service.application.command.usecase.CancelOrderUseCase;
 import com.rushcrew.order_service.domain.enums.OrderStatus;
 import com.rushcrew.order_service.domain.model.order.Order;

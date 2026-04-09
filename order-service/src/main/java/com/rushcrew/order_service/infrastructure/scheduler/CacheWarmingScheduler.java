@@ -10,10 +10,10 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import com.rushcrew.order_service.application.command.port.out.OrderCachePort;
-import com.rushcrew.order_service.application.query.port.out.OrderQueryPort;
+import com.rushcrew.order_service.application.port.out.OrderCachePort;
+import com.rushcrew.order_service.application.port.out.OrderQueryPort;
 import com.rushcrew.order_service.infrastructure.monitoring.CustomMetrics;
-import com.rushcrew.order_service.infrastructure.persistence.repository.OrderJpaRepository;
+import com.rushcrew.order_service.infrastructure.persistence.order.OrderJpaRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

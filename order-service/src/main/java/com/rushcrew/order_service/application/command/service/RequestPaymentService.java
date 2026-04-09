@@ -9,7 +9,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rushcrew.common.exception.BusinessException;
 import com.rushcrew.order_service.application.command.dto.command.RequestPaymentCommand;
 import com.rushcrew.order_service.application.command.dto.result.RequestPaymentResult;
-import com.rushcrew.order_service.application.command.port.out.OrderCommandPort;
+import com.rushcrew.order_service.application.port.out.OrderCommandPort;
 import com.rushcrew.order_service.application.command.usecase.RequestPaymentUseCase;
 import com.rushcrew.order_service.application.port.out.OutboxPort;
 import com.rushcrew.order_service.application.port.out.PaymentPort;

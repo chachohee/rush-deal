@@ -5,7 +5,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 
 import com.rushcrew.order_service.application.query.dto.OrderSagaResult;
-import com.rushcrew.order_service.application.query.port.out.SagaQueryPort;
+import com.rushcrew.order_service.application.port.out.SagaQueryPort;
 import com.rushcrew.order_service.application.query.usecase.GetOrderSagaUseCase;
 
 import lombok.RequiredArgsConstructor;

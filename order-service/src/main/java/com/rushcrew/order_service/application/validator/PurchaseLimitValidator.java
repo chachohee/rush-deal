@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 
 import com.rushcrew.common.exception.BusinessException;
 import com.rushcrew.order_service.application.command.dto.command.CreateOrderCommand;
-import com.rushcrew.order_service.application.command.port.out.OrderCommandPort;
+import com.rushcrew.order_service.application.port.out.OrderCommandPort;
 import com.rushcrew.order_service.application.port.dto.TimeDealInfo;
 import com.rushcrew.order_service.global.advice.OrderErrorCode;
 

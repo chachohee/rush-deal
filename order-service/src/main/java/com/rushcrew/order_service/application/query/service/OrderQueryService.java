@@ -7,13 +7,13 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import com.rushcrew.common.exception.BusinessException;
-import com.rushcrew.order_service.application.command.port.out.OrderCachePort;
+import com.rushcrew.order_service.application.port.out.OrderCachePort;
 import com.rushcrew.order_service.application.query.dto.OrderDetailDto;
 import com.rushcrew.order_service.application.query.dto.OrderListDto;
 import com.rushcrew.order_service.application.query.dto.OrderSearchCriteria;
 import com.rushcrew.order_service.application.query.usecase.GetOrderDetailUseCase;
 import com.rushcrew.order_service.application.query.usecase.GetOrderListUseCase;
-import com.rushcrew.order_service.application.query.port.out.OrderQueryPort;
+import com.rushcrew.order_service.application.port.out.OrderQueryPort;
 import com.rushcrew.order_service.global.advice.OrderErrorCode;
 
 import lombok.RequiredArgsConstructor;

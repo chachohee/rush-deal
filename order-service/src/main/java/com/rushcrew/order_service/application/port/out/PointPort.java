@@ -2,7 +2,6 @@ package com.rushcrew.order_service.application.port.out;
 
 import java.util.UUID;
 
-import com.rushcrew.order_service.infrastructure.dto.point.PointBalanceResponse;
 
 public interface PointPort {
 	/** 포인트 사용 */

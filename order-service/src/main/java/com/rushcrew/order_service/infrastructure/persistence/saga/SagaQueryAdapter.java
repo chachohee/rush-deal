@@ -6,7 +6,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Component;
 
 import com.rushcrew.order_service.application.query.dto.OrderSagaResult;
-import com.rushcrew.order_service.application.query.port.out.SagaQueryPort;
+import com.rushcrew.order_service.application.port.out.SagaQueryPort;
 import com.rushcrew.order_service.domain.model.saga.SagaInstance;
 import com.rushcrew.order_service.infrastructure.persistence.saga.repository.SagaInstanceJpaRepository;
 

@@ -11,8 +11,8 @@ import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.rushcrew.order_service.application.command.port.out.OrderCachePort;
-import com.rushcrew.order_service.application.query.port.out.OrderQueryPort;
+import com.rushcrew.order_service.application.port.out.OrderCachePort;
+import com.rushcrew.order_service.application.port.out.OrderQueryPort;
 import com.rushcrew.order_service.infrastructure.messaging.event.OrderCreatedEvent;
 import com.rushcrew.order_service.infrastructure.monitoring.CustomMetrics;
 

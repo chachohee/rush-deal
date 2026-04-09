@@ -45,17 +45,17 @@ spring:
             - id: product-routes
               uri: lb://product-service
               predicates:
-                - Path=/api/v1/product/**
+                - Path=/api/v1/products/**
 
             - id: timedeal-routes
               uri: lb://timedeal-service
               predicates:
-                - Path=/api/v1/timedeal/**
+                - Path=/api/v1/timedeals/**,/api/v1/stocks/**
 
             - id: order-routes
               uri: lb://order-service
               predicates:
-                - Path=/api/v1/order/**
+                - Path=/api/v1/orders/**,/api/v1/batch/**
 
             - id: payment-routes
               uri: lb://payment-service

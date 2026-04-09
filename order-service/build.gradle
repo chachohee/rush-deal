@@ -23,7 +23,7 @@ dependencies {
 //    implementation 'org.redisson:redisson-spring-boot-starter:3.23.5'
 
     // 자체 공통 모듈
-    implementation 'com.github.RushCrew:rush-deal-common:v0.0.7'
+    implementation 'com.github.RushCrew:rush-deal-common:v0.0.9'
 
     // Spring Batch
     implementation 'org.springframework.boot:spring-boot-starter-batch'

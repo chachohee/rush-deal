@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import com.rushcrew.common.enums.UserRole;
 import com.rushcrew.common.exception.BusinessException;
 import com.rushcrew.order_service.application.port.out.OrderCachePort;
 import com.rushcrew.order_service.application.query.dto.OrderDetailDto;
@@ -43,7 +44,7 @@ public class OrderQueryService implements GetOrderDetailUseCase, GetOrderListUse
 				return fetched;
 			});
 
-		if (!"MASTER".equals(role) && !dto.getUserId().equals(userId)) {
+		if (!UserRole.MASTER.name().equals(role) && !dto.getUserId().equals(userId)) {
 			throw new BusinessException(OrderErrorCode.ORDER_ACCESS_DENIED);
 		}
 		return dto;

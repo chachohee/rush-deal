@@ -506,8 +506,8 @@ public class StockServiceImpl implements StockService {
 						continue;
 					}
 
-					// ✅ RESERVE 상태만 복구 가능
-					if (eventType != EventType.RESERVE) {
+					// ✅ RESERVE(취소) 또는 SELL(환불) 상태만 복구 가능
+					if (eventType != EventType.RESERVE && eventType != EventType.SELL) {
 						log.warn("[Saga-{}] 복구 불가능한 상태: stockId={}, orderId={}, eventType={}",
 							sagaId, stockId, orderId, eventType);
 						skippedCount++;
@@ -517,11 +517,12 @@ public class StockServiceImpl implements StockService {
 					// ✅ 수량 검증
 					stockLog.validateOrderQuantity(command.quantity());
 
-					// ✅ 재고 복구 실행
+					// ✅ 재고 복구 실행 (RESERVE → restoreFromReserved, SELL → restoreFromSold)
 					long beforeAvailable = stock.getStockCounts().getAvailable();
 					long beforeReserved = stock.getStockCounts().getReserved();
 
-					stock.restoreFromReserved(
+					stockLog.getEventType().applyRestore(
+						stock,
 						command.orderId(),
 						command.quantity(),
 						command.reason()

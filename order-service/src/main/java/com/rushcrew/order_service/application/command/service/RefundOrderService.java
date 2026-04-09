@@ -18,8 +18,9 @@ import com.rushcrew.order_service.application.port.out.OutboxPort;
 import com.rushcrew.order_service.application.port.out.PaymentPort;
 import com.rushcrew.order_service.application.port.out.PointEventPort;
 import com.rushcrew.order_service.application.port.out.StockEventPort;
+import com.rushcrew.order_service.domain.enums.ReservationStatus;
 import com.rushcrew.order_service.domain.model.order.Order;
-import com.rushcrew.order_service.domain.model.order.OrderItem;
+import com.rushcrew.order_service.domain.model.order.OrderReservation;
 import com.rushcrew.order_service.global.advice.OrderErrorCode;
 import com.rushcrew.order_service.infrastructure.messaging.event.OutboxEventType;
 
@@ -111,11 +112,12 @@ public class RefundOrderService implements RefundOrderUseCase {
 
 		// 재고 복구 이벤트 발행 (배치)
 		try {
-			// OrderItem들에서 stockId와 quantity를 Map으로 수집
-			Map<UUID, Long> refundStockReservations = savedOrder.getOrderItems().stream()
+			// CONFIRMED 상태인 예약만 수집 (결제 완료된 예약)
+			Map<UUID, Long> refundStockReservations = savedOrder.getReservations().stream()
+				.filter(r -> r.getStatus() == ReservationStatus.CONFIRMED)
 				.collect(Collectors.toMap(
-					OrderItem::getTimeDealStockId,
-					OrderItem::getQuantity
+					OrderReservation::getTimeDealStockId,
+					OrderReservation::getQuantity
 				));
 
 			stockEventPort.publishStockReservationCancelledBatch(

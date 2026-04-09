@@ -10,6 +10,9 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.rushcrew.order_service.application.query.dto.OrderDetailDto;
 
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.binder.cache.CaffeineCacheMetrics;
+
 @Configuration
 public class LocalCacheConfig {
 
@@ -18,14 +21,16 @@ public class LocalCacheConfig {
 	 *
 	 * - 최대 500건: 인스턴스당 Hot Data만 보관
 	 * - TTL 5분: Redis L2(1시간)보다 짧게 설정해 데이터 정합성 보장
-	 * - recordStats: Prometheus 메트릭 연동용
+	 * - recordStats + CaffeineCacheMetrics: Prometheus에 히트/미스/제거 메트릭 노출
 	 */
 	@Bean
-	public Cache<UUID, OrderDetailDto> orderLocalCache() {
-		return Caffeine.newBuilder()
+	public Cache<UUID, OrderDetailDto> orderLocalCache(MeterRegistry meterRegistry) {
+		Cache<UUID, OrderDetailDto> cache = Caffeine.newBuilder()
 			.maximumSize(500)
 			.expireAfterWrite(5, TimeUnit.MINUTES)
 			.recordStats()
 			.build();
+		CaffeineCacheMetrics.monitor(meterRegistry, cache, "order_local");
+		return cache;
 	}
 }

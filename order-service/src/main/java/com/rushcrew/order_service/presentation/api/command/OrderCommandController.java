@@ -33,6 +33,7 @@ import com.rushcrew.order_service.application.command.usecase.CreateOrderUseCase
 import com.rushcrew.order_service.application.command.usecase.RefundOrderUseCase;
 import com.rushcrew.order_service.application.command.usecase.RequestPaymentUseCase;
 import com.rushcrew.order_service.application.command.usecase.UpdateOrderUseCase;
+import com.rushcrew.order_service.application.port.out.MetricsPort;
 import com.rushcrew.order_service.presentation.mapper.CreateOrderCommandMapper;
 import com.rushcrew.order_service.presentation.mapper.UpdateOrderCommandMapper;
 import com.rushcrew.order_service.presentation.mapper.UpdateOrderResultMapper;
@@ -54,6 +55,7 @@ public class OrderCommandController {
 
 	private final CreateOrderUseCase createOrderUseCase;
 	private final CreateOrderCommandMapper createOrderCommandMapper;
+	private final MetricsPort metricsPort;
 	private final RequestPaymentUseCase requestPaymentUseCase;
 	private final ConfirmPurchaseUseCase confirmPurchaseUseCase;
 	private final UpdateOrderUseCase updateOrderUseCase;
@@ -72,9 +74,14 @@ public class OrderCommandController {
 		@AuthenticationPrincipal UserDetailsImpl userDetails,
 		@RequestHeader("X-Queue-Token") String queueToken
 	) {
-		CreateOrderCommand command = createOrderCommandMapper.toCommand(request, userDetails.userId(), userDetails.role(), queueToken);
-		CreateOrderResult result = createOrderUseCase.createOrder(command);	// Saga 접수
-		return ApiResponse.success(result);	// 반환 (PROCESSING 상태 + sagaId)
+		Object sample = metricsPort.startOrderCreationTimer();
+		try {
+			CreateOrderCommand command = createOrderCommandMapper.toCommand(request, userDetails.userId(), userDetails.role(), queueToken);
+			CreateOrderResult result = createOrderUseCase.createOrder(command);	// Saga 접수
+			return ApiResponse.success(result);	// 반환 (PROCESSING 상태 + sagaId)
+		} finally {
+			metricsPort.stopOrderCreationTimer(sample);
+		}
 	}
 
 	/**

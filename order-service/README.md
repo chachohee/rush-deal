@@ -178,12 +178,35 @@ public class OrderQueryController {
 
 **Local Cache (L1) + Redis Cache (L2)**
 
+Spring 어노테이션 방식이 아닌 **수동 Cache-Aside 패턴**으로 구현되어 있습니다.
+
 ```java
-@Cacheable(value = "order", key = "#orderId")
-public OrderDetailDto getOrderDetail(String orderId) {
-    // 1순위: Local Cache (Caffeine)
-    // 2순위: Redis Cache
-    // 3순위: Database
+// OrderQueryService.java - L1 → L2 → DB Cache-Aside 패턴
+public OrderDetailDto getOrderDetail(UUID orderId, Long userId, String role) {
+    OrderDetailDto dto = orderCachePort.getFromCache(orderId) // L1 → L2 확인
+        .orElseGet(() -> {
+            OrderDetailDto fetched = orderQueryPort.findOrderDetail(orderId) // DB 조회
+                .orElseThrow(() -> new BusinessException(OrderErrorCode.ORDER_NOT_FOUND));
+            orderCachePort.updateOrderCache(orderId, fetched); // L1 + L2 적재
+            return fetched;
+        });
+    ...
+}
+
+// OrderQueryCacheAdapter.java - 2단계 캐시 read-through
+public Optional<OrderDetailDto> getFromCache(UUID orderId) {
+    // 1. L1 (Caffeine) 확인
+    OrderDetailDto l1Hit = orderLocalCache.getIfPresent(orderId);
+    if (l1Hit != null) return Optional.of(l1Hit);
+
+    // 2. L2 (Redis) 확인 → 히트 시 L1에도 적재
+    Object raw = redisTemplate.opsForValue().get(ORDER_KEY_PREFIX + orderId);
+    if (raw != null) {
+        OrderDetailDto dto = objectMapper.readValue(raw.toString(), OrderDetailDto.class);
+        orderLocalCache.put(orderId, dto);
+        return Optional.of(dto);
+    }
+    return Optional.empty();
 }
 ```
 
@@ -191,18 +214,17 @@ public OrderDetailDto getOrderDetail(String orderId) {
 
 | 계층 | 저장소 | TTL | 용도 |
 |------|--------|-----|------|
-| L1 | Caffeine | 5분 | 초고속 조회 (동일 인스턴스 내) |
-| L2 | Redis | 1시간 | 분산 환경 조회 (전체 인스턴스) |
+| L1 | Caffeine | 5분 | 초고속 조회 (인스턴스 로컬, max 500건) |
+| L2 | Redis | 1시간 | 분산 환경 조회 (전체 인스턴스 공유) |
 | DB | PostgreSQL | - | 원본 데이터 |
 
-**캐시 무효화 전략**
+**캐시 갱신 전략**
 
-```java
-@CacheEvict(value = "order", key = "#orderId")
-public void updateOrderStatus(String orderId, OrderStatus status) {
-    // 주문 상태 변경 시 캐시 자동 삭제
-}
-```
+- **쓰기/수정 시**: `updateOrderCache()` → L1 + L2 동시 업데이트  
+  (UpdateOrderService, OrderEventConsumer, CacheWarmingScheduler)
+- **삭제 시**: `evictOrderCache()` → L1 + L2 동시 제거  
+  (CacheWarmingScheduler Cold Data 정리)
+- **조회 미스 시**: DB 조회 후 L1 + L2 자동 적재 (Cache-Aside)
 
 **성능 결과**
 - 조회 성능 **50배 향상** (500ms → 10ms)
@@ -291,7 +313,8 @@ flowchart TB
             B1["주문 조회"]
             B2["주문 목록"]
             B3["상세 정보"]
-            B_CACHE[(Redis)]
+            B_L1[(Caffeine L1)]
+            B_L2[(Redis L2)]
         end
 
         WRITE -->|Event: 주문 생성/수정| READ
@@ -312,7 +335,8 @@ flowchart TB
 - **Kafka**: 이벤트 스트리밍 플랫폼
 
 ### Cache & Storage
-- **Spring Data Redis**: 캐싱 및 대기열
+- **Caffeine**: 인스턴스 로컬 캐시 (L1, TTL 5분)
+- **Spring Data Redis**: 분산 캐시 (L2, TTL 1시간) 및 대기열
 - **PostgreSQL**: 주 데이터베이스
 
 ### Service Communication
@@ -481,21 +505,18 @@ Order Service는 **7개의 스케줄러**를 통해 이벤트 발행, 주문 상
 
 ### 2. 캐싱 전략
 
-**2-Tier 캐싱**
+**2-Tier 캐싱 (Cache-Aside 패턴)**
 
-```java
-// L1: Local Cache (Caffeine)
-@CacheConfig(cacheNames = "order")
-public class OrderQueryService {
-    
-    @Cacheable(key = "#orderId")
-    public OrderDetailDto getOrderDetail(String orderId) {
-        // L2: Redis Cache
-        return orderRepository.findById(orderId)
-            .map(this::toDto)
-            .orElseThrow();
-    }
-}
+```
+GET /api/v1/orders/{id}
+  ↓
+[OrderQueryService]
+  ↓ getFromCache()
+[Caffeine L1] 히트 → 반환 (< 1ms)
+  ↓ miss
+[Redis L2]    히트 → L1 적재 후 반환 (< 10ms)
+  ↓ miss
+[PostgreSQL]  단일 LEFT JOIN 쿼리 → L1+L2 적재 후 반환
 ```
 
 **효과**
@@ -758,7 +779,7 @@ X-User-Id: {userId}
 
 ---
 
-## 🔗 # 🚀 담당 역할: Order Service (주문 서비스)
+## 🔗 담당 역할: Order Service (주문 서비스)
 
 > Saga 패턴과 Outbox 패턴 기반의 고신뢰성 분산 주문 처리 서비스
 
@@ -766,7 +787,7 @@ X-User-Id: {userId}
 
 - **Saga 패턴 (Orchestration)**: 분산 트랜잭션 조율 및 자동 보상
 - **Outbox 패턴**: 이벤트 발행 성공률 99.9% 달성
-- **CQRS + 2-Tier 캐싱**: 조회 성능 50배 향상 (500ms → 10ms)
+- **CQRS + 2-Tier 캐싱**: Caffeine(L1) + Redis(L2) Cache-Aside 패턴, 조회 성능 50배 향상
 - **동시성 제어**: FOR UPDATE SKIP LOCKED로 중복 발행 방지
 - **자동 취소**: 5분 타임아웃 주문 자동 취소 및 재고/포인트 복구
 
@@ -826,5 +847,5 @@ X-User-Id: {userId}
 **작성일**: 2026-01-12  
 **작성자:** 차초희  
 **검토자:** 차초희  
-**최종 수정일:** 2026-01-16  
-**버전:** 3.0 (1000명 부하 테스트 반영)
+**최종 수정일:** 2026-04-09  
+**버전:** 4.0 (Caffeine L1+Redis L2 2단계 캐시, N+1 쿼리 개선, 버그 수정 반영)

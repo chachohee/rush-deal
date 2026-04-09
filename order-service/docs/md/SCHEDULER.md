@@ -273,7 +273,7 @@ protected void executeAutoConfirmBatch() {
 
 ### 4.1 Cache Warming Scheduler
 
-**역할**: 인기 주문 데이터를 Redis 캐시에 미리 적재
+**역할**: 인기 주문 데이터를 L1(Caffeine) + L2(Redis) 2단계 캐시에 미리 적재
 
 **구현 클래스**: `CacheWarmingScheduler`
 
@@ -299,7 +299,7 @@ public void warmupCacheOnStartup() {
 **설정**
 - 실행 시점: 애플리케이션 시작 시
 - 대상: 최근 24시간 내 주문
-- 목적: Cold Start 방지
+- 목적: Cold Start 방지 (L1+L2 동시 적재)
 
 #### 4.1.2 Hot Data 재캐싱
 
@@ -349,7 +349,7 @@ public void cleanupColdDataCache() {
 **효과**
 - Cache Hit Rate: 85~90%
 - Cold Start 방지
-- 조회 성능 향상 (500ms → 10ms)
+- 조회 성능 향상: L1 히트 < 1ms, L2 히트 < 10ms (DB 대비 50배)
 
 **상세 내용**: [시스템 아키텍처 문서](./ORDER_ARCHITECTURE.md)의 캐싱 전략 섹션 참고
 
@@ -531,14 +531,16 @@ WHERE status = 'CANCELLED'
 **증상**: Cache Hit Rate가 85% 미만
 
 **원인**
-- 캐시 TTL 설정 문제
+- L1 TTL(5분) 또는 L2 TTL(1시간) 설정 문제
 - 인기 주문 ID 수집 로직 오류
-- Redis 메모리 부족
+- Redis 메모리 부족 (L2 적재 실패)
+- Caffeine max size(500) 초과로 L1 eviction 발생
 
 **해결**
-1. 캐시 TTL 조정
+1. L1 TTL(Caffeine, 5분) / L2 TTL(Redis, 1시간) 확인
 2. 인기 주문 수집 로직 검증
 3. Redis 메모리 사용량 확인
+4. Caffeine `recordStats()` 메트릭으로 L1 히트율 확인
 
 ---
 
@@ -555,5 +557,5 @@ WHERE status = 'CANCELLED'
 **작성일**: 2026-01-12  
 **작성자:** 차초희  
 **검토자:** 차초희  
-**최종 수정일:** 2026-01-13  
-**버전**: 1.0
+**최종 수정일:** 2026-04-09  
+**버전**: 2.0 (Caffeine L1+Redis L2 2단계 캐시 워밍 반영)

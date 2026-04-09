@@ -52,6 +52,8 @@
 │   │  Infrastructure Layer                               │  │
 │   │  • PostgreSQL (Repository)                          │  │
 │   │  • Kafka (Event Bus)                                │  │
+│   │  • Caffeine (L1 Local Cache, TTL 5분)               │  │
+│   │  • Redis (L2 Distributed Cache, TTL 1시간)          │  │
 │   │  • FeignClient (User, TimeDeal, Queue, Payment)     │  │
 │   └─────────────────────────────────────────────────────┘  │
 └────────────────────────────────────────────────────────────┘
@@ -115,6 +117,8 @@
 ┌────────────────────────────────────────────────────────────┐
 │                    Infrastructure Layer                    │
 │   - @Repository (JPA)                                      │
+│   - OrderQueryAdapter (Native SQL, LEFT JOIN 단일 쿼리)     │
+│   - OrderQueryCacheAdapter (Caffeine L1 + Redis L2)        │
 │   - FeignClient                                            │
 │       • User Service (포인트)                               │
 │       • TimeDeal Service (재고 조회)                        │
@@ -334,5 +338,5 @@ Stock Service에서 처리:
 **작성일**: 2026-01-12  
 **작성자:** 차초희  
 **검토자:** 차초희  
-**최종 수정일:** 2026-01-13  
-**버전**: 2.0
+**최종 수정일:** 2026-04-09  
+**버전**: 3.0 (Caffeine L1+Redis L2 캐시, OrderQueryAdapter N+1 개선 반영)

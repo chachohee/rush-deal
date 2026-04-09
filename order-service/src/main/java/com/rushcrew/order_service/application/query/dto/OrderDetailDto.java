@@ -6,6 +6,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import com.fasterxml.jackson.annotation.JsonPOJOBuilder;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.rushcrew.order_service.domain.vo.ShippingInfo;
 
 import lombok.Builder;
@@ -13,6 +15,7 @@ import lombok.Getter;
 
 @Getter
 @Builder
+@JsonDeserialize(builder = OrderDetailDto.OrderDetailDtoBuilder.class)
 public class OrderDetailDto {
 	private UUID orderId;
 	private Long userId;
@@ -56,5 +59,9 @@ public class OrderDetailDto {
 		this.autoConfirmScheduledAt = autoConfirmScheduledAt;
 		this.shippingInfo = shippingInfo;
 		this.orderItems = orderItems != null ? orderItems : new ArrayList<>();
+	}
+
+	@JsonPOJOBuilder(withPrefix = "")
+	public static class OrderDetailDtoBuilder {
 	}
 }

@@ -1,10 +1,19 @@
 package com.rushcrew.order_service.application.command.port.out;
 
+import java.util.Optional;
 import java.util.UUID;
 
 import com.rushcrew.order_service.application.query.dto.OrderDetailDto;
 
 public interface OrderCachePort {
+
+	/**
+	 * 캐시에서 주문 조회 (L1 Caffeine → L2 Redis 순서)
+	 *
+	 * 호출 시점:
+	 * - 주문 상세 조회 시 DB 조회 전 캐시 우선 확인
+	 */
+	Optional<OrderDetailDto> getFromCache(UUID orderId);
 	/**
 	 * 주문 캐시 업데이트
 	 *

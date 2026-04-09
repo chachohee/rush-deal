@@ -1,5 +1,7 @@
 package com.rushcrew.order_service.domain.vo;
 
+import com.fasterxml.jackson.annotation.JsonPOJOBuilder;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import lombok.AccessLevel;
@@ -13,6 +15,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
+@JsonDeserialize(builder = ShippingInfo.ShippingInfoBuilder.class)
 public class ShippingInfo {
 
 	@Column(nullable = false, length = 50)
@@ -42,6 +45,10 @@ public class ShippingInfo {
 		ShippingInfo info = new ShippingInfo(recipientName, recipientPhone, zipCode, addressBase, addressDetail, deliveryMessage);
 		info.validate(); // 생성 시 검증 수행
 		return info;
+	}
+
+	@JsonPOJOBuilder(withPrefix = "")
+	public static class ShippingInfoBuilder {
 	}
 
 	public void validate() {

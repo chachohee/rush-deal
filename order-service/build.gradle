@@ -2,7 +2,6 @@ description = 'Order Service for rush-deal Project'
 
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
-    implementation 'org.springframework.cloud:spring-cloud-starter-circuitbreaker-reactor-resilience4j'
     implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
@@ -11,16 +10,8 @@ dependencies {
     implementation 'com.github.ben-manes.caffeine:caffeine'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
 
-    // jjwt
-    implementation 'io.jsonwebtoken:jjwt-api:0.13.0'
-    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.13.0'
-    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.13.0'
-
-    // Hibernate Types 60
+    // Hibernate Types (JSONB 타입 지원)
     implementation 'com.vladmihalcea:hibernate-types-60:2.21.1'
-
-    // Redisson (분산 락)
-//    implementation 'org.redisson:redisson-spring-boot-starter:3.23.5'
 
     // 자체 공통 모듈
     implementation 'com.github.RushCrew:rush-deal-common:v0.0.9'
@@ -28,16 +19,9 @@ dependencies {
     // Spring Batch
     implementation 'org.springframework.boot:spring-boot-starter-batch'
 
-    // QueryDSL
-    implementation 'com.querydsl:querydsl-jpa:5.0.0:jakarta'
-    annotationProcessor "com.querydsl:querydsl-apt:5.0.0:jakarta"
-    annotationProcessor "jakarta.annotation:jakarta.annotation-api"
-    annotationProcessor "jakarta.persistence:jakarta.persistence-api"
-
     runtimeOnly 'org.postgresql:postgresql'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testImplementation 'io.projectreactor:reactor-test'
     testImplementation 'org.springframework.batch:spring-batch-test'
     testImplementation 'org.springframework.kafka:spring-kafka-test'
     testRuntimeOnly 'com.h2database:h2'

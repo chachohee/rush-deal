@@ -6,16 +6,18 @@ services:
     container_name: rushdeal_postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${DB_URL}
-      POSTGRES_USER: ${DB_USERNAME}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME:-rushdeal}
+      POSTGRES_USER: ${DB_USERNAME:-rushdeal}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-rushdeal}
+      TZ: Asia/Seoul
+      PGTZ: Asia/Seoul
     ports:
       - "15432:5432"
     volumes:
       - rushdeal_pg_data:/var/lib/postgresql/data
       - ./scripts/init-schemas.sql:/docker-entrypoint-initdb.d/init-schemas.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_URL}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-rushdeal} -d ${DB_NAME:-rushdeal}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -44,9 +46,10 @@ services:
     container_name: rushdeal_user_redis
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "6383:6379"
     volumes:
       - rushdeal_user_redis_data:/data
+    command: redis-server --save 60 1 --loglevel warning
     healthcheck:
       test: [ "CMD", "redis-cli", "ping" ]
       interval: 5s
@@ -80,6 +83,7 @@ services:
       - "6381:6379"
     volumes:
       - rushdeal_order_redis_data:/data
+    command: redis-server --save 60 1 --loglevel warning
     healthcheck:
       test: [ "CMD", "redis-cli", "ping" ]
       interval: 5s
@@ -96,6 +100,7 @@ services:
       - "6382:6379"
     volumes:
       - rushdeal_timedeal_redis_data:/data
+    command: redis-server --save 60 1 --loglevel warning
     healthcheck:
       test: [ "CMD", "redis-cli", "ping" ]
       interval: 5s
@@ -172,7 +177,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
 
       # Redis
-      REDIS_HOST: ${AUTH_REDIS_HOST}
+      REDIS_HOST: ${AUTH_REDIS_HOST:-rushdeal_auth_redis}
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}
 
@@ -216,7 +221,7 @@ services:
       DB_URL: ${DB_URL}
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
-      REDIS_HOST: ${USER_REDIS_HOST}
+      REDIS_HOST: ${USER_REDIS_HOST:-rushdeal_user_redis}
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}
       EUREKA_ENABLED: ${EUREKA_ENABLED:-false}
@@ -254,14 +259,15 @@ services:
       DB_URL: ${DB_URL}
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
-      KAFKA_BROKERS: ${KAFKA_BROKERS}
+      REDIS_HOST: rushdeal_order_redis
+      ORDER_REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      KAFKA_BROKERS: ${KAFKA_BROKERS:-kafka:29092}
       EUREKA_ENABLED: ${EUREKA_ENABLED:-false}
       EUREKA_URL: ${EUREKA_URL}
       JPA_DDL_AUTO: ${JPA_DDL_AUTO:-update}
       SHOW_SQL: ${SHOW_SQL:-false}
       SQL_INIT_MODE: ${SQL_INIT_MODE:-never}
-      QUARTZ_INIT_SCHEMA: ${QUARTZ_INIT_SCHEMA:-never}
-      QUARTZ_THREAD_COUNT: ${QUARTZ_THREAD_COUNT:-10}
 
       # Monitoring
       MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: ${ZIPKIN_URL:-http://zipkin:9411/api/v2/spans}
@@ -369,9 +375,9 @@ services:
       DB_URL: ${DB_URL}
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
-      REDIS_HOST: ${QUEUE_REDIS_HOST}
+      REDIS_HOST: ${QUEUE_REDIS_HOST:-rushdeal_queue_redis}
       REDIS_PORT: 6379
-      KAFKA_BROKERS: ${KAFKA_BROKERS}
+      KAFKA_BROKERS: ${KAFKA_BROKERS:-kafka:29092}
       EUREKA_ENABLED: ${EUREKA_ENABLED:-false}
       EUREKA_URL: ${EUREKA_URL}
       JPA_DDL_AUTO: ${JPA_DDL_AUTO:-update}
@@ -410,9 +416,9 @@ services:
       DB_URL: ${DB_URL}
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
-      REDIS_HOST: ${TIMEDEAL_REDIS_HOST}
+      REDIS_HOST: ${TIMEDEAL_REDIS_HOST:-rushdeal_timedeal_redis}
       REDIS_PORT: 6379
-      KAFKA_BROKERS: ${KAFKA_BROKERS}
+      KAFKA_BROKERS: ${KAFKA_BROKERS:-kafka:29092}
       EUREKA_ENABLED: ${EUREKA_ENABLED:-false}
       EUREKA_URL: ${EUREKA_URL}
       JPA_DDL_AUTO: ${JPA_DDL_AUTO:-update}
@@ -465,7 +471,6 @@ services:
       - '--web.console.libraries=/etc/prometheus/console_libraries'
       - '--web.console.templates=/etc/prometheus/consoles'
       - '--web.enable-lifecycle'
-      - '--storage.tsdb.retention.time=5d'  # 5일 후 자동 삭제
     networks:
       - rushdeal-network
     healthcheck:

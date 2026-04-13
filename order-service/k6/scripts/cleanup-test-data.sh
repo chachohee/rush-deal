@@ -92,8 +92,14 @@ topics=(
   "stock.restore.requested"
   "stock.restore.failed"
   "order.created"
+  "order.updated"
   "order.cancelled"
+  "order.paid"
+  "order.purchase.confirmed"
+  "order.refunded"
+  "point.earn.requested"
   "point.use.cancel.requested"
+  "point.refund.requested"
   "order-complete-token-remove"
 )
 

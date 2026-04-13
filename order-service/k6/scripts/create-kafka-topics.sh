@@ -14,11 +14,16 @@ TOPICS=(
 
   # Order
   "order.created"
-  "order.cancelled"
   "order.updated"
+  "order.cancelled"
+  "order.paid"
+  "order.purchase.confirmed"
+  "order.refunded"
 
   # Point
+  "point.earn.requested"
   "point.use.cancel.requested"
+  "point.refund.requested"
 
   # Queue
   "order-complete-token-remove"

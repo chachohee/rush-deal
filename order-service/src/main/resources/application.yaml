@@ -61,6 +61,19 @@ spring:
         multiplier: 2.0
         max-interval: 10000
 
+  cloud:
+    openfeign:
+      client:
+        config:
+          user-service:
+            url: ${USER_SERVICE_URL:http://localhost:8060}
+          timedeal-service:
+            url: ${TIMEDEAL_SERVICE_URL:http://localhost:8030}
+          queue-service:
+            url: ${QUEUE_SERVICE_URL:http://localhost:8040}
+          payment-service:
+            url: ${PAYMENT_SERVICE_URL:http://localhost:8010}
+
 logging:
   level:
     com.rushcrew.order_service.application.validator: DEBUG

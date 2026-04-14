@@ -1,78 +1,19 @@
+# prod 프로파일 오버라이드 (application.yaml 기준 변경되는 항목만)
+# 실행: SPRING_PROFILES_ACTIVE=prod
+
 spring:
-  application:
-    name: order-service
-
-  batch:
-    jdbc:
-      initialize-schema: never
-      table-prefix: order_schema.BATCH_
-    job:
-      enabled: false
-
-  datasource:
-    url: ${DB_URL}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
-    driver-class-name: org.postgresql.Driver
-
   jpa:
     hibernate:
       ddl-auto: ${JPA_DDL_AUTO:none}
-    show-sql: ${SHOW_SQL:false}
     properties:
       hibernate:
         format_sql: false
-        default_schema: order_schema
-
-  sql:
-    init:
-      mode: ${SQL_INIT_MODE:never}
-      encoding: UTF-8
-
-  kafka:
-    bootstrap-servers: ${KAFKA_BROKERS:localhost:9092}
-    consumer:
-      group-id: order-service
-      auto-offset-reset: earliest
-    listener:
-      ack-mode: record
-    retry:
-      max-attempts: 3
-      backoff:
-        initial-interval: 1000
-        multiplier: 2.0
-        max-interval: 10000
-
-server:
-  port: ${ORDER_SERVER_PORT:8050}
-
-eureka:
-  client:
-    enabled: ${EUREKA_ENABLED:false}
-    service-url:
-      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
 
 management:
   endpoints:
     web:
       exposure:
         include: health,info,metrics,prometheus,scheduledtasks
-      base-path: /actuator
-  endpoint:
-    health:
-      show-details: always
-    prometheus:
-      access: unrestricted
-  metrics:
-    tags:
-      application: ${spring.application.name}
-  prometheus:
-    metrics:
-      export:
-        enabled: true
-  zipkin:
-    tracing:
-      endpoint: ${MANAGEMENT_ZIPKIN_TRACING_ENDPOINT:http://localhost:9411/api/v2/spans}
   tracing:
     sampling:
       probability: ${MANAGEMENT_TRACING_SAMPLING_PROBABILITY:0.1}

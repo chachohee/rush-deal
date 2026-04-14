@@ -1,6 +1,6 @@
 package com.rushcrew.order_service.domain.vo;
 
-import com.fasterxml.jackson.annotation.JsonPOJOBuilder;
+import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;

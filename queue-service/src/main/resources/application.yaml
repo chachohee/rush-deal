@@ -3,15 +3,35 @@ server:
   port: ${QUEUE_SERVER_PORT:8040}
   tomcat:
     threads:
-      max: 1000              # 최대 스레드 수 (기본 200 → 1000)
-      min-spare: 100         # 최소 유지 스레드 (기본 10 → 100)
-    max-connections: 2000    # 최대 동시 연결 수 (기본 8192이지만 명시)
-    accept-count: 1000       # 대기 큐 크기 (기본 100 → 1000)
-    connection-timeout: 20000 # 연결 타임아웃 20초
+      max: 1000
+      min-spare: 100
+    max-connections: 2000
+    accept-count: 1000
+    connection-timeout: 20000
 
 spring:
   application:
     name: queue-service
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:15432/rushdeal}
+    username: ${DB_USERNAME:rushdeal}
+    password: ${DB_PASSWORD:rushdeal}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: ${JPA_DDL_AUTO:update}
+    show-sql: ${SHOW_SQL:false}
+    properties:
+      hibernate:
+        default_schema: queue_schema
+        format_sql: true
+        use_sql_comments: true
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${QUEUE_REDIS_PORT:6380}
+      password: ${REDIS_PASSWORD:}
   kafka:
     bootstrap-servers: ${KAFKA_BROKERS:localhost:9092}
     consumer:
@@ -21,41 +41,17 @@ spring:
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       properties:
         spring.json.trusted.packages: "*"
-  data:
-    redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${QUEUE_REDIS_PORT:6380}
-      password: ${REDIS_PASSWORD:}
-  datasource:
-    url: ${DB_URL}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
-    driver-class-name: org.postgresql.Driver
-  jpa:
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
-    hibernate:
-#      ddl-auto: create-drop
-      ddl-auto: ${JPA_DDL_AUTO:update}
-    properties:
-      hibernate:
-        default_schema: queue_schema
-        format_sql: true
-        use_sql_comments: true
-    show-sql: ${SHOW_SQL:false}
-
-logging:
-  level:
-    org.hibernate.SQL: ${SQL_LOG_LEVEL:INFO}
-    org.hibernate.type.descriptor.sql: ${SQL_TYPE_LOG_LEVEL:INFO}
 
 eureka:
   client:
+    enabled: ${EUREKA_ENABLED:false}
     service-url:
       defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
 
 management:
   endpoints:
     web:
+      base-path: /actuator
       exposure:
         include: '*'
   endpoint:
@@ -63,9 +59,16 @@ management:
       show-details: always
     prometheus:
       access: unrestricted
+  metrics:
+    tags:
+      application: ${spring.application.name}
+  prometheus:
+    metrics:
+      export:
+        enabled: true
   zipkin:
     tracing:
       endpoint: ${MANAGEMENT_ZIPKIN_TRACING_ENDPOINT:http://localhost:9411/api/v2/spans}
   tracing:
     sampling:
-      probability: 1.0
+      probability: ${MANAGEMENT_TRACING_SAMPLING_PROBABILITY:1.0}

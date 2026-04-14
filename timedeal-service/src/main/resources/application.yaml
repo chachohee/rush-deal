@@ -5,45 +5,46 @@ server:
 spring:
   application:
     name: timedeal-service
-  data:
-    redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${TIMEDEAL_REDIS_PORT:6382}
-      password: ${REDIS_PASSWORD:}
   datasource:
-    url: ${DB_URL}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+    url: ${DB_URL:jdbc:postgresql://localhost:15432/rushdeal}
+    username: ${DB_USERNAME:rushdeal}
+    password: ${DB_PASSWORD:rushdeal}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-#      ddl-auto: create-drop
       ddl-auto: ${JPA_DDL_AUTO:update}
     show-sql: ${SHOW_SQL:false}
     properties:
       hibernate:
         format_sql: true
         default_schema: time_deal_schema
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${TIMEDEAL_REDIS_PORT:6382}
+      password: ${REDIS_PASSWORD:}
   sql:
     init:
       mode: ${SQL_INIT_MODE:never}
   kafka:
     bootstrap-servers: ${KAFKA_BROKERS:localhost:9092}
-
-logging:
-  level:
-    org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
-    org.hibernate.orm.jdbc.bind: TRACE
+  cloud:
+    openfeign:
+      client:
+        config:
+          product-service:
+            url: ${PRODUCT_SERVICE_URL:http://localhost:8020}
 
 eureka:
   client:
+    enabled: ${EUREKA_ENABLED:false}
     service-url:
       defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
 
 management:
   endpoints:
     web:
+      base-path: /actuator
       exposure:
         include: '*'
   endpoint:
@@ -51,9 +52,16 @@ management:
       show-details: always
     prometheus:
       access: unrestricted
+  metrics:
+    tags:
+      application: ${spring.application.name}
+  prometheus:
+    metrics:
+      export:
+        enabled: true
   zipkin:
     tracing:
       endpoint: ${MANAGEMENT_ZIPKIN_TRACING_ENDPOINT:http://localhost:9411/api/v2/spans}
   tracing:
     sampling:
-      probability: 1.0
+      probability: ${MANAGEMENT_TRACING_SAMPLING_PROBABILITY:1.0}

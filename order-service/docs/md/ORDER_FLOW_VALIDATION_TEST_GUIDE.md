@@ -140,118 +140,61 @@ Grafana: ✅
 ```
 
 ### 2.5 애플리케이션 환경변수 설정
-**루트 경로에 .env 파일 생성 후 각 애플리케이션 구성편집에서 환경변수 적용**
 
+각 서비스 `application.yaml`에 로컬 기본값이 내장되어 있어 `.env` 파일 없이도 실행 가능합니다.
+
+> **기본값 요약** (docker-compose.yml 기준)
+> - DB: `jdbc:postgresql://localhost:15432/rushdeal` / `rushdeal` / `rushdeal`
+> - Kafka: `localhost:9092`
+> - Eureka: 비활성화 (`EUREKA_ENABLED=false`)
+> - FeignClient: 각 서비스 localhost 포트로 직접 연결
+
+기본값과 다르게 설정하려면 각 서비스 디렉토리에 `.env` 파일을 만들고 IntelliJ Run Configuration에서 로드합니다.
+
+**IntelliJ Run Configuration `.env` 파일 연결 방법:**
+1. **Run → Edit Configurations...**
+2. 해당 서비스 선택 → **Environment variables** 필드 오른쪽 폴더 아이콘 클릭
+3. `+` 버튼 → 서비스 디렉토리의 `.env` 파일 선택
+4. **Apply → OK**
+
+**order-service `.env` 예시** (`order-service/.env`):
 ```
-# .env 파일
-
-# ============================================
-# Spring Profile
-# ============================================
-SPRING_PROFILES_ACTIVE=local
-
-# ============================================
-# Database (PostgreSQL) - Docker 컨테이너
-# ============================================
 DB_URL=jdbc:postgresql://localhost:15432/rushdeal
 DB_USERNAME=rushdeal
 DB_PASSWORD=rushdeal
-
-# JPA Settings
-JPA_DDL_AUTO=update
-SHOW_SQL=true
-SQL_INIT_MODE=never
-
-# ============================================
-# Redis - Docker 컨테이너 (각각 다른 호스트 포트)
-# ============================================
-# API Gateway & 공통
-REDIS_HOST=localhost
-REDIS_PORT=6380
-REDIS_PASSWORD=
-
-# Auth Service
-AUTH_REDIS_HOST=localhost
-AUTH_REDIS_PORT=6378
-
-# User Service
-USER_REDIS_HOST=localhost
-USER_REDIS_PORT=6383
-
-# Order Service
-ORDER_REDIS_HOST=localhost
-ORDER_REDIS_PORT=6381
-
-# Queue Service
-QUEUE_REDIS_HOST=localhost
-QUEUE_REDIS_PORT=6380
-
-# Timedeal Service
-TIMEDEAL_REDIS_HOST=localhost
-TIMEDEAL_REDIS_PORT=6382
-
-# ============================================
-# Kafka - Docker 컨테이너
-# ============================================
-KAFKA_BROKERS=localhost:9092
-
-# ============================================
-# Eureka - IntelliJ에서 실행
-# ============================================
-EUREKA_URL=http://localhost:8761/eureka/
-EUREKA_ENABLED=true
-
-# ============================================
-# JWT Secrets (개발용)
-# ============================================
-JWT_ACCESS_EXPIRED=60480000
-JWT_ACCESS_SECRET=N6WSY55g7gYEPvCAazUfZw/DkMLlOyzotH1xCju5L78=
-JWT_REFRESH_EXPIRED=120960000
-JWT_REFRESH_SECRET=tbfb4D86amt6/7x5KHuVl7rzZXfs40IV6FWimTzImuQ=
-
-# ============================================
-# Auth Service
-# ============================================
-AUTH_MAX_CONCURRENT_SESSIONS=3
-
-# ============================================
-# Service Ports (IntelliJ에서 실행)
-# ============================================
-API_GATEWAY_PORT=8080
-AUTH_SERVER_PORT=8000
-USER_SERVER_PORT=8060
-ORDER_SERVER_PORT=8050
-PAYMENT_SERVER_PORT=8010
-PRODUCT_SERVER_PORT=8020
-QUEUE_SERVER_PORT=8040
-TIMEDEAL_SERVER_PORT=8030
-
-# ============================================
-# PortOne (PG 결제)
-# ============================================
-PORTONE_API_SECRET=PdbdC9D9u0VE0sU2cQXTOMLdTYEJZJholVo5xO6MW0APy37t3YXkHGz2BKNH0cUv2WFNRtD7RxnmKTWc
-PORTONE_WEBHOOK=whsec_FdNwj288RhKYUr3xhnGbyGZJM/bKRUdUsgMpq4zr4TE=
-PORTONE_CHANNEL_KEY=channel-key-e557d17d-e040-40e9-a5fd-28018b0ee382
-PORTONE_STORE_ID=store-03451ff4-921e-460b-95ae-8691178056a5
-
-# ============================================
-# 로컬 개발 전용
-# ============================================
-SQL_LOG_LEVEL=DEBUG
-SQL_TYPE_LOG_LEVEL=TRACE
- 
 ```
 
-### 2.6 애플리케이션 실행
+> `order-service/.env`는 이미 생성되어 있습니다.
+
+### 2.6 애플리케이션 실행 순서
+
+주문 플로우 테스트에는 아래 5개 서비스가 필요합니다 (Eureka/API Gateway 불필요).
+
+| 순서 | 서비스 | 포트 | 역할 |
+|------|--------|------|------|
+| 1 | **product-service** | 8020 | 상품 정보 (timedeal-service가 호출) |
+| 2 | **user-service** | 8060 | 포인트 차감/환불 |
+| 3 | **timedeal-service** | 8030 | 타임딜/재고 조회 및 예약 |
+| 4 | **queue-service** | 8040 | 큐 토큰 발급/검증 |
+| 5 | **order-service** | 8050 | 주문 생성/취소 |
+
+> payment-service(8010)는 결제 단계에서만 필요하므로 주문 생성·자동 취소 테스트에는 불필요합니다.
+
+**각 서비스 첫 실행 시** `JPA_DDL_AUTO=update`로 DB 스키마가 자동 생성됩니다.
+
+**헬스체크로 정상 기동 확인:**
+```bash
+curl http://localhost:8020/actuator/health  # product-service
+curl http://localhost:8060/actuator/health  # user-service
+curl http://localhost:8030/actuator/health  # timedeal-service
+curl http://localhost:8040/actuator/health  # queue-service
+curl http://localhost:8050/actuator/health  # order-service
 ```
-DiscoveryServiceApplication     :8761/
-UserServiceApplication          :8060/
-ProductServiceApplication       :8020/
-TimeDealApplication             :8030/
-QueueServiceApplication         :8040/
-OrderServiceApplication         :8050/
+
+또는 자동화 스크립트의 인프라 체크 단계에서 한 번에 확인:
+```bash
+./check-infrastructure.sh
 ```
-**DB 스키마 생성을 위해 실행**
 
 ---
 

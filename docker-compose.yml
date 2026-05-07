@@ -24,6 +24,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - rushdeal-network
 
   # =========================================
   # Redis Instances
@@ -42,6 +44,8 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+    networks:
+      - rushdeal-network
 
   rushdeal_user_redis:
     image: redis:7-alpine
@@ -57,6 +61,8 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+    networks:
+      - rushdeal-network
 
   rushdeal_queue_redis:
     image: redis:7-alpine
@@ -72,6 +78,8 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+    networks:
+      - rushdeal-network
 
   rushdeal_order_redis:
     image: redis:7-alpine
@@ -87,6 +95,8 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+    networks:
+      - rushdeal-network
 
   rushdeal_timedeal_redis:
     image: redis:7-alpine
@@ -102,6 +112,8 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+    networks:
+      - rushdeal-network
 
   rushdeal_gateway_redis:
     image: redis:7-alpine
@@ -117,6 +129,8 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+    networks:
+      - rushdeal-network
 
   # =========================================
   # Redis Management UI
@@ -128,11 +142,14 @@ services:
     ports:
       - "5540:5540"
     depends_on:
+      - rushdeal_auth_redis
+      - rushdeal_user_redis
       - rushdeal_queue_redis
       - rushdeal_order_redis
       - rushdeal_timedeal_redis
-      - rushdeal_user_redis
-      - rushdeal_auth_redis
+      - rushdeal_gateway_redis
+    networks:
+      - rushdeal-network
 
   # =========================================
   # Kafka & Zookeeper
@@ -146,6 +163,8 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - rushdeal-network
 
   kafka:
     image: confluentinc/cp-kafka:7.5.0
@@ -168,6 +187,8 @@ services:
       interval: 10s
       timeout: 10s
       retries: 5
+    networks:
+      - rushdeal-network
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
@@ -181,6 +202,8 @@ services:
       KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
     depends_on:
       - kafka
+    networks:
+      - rushdeal-network
 
   # =========================================
   # Zipkin (Distributed Tracing)
@@ -193,6 +216,8 @@ services:
       - "9411:9411"
     environment:
       - STORAGE_TYPE=mem
+    networks:
+      - rushdeal-network
 
   # =========================================
   # Prometheus (Metrics)
@@ -209,6 +234,8 @@ services:
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
+    networks:
+      - rushdeal-network
 
   # =========================================
   # Grafana (Monitoring Dashboard)
@@ -222,10 +249,12 @@ services:
     volumes:
       - grafana_data:/var/lib/grafana
     environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
     depends_on:
       - prometheus
+    networks:
+      - rushdeal-network
 
 volumes:
   rushdeal_pg_data:
@@ -237,3 +266,7 @@ volumes:
   rushdeal_timedeal_redis_data:
   prometheus_data:
   grafana_data:
+
+networks:
+  rushdeal-network:
+    driver: bridge

@@ -6,8 +6,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import com.fasterxml.jackson.annotation.JsonPOJOBuilder;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.rushcrew.order_service.domain.vo.ShippingInfo;
 
 import lombok.Builder;
@@ -15,7 +15,6 @@ import lombok.Getter;
 
 @Getter
 @Builder
-@JsonDeserialize(builder = OrderDetailDto.OrderDetailDtoBuilder.class)
 public class OrderDetailDto {
 	private UUID orderId;
 	private Long userId;
@@ -31,20 +30,21 @@ public class OrderDetailDto {
 	private ShippingInfo shippingInfo;
 	private List<OrderItemQueryDto> orderItems;
 
+	@JsonCreator
 	public OrderDetailDto(
-		UUID orderId,
-		Long userId,
-		String orderStatus,
-		BigDecimal totalAmount,
-		Long pointUsed,
-		BigDecimal finalAmount,
-		Instant orderedAt,
-		Instant paymentCompletedAt,
-		Instant purchaseConfirmedAt,
-		Instant cancelledAt,
-		Instant autoConfirmScheduledAt,
-		ShippingInfo shippingInfo,
-		List<OrderItemQueryDto> orderItems
+		@JsonProperty("orderId") UUID orderId,
+		@JsonProperty("userId") Long userId,
+		@JsonProperty("orderStatus") String orderStatus,
+		@JsonProperty("totalAmount") BigDecimal totalAmount,
+		@JsonProperty("pointUsed") Long pointUsed,
+		@JsonProperty("finalAmount") BigDecimal finalAmount,
+		@JsonProperty("orderedAt") Instant orderedAt,
+		@JsonProperty("paymentCompletedAt") Instant paymentCompletedAt,
+		@JsonProperty("purchaseConfirmedAt") Instant purchaseConfirmedAt,
+		@JsonProperty("cancelledAt") Instant cancelledAt,
+		@JsonProperty("autoConfirmScheduledAt") Instant autoConfirmScheduledAt,
+		@JsonProperty("shippingInfo") ShippingInfo shippingInfo,
+		@JsonProperty("orderItems") List<OrderItemQueryDto> orderItems
 	) {
 		this.orderId = orderId;
 		this.userId = userId;
@@ -59,9 +59,5 @@ public class OrderDetailDto {
 		this.autoConfirmScheduledAt = autoConfirmScheduledAt;
 		this.shippingInfo = shippingInfo;
 		this.orderItems = orderItems != null ? orderItems : new ArrayList<>();
-	}
-
-	@JsonPOJOBuilder(withPrefix = "")
-	public static class OrderDetailDtoBuilder {
 	}
 }

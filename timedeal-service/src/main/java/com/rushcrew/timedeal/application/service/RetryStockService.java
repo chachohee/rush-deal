@@ -61,6 +61,8 @@ public class RetryStockService {
 			TimeDealProduct product = stock.getTimeDealProduct();
 			TimeDeal timeDeal = product.getTimeDeal();
 			BigDecimal discountPrice = BigDecimal.valueOf(timeDeal.getPrice().getAmount());
+			String timeDealTitle = timeDeal.getTimeDealInfo().getTitle();
+			Long sellerId = timeDeal.getTimeDealInfo().getSellerId();
 
 			// 성공 이벤트 발행
 			eventPublisher.publishEvent(
@@ -73,7 +75,10 @@ public class RetryStockService {
 							product.getItemIds().getProductId().toString(),
 							product.getItemIds().getOptionId().toString(),
 							command.quantity().getQuantity(),
-							discountPrice
+							discountPrice,
+							discountPrice, // originalPrice: 타임딜 서비스는 원가 미보유, 할인가로 대체
+							timeDealTitle,
+							sellerId
 						)
 					)
 				)

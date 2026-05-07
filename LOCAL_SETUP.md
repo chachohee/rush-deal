@@ -92,5 +92,7 @@ curl -X POST http://localhost:8080/api/v1/auth/login \
 ## 종료
 
 ```bash
-docker compose -f docker-compose-app.yml down
+./stop-local.sh
 ```
+
+> 볼륨(데이터)까지 초기화하려면: `docker-compose -f docker-compose-app.yml down -v`

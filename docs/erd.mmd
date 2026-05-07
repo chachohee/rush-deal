@@ -1,0 +1,272 @@
+erDiagram
+
+  %% ==================== user_schema ====================
+  p_user {
+    BIGINT user_id PK
+    VARCHAR email UK
+    VARCHAR password
+    VARCHAR name
+    VARCHAR role
+    TIMESTAMP created_at
+    TIMESTAMP updated_at
+    BIGINT created_by
+    BIGINT updated_by
+    TIMESTAMP deleted_at
+  }
+
+  p_point_history {
+    UUID id PK
+    BIGINT user_id FK
+    UUID order_id
+    BIGINT amount
+    BIGINT balance_after
+    VARCHAR type
+    TIMESTAMP created_at
+    TIMESTAMP confirmed_at
+    UUID saga_id
+  }
+
+  %% ==================== product_schema ====================
+  p_product {
+    UUID id PK
+    BIGINT seller_id
+    VARCHAR company_name
+    VARCHAR product_name
+    TEXT description
+    DECIMAL price
+    BOOLEAN is_active
+    VARCHAR category
+    TIMESTAMP created_at
+    TIMESTAMP updated_at
+    BIGINT created_by
+    BIGINT updated_by
+    TIMESTAMP deleted_at
+  }
+
+  p_product_option {
+    UUID id PK
+    UUID product_id FK
+    VARCHAR size
+    VARCHAR color
+    TIMESTAMP created_at
+    TIMESTAMP updated_at
+    BIGINT created_by
+    BIGINT updated_by
+    TIMESTAMP deleted_at
+  }
+
+  %% ==================== time_deal_schema ====================
+  p_time_deal {
+    UUID id PK
+    VARCHAR title
+    TEXT description
+    BIGINT seller_id
+    DECIMAL discount_price
+    BIGINT limit_quantity
+    TIMESTAMP start_at
+    TIMESTAMP end_at
+    VARCHAR status
+    TIMESTAMP created_at
+    TIMESTAMP updated_at
+    BIGINT created_by
+    BIGINT updated_by
+    TIMESTAMP deleted_at
+  }
+
+  p_time_deal_product {
+    UUID id PK
+    UUID time_deal_id FK
+    UUID product_id
+    UUID product_option_id
+    VARCHAR status
+    TIMESTAMP created_at
+    TIMESTAMP updated_at
+    BIGINT created_by
+    BIGINT updated_by
+    TIMESTAMP deleted_at
+  }
+
+  p_time_deal_stock {
+    UUID id PK
+    UUID time_deal_product_id FK
+    UUID time_deal_id
+    UUID product_id
+    UUID option_id
+    BIGINT available_stock
+    BIGINT reserved_stock
+    BIGINT sold_stock
+    VARCHAR status
+    BIGINT version
+    DECIMAL original_price
+    TIMESTAMP created_at
+    TIMESTAMP updated_at
+    BIGINT created_by
+    BIGINT updated_by
+    TIMESTAMP deleted_at
+  }
+
+  p_stock_log {
+    UUID id PK
+    UUID time_deal_stock_id FK
+    UUID order_id
+    VARCHAR event_type
+    BIGINT quantity
+    TEXT description
+    TIMESTAMP created_at
+    TIMESTAMP updated_at
+  }
+
+  %% ==================== order_schema ====================
+  p_order {
+    UUID order_id PK
+    BIGINT user_id
+    DECIMAL total_amount
+    BIGINT point_used
+    DECIMAL final_amount
+    VARCHAR status
+    VARCHAR recipient_name
+    VARCHAR recipient_phone
+    TEXT address
+    TIMESTAMP ordered_at
+    TIMESTAMP payment_completed_at
+    TIMESTAMP purchase_confirmed_at
+    TIMESTAMP auto_confirm_scheduled_at
+    TIMESTAMP cancelled_at
+    TIMESTAMP refunded_at
+    UUID saga_id
+    TIMESTAMP created_at
+    TIMESTAMP updated_at
+  }
+
+  p_order_item {
+    UUID order_item_id PK
+    UUID order_id FK
+    UUID time_deal_stock_id
+    BIGINT quantity
+    DECIMAL unit_price
+    DECIMAL discount_price
+    DECIMAL subtotal
+    JSONB product_snapshot
+    TIMESTAMP created_at
+    TIMESTAMP updated_at
+  }
+
+  p_order_reservation {
+    UUID order_reservation_id PK
+    UUID order_id FK
+    UUID time_deal_stock_id
+    BIGINT quantity
+    VARCHAR status
+    TIMESTAMP reserved_at
+    TIMESTAMP expires_at
+    TIMESTAMP confirmed_at
+    TIMESTAMP released_at
+    TIMESTAMP created_at
+    TIMESTAMP updated_at
+  }
+
+  p_order_history {
+    UUID order_history_id PK
+    UUID order_id FK
+    VARCHAR event_type
+    VARCHAR previous_status
+    VARCHAR new_status
+    TEXT reason
+    JSONB metadata
+    TIMESTAMP created_at
+    TIMESTAMP updated_at
+  }
+
+  p_saga_instance {
+    UUID saga_id PK
+    UUID order_id
+    VARCHAR saga_type
+    BIGINT user_id
+    VARCHAR status
+    TIMESTAMP created_at
+    TIMESTAMP completed_at
+    TIMESTAMP failed_at
+    TEXT error_message
+    TEXT saga_data
+  }
+
+  p_saga_step {
+    UUID saga_step_id PK
+    UUID saga_id FK
+    VARCHAR step_name
+    VARCHAR status
+    TIMESTAMP executed_at
+    TIMESTAMP compensated_at
+    TEXT error_message
+  }
+
+  p_outbox_event {
+    UUID event_id PK
+    VARCHAR aggregate_type
+    UUID aggregate_id
+    VARCHAR event_type
+    TEXT payload
+    VARCHAR status
+    TIMESTAMP created_at
+    TIMESTAMP published_at
+    TIMESTAMP failed_at
+    TEXT error_message
+    INTEGER retry_count
+  }
+
+  %% ==================== payment_schema ====================
+  p_payment {
+    UUID payment_id PK
+    UUID order_id
+    DECIMAL amount
+    VARCHAR portone_payment_id
+    VARCHAR status
+    TIMESTAMP created_at
+    TIMESTAMP updated_at
+  }
+
+  p_payment_transaction {
+    UUID payment_transaction_id PK
+    UUID payment_id FK
+    VARCHAR transaction_id
+    VARCHAR store_id
+    VARCHAR card_number
+    VARCHAR card_type
+    DECIMAL amount_total
+    DECIMAL amount_cancelled
+    VARCHAR currency
+    TIMESTAMP requested_at
+    TIMESTAMP updated_at
+    TIMESTAMP status_changed_at
+  }
+
+  %% ==================== queue_schema ====================
+  p_queue_policy {
+    UUID policy_id PK
+    UUID product_id
+    VARCHAR name
+    VARCHAR status
+    TIMESTAMP start_at
+    TIMESTAMP end_at
+    INTEGER allowed_users
+    INTEGER check_interval_seconds
+    INTEGER ttl_minutes
+    TIMESTAMP created_at
+    TIMESTAMP updated_at
+  }
+
+  %% ==================== 관계 ====================
+  p_user ||--o{ p_point_history : "has"
+
+  p_product ||--o{ p_product_option : "has"
+
+  p_time_deal ||--o{ p_time_deal_product : "includes"
+  p_time_deal_product ||--|| p_time_deal_stock : "has"
+  p_time_deal_stock ||--o{ p_stock_log : "logs"
+
+  p_order ||--o{ p_order_item : "contains"
+  p_order ||--o{ p_order_reservation : "has"
+  p_order ||--o{ p_order_history : "tracks"
+  p_saga_instance ||--o{ p_saga_step : "has"
+
+  p_payment ||--o{ p_payment_transaction : "has"

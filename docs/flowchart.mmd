@@ -1,0 +1,55 @@
+flowchart TD
+    Client([클라이언트]) -->|POST /api/v1/orders| GW[API Gateway\n인증 검증]
+    GW -->|JWT 유효| QueueCheck{대기열 토큰\n유효?}
+    GW -->|JWT 무효| Auth401[401 Unauthorized]
+
+    QueueCheck -->|유효| OrderSvc[Order Service]
+    QueueCheck -->|무효/없음| Queue403[403 Forbidden]
+
+    OrderSvc --> SagaCreate[SagaInstance 생성\nstatus: RUNNING]
+    SagaCreate --> DBTx["DB 트랜잭션\n① Order 생성 PENDING\n② OutboxEvent 생성 PENDING\n③ OrderReservation 생성"]
+
+    DBTx --> Scheduler
+
+    subgraph Outbox["Outbox 패턴 (5s 폴링)"]
+        Scheduler[OutboxEventScheduler\nFOR UPDATE SKIP LOCKED]
+        Scheduler -->|PENDING 이벤트| KafkaPub{Kafka 발행}
+        KafkaPub -->|성공| Published[status: PUBLISHED]
+        KafkaPub -->|실패| Failed[status: FAILED\nretry_count++]
+        Failed -->|retry_count < 3| Scheduler
+        Failed -->|retry_count >= 3| DLQ[재시도 스케줄러\n10분 간격]
+        DLQ --> Scheduler
+    end
+
+    Published --> KafkaTopic[(Kafka Topics\norder.created\norder.cancelled\norder.paid\norder.purchase-confirmed)]
+
+    KafkaTopic --> StockSvc[TimeDeal Service\n재고 예약\nOptimistic Lock]
+    KafkaTopic --> PointSvc[User Service\n포인트 차감\nRedisson 분산 락]
+
+    StockSvc -->|성공| StockOK[재고 예약 완료\nReservedStockItem 이벤트]
+    StockSvc -->|재고 부족| StockFail[재고 예약 실패\n보상 이벤트 발행]
+
+    PointSvc -->|성공| PointOK[포인트 차감 완료\nPointDeducted 이벤트]
+    PointSvc -->|잔액 부족| PointFail[포인트 차감 실패\n보상 이벤트 발행]
+
+    StockOK --> SagaCheck{Saga 완료\n조건 충족?}
+    PointOK --> SagaCheck
+
+    SagaCheck -->|모든 Step 완료| OrderReady[Order status: PENDING_PAYMENT\nSaga: COMPLETED]
+    SagaCheck -->|Step 실패| Compensate[보상 트랜잭션\n재고 복구 / 포인트 환불]
+
+    StockFail --> Compensate
+    PointFail --> Compensate
+    Compensate --> OrderCancelled[Order status: CANCELLED\n5분 타임아웃 자동 취소]
+
+    OrderReady --> PaymentSvc[Payment Service\nPortOne 결제]
+    PaymentSvc -->|결제 완료| PaidEvent[order.paid 이벤트\nOrder: PAID\nReservation: CONFIRMED\n재고: 판매 확정]
+    PaymentSvc -->|결제 취소| CancelEvent[order.cancelled 이벤트\n보상 트랜잭션 수행]
+
+    PaidEvent --> AutoConfirm[7일 후 자동 구매확정\norder.purchase-confirmed]
+
+    style Outbox fill:#fff3cd,stroke:#ffc107
+    style Client fill:#d1ecf1,stroke:#0c5460
+    style OrderCancelled fill:#f8d7da,stroke:#721c24
+    style OrderReady fill:#d4edda,stroke:#155724
+    style PaidEvent fill:#d4edda,stroke:#155724

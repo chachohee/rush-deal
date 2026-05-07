@@ -1,0 +1,160 @@
+flowchart TB
+
+  subgraph AuthBC["🔐 Auth Bounded Context"]
+    direction TB
+    subgraph AuthAR["Aggregate: RefreshToken (Redis)"]
+      RT["**RefreshToken**\n─────────────\nTokenId id\nUserId userId\nLocalDateTime issuedAt\nTokenExpiry expiry"]
+    end
+    subgraph AuthVO["Value Objects"]
+      direction LR
+      VO_TokenId["TokenId"]
+      VO_UserId_A["UserId"]
+      VO_TokenExpiry["TokenExpiry"]
+    end
+    AuthAR --- AuthVO
+    AuthNote["BlacklistedToken / BlacklistedUser\n→ Redis 전용"]
+  end
+
+  subgraph UserBC["👤 User Bounded Context"]
+    direction TB
+    subgraph UserAR["Aggregate: User"]
+      U["**User** ★\n─────────────\nLong userId\nString email\nString name\nUserRole role"]
+    end
+    subgraph PointAR["Aggregate: PointHistory"]
+      PH["**PointHistory** ★\n─────────────\nUUID id\nUserId userId\nOrderId orderId\nPoint amount\nPoint balanceAfter\nPointType type\nSagaId sagaId"]
+    end
+    subgraph UserVO["Value Objects"]
+      direction LR
+      VO_Point["Point"]
+      VO_UserId_U["UserId"]
+      VO_OrderId_U["OrderId"]
+      VO_SagaId["SagaId"]
+      VO_PointWalletId["PointWalletId"]
+    end
+    PointAR --- UserVO
+  end
+
+  subgraph ProductBC["📦 Product Bounded Context"]
+    direction TB
+    subgraph ProductAR["Aggregate: Product"]
+      P["**Product** ★\n─────────────\nUUID id\nSellerId sellerId\nString companyName\nProductInfo productInfo\nPrice price\nCategory category\nBoolean isActive"]
+      PO["**ProductOption** (Entity)\n─────────────\nUUID id\nString size\nString color"]
+    end
+    P -->|"1:N"| PO
+    subgraph ProductVO["Value Objects"]
+      direction LR
+      VO_SellerId["SellerId"]
+      VO_ProductInfo["ProductInfo\n(name, description)"]
+      VO_Price_P["Price"]
+      VO_Category["Category"]
+    end
+    ProductAR --- ProductVO
+  end
+
+  subgraph TimeDealBC["⏰ TimeDeal Bounded Context"]
+    direction TB
+    subgraph TimeDealAR["Aggregate: TimeDeal"]
+      TD["**TimeDeal** ★\n─────────────\nUUID id\nTimeDealInfo timeDealInfo\nPrice discountPrice\nLimitQuantity limitQuantity\nPeriod period\nTimeDealStatus status"]
+      TDP["**TimeDealProduct** (Entity)\n─────────────\nUUID id\nProductItemIds itemIds\nTimeDealProductStatus status"]
+    end
+    TD -->|"1:N"| TDP
+    subgraph StockAR["Aggregate: TimeDealStock"]
+      TDS["**TimeDealStock** ★\n─────────────\nUUID id\nUUID timeDealId\nProductItemIds itemIds\nStockCounts stockCounts\nTimeDealStockStatus status\nLong version (Optimistic Lock)\nBigDecimal originalPrice"]
+      SL["**StockLog** (Entity)\n─────────────\nUUID id\nOrderId orderId\nEventType eventType\nQuantity quantity\nString description"]
+    end
+    TDP -->|"1:1"| TDS
+    TDS -->|"1:N"| SL
+    subgraph TimeDealVO["Value Objects"]
+      direction LR
+      VO_TimeDealInfo["TimeDealInfo\n(title, description, sellerId)"]
+      VO_Period["Period\n(startAt, endAt)"]
+      VO_LimitQty["LimitQuantity"]
+      VO_StockCounts["StockCounts\n(available, reserved, sold)"]
+      VO_ProductItemIds["ProductItemIds\n(productId, optionId)"]
+    end
+    TimeDealAR --- TimeDealVO
+    StockAR --- TimeDealVO
+  end
+
+  subgraph OrderBC["🛒 Order Bounded Context"]
+    direction TB
+    subgraph OrderAR["Aggregate: Order"]
+      O["**Order** ★\n─────────────\nUUID orderId\nLong userId\nOrderAmount amount\nOrderStatus status\nShippingInfo shippingInfo\nUUID sagaId"]
+      OI["**OrderItem** (Entity)\n─────────────\nUUID orderItemId\nUUID timeDealStockId\nLong quantity\nBigDecimal discountPrice\nProductSnapshot snapshot"]
+      OR["**OrderReservation** (Entity)\n─────────────\nUUID orderReservationId\nUUID timeDealStockId\nReservationStatus status\nInstant expiresAt"]
+      OH["**OrderHistory** (Entity)\n─────────────\nUUID orderHistoryId\nOrderEventType eventType\nOrderStatus previousStatus\nOrderStatus newStatus"]
+    end
+    O -->|"1:N"| OI
+    O -->|"1:N"| OR
+    O -->|"1:N"| OH
+    subgraph SagaAR["Aggregate: SagaInstance"]
+      SI["**SagaInstance** ★\n─────────────\nUUID sagaId\nUUID orderId\nSagaStatus status\nString sagaData (JSON)"]
+      SS["**SagaStep** (Entity)\n─────────────\nUUID sagaStepId\nString stepName\nSagaStatus status"]
+    end
+    SI -->|"1:N"| SS
+    subgraph OutboxAR["Aggregate: OutboxEvent (Infrastructure)"]
+      OE["**OutboxEventEntity**\n─────────────\nUUID eventId\nString aggregateType\nString eventType\nString payload\nOutboxStatus status\nInteger retryCount"]
+    end
+    subgraph OrderVO["Value Objects"]
+      direction LR
+      VO_OrderAmount["OrderAmount\n(totalAmount, pointUsed, finalAmount)"]
+      VO_ShippingInfo["ShippingInfo\n(name, phone, address)"]
+      VO_ProductSnapshot["ProductSnapshot\n(JSON - 주문 시점 상품 스냅샷)"]
+    end
+    OrderAR --- OrderVO
+  end
+
+  subgraph PaymentBC["💳 Payment Bounded Context"]
+    direction TB
+    subgraph PaymentAR["Aggregate: Payment"]
+      PAY["**Payment** ★\n─────────────\nUUID paymentId\nUUID orderId\nBigDecimal amount\nString portonePaymentId\nPaymentStatus status"]
+      PT["**PaymentTransaction** (Entity)\n─────────────\nUUID id\nString transactionId\nCard card\nAmount amount\nCancel cancel"]
+    end
+    PAY -->|"1:N"| PT
+    subgraph PaymentVO["Value Objects"]
+      direction LR
+      VO_Card["Card\n(number, type)"]
+      VO_Amount["Amount\n(total, cancelled)"]
+      VO_Cancel["Cancel\n(reason, amount)"]
+    end
+    PaymentAR --- PaymentVO
+  end
+
+  subgraph QueueBC["🎫 Queue Bounded Context"]
+    direction TB
+    subgraph QueuePolicyAR["Aggregate: QueuePolicy (DB)"]
+      QP["**QueuePolicy** ★\n─────────────\nUUID policyId\nUUID productId\nString timeDealName\nQueuePolicyStatus status\nTimePeriod timePeriod\nTrafficSetting trafficSetting"]
+    end
+    subgraph QueueTokenAR["Aggregate: QueueToken (Redis Only)"]
+      QT["**QueueToken** ★\n─────────────\nTokenId id\nLong userId\nUUID productId\nQueueStatus status\nLong requestTime\nLong activeTime"]
+    end
+    subgraph QueueVO["Value Objects"]
+      direction LR
+      VO_TimePeriod["TimePeriod\n(startAt, endAt)"]
+      VO_TrafficSetting["TrafficSetting\n(allowedUsers, checkInterval, ttl)"]
+      VO_TokenId_Q["TokenId"]
+    end
+    QueuePolicyAR --- QueueVO
+    QueueTokenAR --- QueueVO
+  end
+
+  style AuthBC fill:#e8eaf6,stroke:#3f51b5
+  style UserBC fill:#e8f5e9,stroke:#388e3c
+  style ProductBC fill:#fff3e0,stroke:#f57c00
+  style TimeDealBC fill:#fce4ec,stroke:#c2185b
+  style OrderBC fill:#e3f2fd,stroke:#1565c0
+  style PaymentBC fill:#f3e5f5,stroke:#7b1fa2
+  style QueueBC fill:#e0f2f1,stroke:#00695c
+
+  style AuthAR fill:#c5cae9,stroke:#3f51b5
+  style UserAR fill:#c8e6c9,stroke:#388e3c
+  style PointAR fill:#a5d6a7,stroke:#388e3c
+  style ProductAR fill:#ffe0b2,stroke:#f57c00
+  style TimeDealAR fill:#f8bbd9,stroke:#c2185b
+  style StockAR fill:#f48fb1,stroke:#c2185b
+  style OrderAR fill:#bbdefb,stroke:#1565c0
+  style SagaAR fill:#90caf9,stroke:#1565c0
+  style OutboxAR fill:#b3e5fc,stroke:#0288d1
+  style PaymentAR fill:#e1bee7,stroke:#7b1fa2
+  style QueuePolicyAR fill:#b2dfdb,stroke:#00695c
+  style QueueTokenAR fill:#80cbc4,stroke:#00695c

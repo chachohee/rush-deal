@@ -12,6 +12,7 @@
 - [주요 기능](#-주요-기능)
 - [팀원 및 역할](#-팀원-및-역할)
 - [기술 스택](#-기술-스택)
+- [DDD 구조](#-ddd-구조-bounded-context--aggregate)
 - [시스템 아키텍처](#-시스템-아키텍처)
 - [주문 생성 플로우차트](#-주문-생성-플로우차트)
 - [ERD](#-erd)
@@ -142,6 +143,33 @@
 | Metrics | Prometheus, Grafana |
 | Tracing | Zipkin |
 | Kafka UI | Kafka UI (provectuslabs) |
+
+---
+
+## 🧩 DDD 구조 (Bounded Context · Aggregate)
+
+각 마이크로서비스는 독립된 Bounded Context로 설계되어 있으며, 서비스 간 직접 DB 참조 없이 이벤트(Kafka)와 API(Feign)로만 통신합니다.
+
+![ddd](docs/image/ddd.png)
+
+### Aggregate 요약
+
+| Bounded Context | Aggregate Root | 하위 Entity | Value Object |
+|----------------|----------------|-------------|--------------|
+| **Auth** | RefreshToken *(Redis)* | — | TokenId, UserId, TokenExpiry |
+| **User** | User | — | UserRole |
+| **User** | PointHistory | — | Point, UserId, OrderId, SagaId |
+| **Product** | Product | ProductOption | SellerId, ProductInfo, Price, Category |
+| **TimeDeal** | TimeDeal | TimeDealProduct | TimeDealInfo, Price, Period, LimitQuantity |
+| **TimeDeal** | TimeDealStock | StockLog | StockCounts, ProductItemIds, Quantity |
+| **Order** | Order | OrderItem, OrderReservation, OrderHistory | OrderAmount, ShippingInfo, ProductSnapshot |
+| **Order** | SagaInstance | SagaStep | SagaStatus |
+| **Order** | OutboxEventEntity *(인프라)* | — | OutboxStatus |
+| **Payment** | Payment | PaymentTransaction | Amount, Card, Cancel |
+| **Queue** | QueuePolicy *(DB)* | — | TimePeriod, TrafficSetting |
+| **Queue** | QueueToken *(Redis)* | — | TokenId, QueueStatus |
+
+> ★ = Aggregate Root  |  Optimistic Lock: `TimeDealStock.version`  |  분산 락: `PointHistory` (Redisson)
 
 ---
 

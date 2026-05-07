@@ -80,6 +80,9 @@ jwt:
   access:
     secret: ${JWT_ACCESS_SECRET}
     expiration: ${JWT_ACCESS_EXPIRED:3600000}
+  refresh:
+    secret: ${JWT_REFRESH_SECRET}
+    expiration: ${JWT_REFRESH_EXPIRED:604800000}
 
 gateway:
   public-paths:

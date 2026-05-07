@@ -109,6 +109,23 @@ services:
     networks:
       - rushdeal-network
 
+  rushdeal_gateway_redis:
+    image: redis:7-alpine
+    container_name: rushdeal_gateway_redis
+    restart: unless-stopped
+    ports:
+      - "6384:6379"
+    volumes:
+      - rushdeal_gateway_redis_data:/data
+    command: redis-server --save 60 1 --loglevel warning --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - rushdeal-network
+
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
     container_name: rushdeal_zookeeper
@@ -159,11 +176,66 @@ services:
   # [MSA 서비스] 스프링 부트 앱 설정
   # =========================================
 
+  discovery-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.local
+      args:
+        SERVICE_NAME: discovery-service
+    container_name: rushdeal_discovery_service
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-local}
+      SERVER_PORT: 8761
+    ports:
+      - "8761:8761"
+    networks:
+      - rushdeal-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8761/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile.local
+      args:
+        SERVICE_NAME: api-gateway
+    container_name: rushdeal_api_gateway
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-local}
+      SERVER_PORT: 8080
+      REDIS_HOST: rushdeal_gateway_redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_ACCESS_EXPIRED: ${JWT_ACCESS_EXPIRED:-3600000}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_REFRESH_EXPIRED: ${JWT_REFRESH_EXPIRED:-604800000}
+      EUREKA_URL: http://discovery-service:8761/eureka/
+      MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: ${ZIPKIN_URL:-http://zipkin:9411/api/v2/spans}
+      MANAGEMENT_TRACING_SAMPLING_PROBABILITY: ${TRACING_SAMPLING_RATE:-1.0}
+    ports:
+      - "8080:8080"
+    depends_on:
+      discovery-service:
+        condition: service_healthy
+      rushdeal_gateway_redis:
+        condition: service_healthy
+      zipkin:
+        condition: service_healthy
+    networks:
+      - rushdeal-network
+    restart: unless-stopped
+
   auth-service:
     container_name: rushdeal_auth_service
     build:
       context: .
-      dockerfile: Dockerfile.template
+      dockerfile: Dockerfile.local
       args:
         SERVICE_NAME: auth-service
     environment:
@@ -178,7 +250,7 @@ services:
 
       # Redis
       REDIS_HOST: ${AUTH_REDIS_HOST:-rushdeal_auth_redis}
-      REDIS_PORT: 6379
+      AUTH_REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}
 
       # JWT
@@ -186,6 +258,10 @@ services:
       JWT_ACCESS_EXPIRED: ${JWT_ACCESS_EXPIRED:-3600000}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
       JWT_REFRESH_EXPIRED: ${JWT_REFRESH_EXPIRED:-604800000}
+
+      # Eureka
+      EUREKA_ENABLED: ${EUREKA_ENABLED:-true}
+      EUREKA_URL: http://discovery-service:8761/eureka/
 
       # Auth Config
       AUTH_MAX_CONCURRENT_SESSIONS: ${AUTH_MAX_CONCURRENT_SESSIONS:-3}
@@ -204,6 +280,8 @@ services:
         condition: service_healthy
       zipkin:
         condition: service_healthy
+      discovery-service:
+        condition: service_healthy
     networks:
        - rushdeal-network
     restart: unless-stopped
@@ -212,7 +290,7 @@ services:
     container_name: rushdeal_user_service
     build:
       context: .
-      dockerfile: Dockerfile.template
+      dockerfile: Dockerfile.local
       args:
         SERVICE_NAME: user-service
     environment:
@@ -222,10 +300,11 @@ services:
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
       REDIS_HOST: ${USER_REDIS_HOST:-rushdeal_user_redis}
-      REDIS_PORT: 6379
+      USER_REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}
-      EUREKA_ENABLED: ${EUREKA_ENABLED:-false}
-      EUREKA_URL: ${EUREKA_URL}
+      KAFKA_BROKERS: ${KAFKA_BROKERS:-kafka:29092}
+      EUREKA_ENABLED: ${EUREKA_ENABLED:-true}
+      EUREKA_URL: http://discovery-service:8761/eureka/
       JPA_DDL_AUTO: ${JPA_DDL_AUTO:-update}
 
       # Monitoring
@@ -237,19 +316,21 @@ services:
       - "${USER_SERVER_PORT:-8060}:${USER_SERVER_PORT:-8060}"
     depends_on:
       rushdeal_postgres:
-         condition: service_healthy
+        condition: service_healthy
       rushdeal_user_redis:
-         condition: service_healthy
+        condition: service_healthy
       zipkin:
         condition: service_healthy
+      discovery-service:
+        condition: service_healthy
     networks:
-     - rushdeal-network
+      - rushdeal-network
     restart: unless-stopped
 
   order-service:
     build:
       context: .
-      dockerfile: Dockerfile.template
+      dockerfile: Dockerfile.local
       args:
         SERVICE_NAME: order-service
     container_name: rushdeal_order_service
@@ -263,8 +344,8 @@ services:
       ORDER_REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
       KAFKA_BROKERS: ${KAFKA_BROKERS:-kafka:29092}
-      EUREKA_ENABLED: ${EUREKA_ENABLED:-false}
-      EUREKA_URL: ${EUREKA_URL}
+      EUREKA_ENABLED: ${EUREKA_ENABLED:-true}
+      EUREKA_URL: http://discovery-service:8761/eureka/
       JPA_DDL_AUTO: ${JPA_DDL_AUTO:-update}
       SHOW_SQL: ${SHOW_SQL:-false}
       SQL_INIT_MODE: ${SQL_INIT_MODE:-never}
@@ -285,6 +366,8 @@ services:
         condition: service_started
       zipkin:
         condition: service_healthy
+      discovery-service:
+        condition: service_healthy
     networks:
       - rushdeal-network
     restart: unless-stopped
@@ -292,7 +375,7 @@ services:
   payment-service:
     build:
       context: .
-      dockerfile: Dockerfile.template
+      dockerfile: Dockerfile.local
       args:
         SERVICE_NAME: payment-service
     container_name: rushdeal_payment_service
@@ -302,8 +385,8 @@ services:
       DB_URL: ${DB_URL}
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
-      EUREKA_ENABLED: ${EUREKA_ENABLED:-false}
-      EUREKA_URL: ${EUREKA_URL}
+      EUREKA_ENABLED: ${EUREKA_ENABLED:-true}
+      EUREKA_URL: http://discovery-service:8761/eureka/
       JPA_DDL_AUTO: ${JPA_DDL_AUTO:-update}
       SHOW_SQL: ${SHOW_SQL:-false}
       PORTONE_API_SECRET: ${PORTONE_API_SECRET}
@@ -323,6 +406,8 @@ services:
         condition: service_healthy
       zipkin:
         condition: service_healthy
+      discovery-service:
+        condition: service_healthy
     networks:
       - rushdeal-network
     restart: unless-stopped
@@ -330,7 +415,7 @@ services:
   product-service:
     build:
       context: .
-      dockerfile: Dockerfile.template
+      dockerfile: Dockerfile.local
       args:
         SERVICE_NAME: product-service
     container_name: rushdeal_product_service
@@ -340,8 +425,8 @@ services:
       DB_URL: ${DB_URL}
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
-      EUREKA_ENABLED: ${EUREKA_ENABLED:-false}
-      EUREKA_URL: ${EUREKA_URL}
+      EUREKA_ENABLED: ${EUREKA_ENABLED:-true}
+      EUREKA_URL: http://discovery-service:8761/eureka/
       JPA_DDL_AUTO: ${JPA_DDL_AUTO:-update}
       SHOW_SQL: ${SHOW_SQL:-false}
       SQL_INIT_MODE: ${SQL_INIT_MODE:-never}
@@ -358,6 +443,8 @@ services:
         condition: service_healthy
       zipkin:
         condition: service_healthy
+      discovery-service:
+        condition: service_healthy
     networks:
       - rushdeal-network
     restart: unless-stopped
@@ -365,7 +452,7 @@ services:
   queue-service:
     build:
       context: .
-      dockerfile: Dockerfile.template
+      dockerfile: Dockerfile.local
       args:
         SERVICE_NAME: queue-service
     container_name: rushdeal_queue_service
@@ -376,10 +463,10 @@ services:
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
       REDIS_HOST: ${QUEUE_REDIS_HOST:-rushdeal_queue_redis}
-      REDIS_PORT: 6379
+      QUEUE_REDIS_PORT: 6379
       KAFKA_BROKERS: ${KAFKA_BROKERS:-kafka:29092}
-      EUREKA_ENABLED: ${EUREKA_ENABLED:-false}
-      EUREKA_URL: ${EUREKA_URL}
+      EUREKA_ENABLED: ${EUREKA_ENABLED:-true}
+      EUREKA_URL: http://discovery-service:8761/eureka/
       JPA_DDL_AUTO: ${JPA_DDL_AUTO:-update}
       SHOW_SQL: ${SHOW_SQL:-false}
 
@@ -399,6 +486,8 @@ services:
         condition: service_started
       zipkin:
         condition: service_healthy
+      discovery-service:
+        condition: service_healthy
     networks:
       - rushdeal-network
     restart: unless-stopped
@@ -406,7 +495,7 @@ services:
   timedeal-service:
     build:
       context: .
-      dockerfile: Dockerfile.template
+      dockerfile: Dockerfile.local
       args:
         SERVICE_NAME: timedeal-service
     container_name: rushdeal_timedeal_service
@@ -417,10 +506,10 @@ services:
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
       REDIS_HOST: ${TIMEDEAL_REDIS_HOST:-rushdeal_timedeal_redis}
-      REDIS_PORT: 6379
+      TIMEDEAL_REDIS_PORT: 6379
       KAFKA_BROKERS: ${KAFKA_BROKERS:-kafka:29092}
-      EUREKA_ENABLED: ${EUREKA_ENABLED:-false}
-      EUREKA_URL: ${EUREKA_URL}
+      EUREKA_ENABLED: ${EUREKA_ENABLED:-true}
+      EUREKA_URL: http://discovery-service:8761/eureka/
       JPA_DDL_AUTO: ${JPA_DDL_AUTO:-update}
       SHOW_SQL: ${SHOW_SQL:-false}
       SQL_INIT_MODE: ${SQL_INIT_MODE:-never}
@@ -440,6 +529,8 @@ services:
       kafka:
         condition: service_started
       zipkin:
+        condition: service_healthy
+      discovery-service:
         condition: service_healthy
     networks:
       - rushdeal-network
@@ -539,6 +630,7 @@ services:
 
 volumes:
   rushdeal_pg_data:
+  rushdeal_gateway_redis_data:
   rushdeal_auth_redis_data:
   rushdeal_user_redis_data:
   rushdeal_queue_redis_data:

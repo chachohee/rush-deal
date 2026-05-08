@@ -190,7 +190,7 @@ Saga·Outbox 패턴 기반의 주문 생성 전체 흐름입니다.
 
 | 단계 | 설명 |
 |------|------|
-| **대기열 토큰 검증** | API Gateway에서 JWT + 대기열 토큰 동시 검증 |
+| **대기열 토큰 검증** | Order Service에서 Queue Service REST 호출로 대기열 토큰 유효성 검증 (JWT 검증은 API Gateway에서 수행) |
 | **Saga 시작** | SagaInstance 생성(RUNNING), Order 생성(PENDING) |
 | **Outbox 발행** | 5s 폴링 + FOR UPDATE SKIP LOCKED로 Kafka 발행, 실패 시 최대 3회 재시도 |
 | **재고 예약** | TimeDeal Service - Optimistic Lock 기반 재고 예약 |
@@ -246,7 +246,7 @@ Saga·Outbox 패턴 기반의 주문 생성 전체 흐름입니다.
 
 ```
 rush-deal/
-├── api-gateway/          # 요청 라우팅, JWT 인증, 대기열 토큰 검증
+├── api-gateway/          # 요청 라우팅, JWT 인증, 하위 서비스 헤더 전파 (X-User-Id/Role)
 ├── discovery-service/    # 서비스 디스커버리 (Eureka)
 ├── auth-service/         # 인증, JWT 발급·갱신·블랙리스트
 ├── user-service/         # 사용자 관리, 포인트 적립·차감

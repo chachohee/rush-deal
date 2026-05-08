@@ -20,6 +20,9 @@ flowchart TB
     subgraph UserAR["Aggregate: User"]
       U["**User** ★\n─────────────\nLong userId\nString email\nString name\nUserRole role"]
     end
+    subgraph ShippingAR["Aggregate: ShippingAddress"]
+      SA["**ShippingAddress** ★\n─────────────\nLong addressId\nLong userId\nString recipientName\nString recipientPhone\nString zipCode\nString addressBase\nString addressDetail\nBoolean isDefault"]
+    end
     subgraph PointAR["Aggregate: PointHistory"]
       PH["**PointHistory** ★\n─────────────\nUUID id\nUserId userId\nOrderId orderId\nPoint amount\nPoint balanceAfter\nPointType type\nSagaId sagaId"]
     end
@@ -148,6 +151,7 @@ flowchart TB
 
   style AuthAR fill:#c5cae9,stroke:#3f51b5
   style UserAR fill:#c8e6c9,stroke:#388e3c
+  style ShippingAR fill:#dcedc8,stroke:#388e3c
   style PointAR fill:#a5d6a7,stroke:#388e3c
   style ProductAR fill:#ffe0b2,stroke:#f57c00
   style TimeDealAR fill:#f8bbd9,stroke:#c2185b

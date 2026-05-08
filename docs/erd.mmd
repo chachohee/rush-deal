@@ -14,6 +14,23 @@ erDiagram
     TIMESTAMP deleted_at
   }
 
+  p_shipping_address {
+    BIGINT address_id PK
+    BIGINT user_id FK
+    VARCHAR recipient_name
+    VARCHAR recipient_phone
+    VARCHAR zip_code
+    VARCHAR address_base
+    VARCHAR address_detail
+    VARCHAR delivery_message
+    BOOLEAN is_default
+    TIMESTAMP created_at
+    TIMESTAMP updated_at
+    BIGINT created_by
+    BIGINT updated_by
+    TIMESTAMP deleted_at
+  }
+
   p_point_history {
     UUID id PK
     BIGINT user_id FK
@@ -256,6 +273,7 @@ erDiagram
   }
 
   %% ==================== 관계 ====================
+  p_user ||--o{ p_shipping_address : "has"
   p_user ||--o{ p_point_history : "has"
 
   p_product ||--o{ p_product_option : "has"

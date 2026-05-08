@@ -1,5 +1,7 @@
 package com.rushcrew.payment_service.presentation;
 
+import com.rushcrew.payment_service.infrastructure.client.OrderClient;
+import com.rushcrew.payment_service.infrastructure.client.dto.OrderResponse;
 import com.rushcrew.payment_service.infrastructure.config.PortOneSecretProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -18,6 +20,7 @@ import java.util.UUID;
 public class PaymentPageController {
 
     private final PortOneSecretProperties secret;
+    private final OrderClient orderClient;
 
     @GetMapping("/page/{orderId}")
     @PreAuthorize("hasAnyRole('USER', 'SELLER', 'MASTER')")
@@ -25,10 +28,8 @@ public class PaymentPageController {
             @PathVariable UUID orderId,
             Model model
     ) {
-        // TODO: Order 서비스에서 주문 정보 조회
-
-        // 임시로 더미 데이터 사용
-        BigDecimal amount = BigDecimal.valueOf(10000);
+        OrderResponse order = orderClient.getOrder(orderId);
+        BigDecimal amount = BigDecimal.valueOf(order.totalAmount());
 
         model.addAttribute("orderId", orderId);
         model.addAttribute("amount", amount);

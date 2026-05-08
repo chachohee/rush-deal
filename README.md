@@ -151,7 +151,7 @@
 
 각 마이크로서비스는 독립된 Bounded Context로 설계되어 있으며, 서비스 간 직접 DB 참조 없이 이벤트(Kafka)와 API(Feign)로만 통신합니다.
 
-![ddd](docs/image/ddd.png)
+![ddd](docs/image/ddd.svg)
 
 ### Aggregate 요약
 
@@ -204,7 +204,7 @@ Saga·Outbox 패턴 기반의 주문 생성 전체 흐름입니다.
 
 서비스별 독립 스키마로 분리되어 있으며, 서비스 간 DB 직접 참조는 없습니다.
 
-![erd](docs/image/rushdeal_erd.png)
+![erd](docs/image/rushdeal_erd.svg)
 
 | 스키마 | 테이블 | 설명 |
 |--------|--------|------|

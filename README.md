@@ -68,7 +68,7 @@
 | 주문 | POST | `/api/v1/orders/**` |
 | 결제 | POST | `/api/v1/payments/**` |
 | 대기열 | GET | `/api/v1/queues/**` |
-| 배송지 관리 | GET/POST/PUT/PATCH/DELETE | `/api/v1/users/me/addresses/**` |
+| 배송지 관리 | GET | `/api/v1/users/me/addresses/**` |
 
 ---
 
@@ -159,6 +159,7 @@
 |----------------|----------------|-------------|--------------|
 | **Auth** | RefreshToken *(Redis)* | — | TokenId, UserId, TokenExpiry |
 | **User** | User | — | UserRole |
+| **User** | ShippingAddress | — | RecipientName, RecipientPhone, ZipCode, Address |
 | **User** | PointHistory | — | Point, UserId, OrderId, SagaId |
 | **Product** | Product | ProductOption | SellerId, ProductInfo, Price, Category |
 | **TimeDeal** | TimeDeal | TimeDealProduct | TimeDealInfo, Price, Period, LimitQuantity |

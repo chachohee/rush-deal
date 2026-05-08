@@ -323,7 +323,7 @@ public class StockServiceImpl implements StockService {
 					StockReservationFailedEvent.of(
 						sagaId,
 						orderId,
-						commands.get(0).stockId().toString(),
+						commands.stream().map(c -> c.stockId().toString()).toList(),
 						errorMsg
 					)
 				);
@@ -399,7 +399,7 @@ public class StockServiceImpl implements StockService {
 				StockReservationFailedEvent.of(
 					sagaId,
 					orderId,
-					commands.get(0).stockId().toString(), // TODO: 어떤 재고가 품절이었는지
+					commands.stream().map(c -> c.stockId().toString()).toList(),
 					errorMsg
 				)
 			);
@@ -440,7 +440,7 @@ public class StockServiceImpl implements StockService {
 					StockRestoreFailedEvent.of(
 						sagaId.toString(),
 						orderId.toString(),
-						commands.get(0).stockId().toString(),
+						commands.stream().map(c -> c.stockId().toString()).toList(),
 						errorMsg
 					)
 				);
@@ -589,7 +589,7 @@ public class StockServiceImpl implements StockService {
 							StockRestoreFailedEvent.of(
 								sagaId.toString(),
 								orderId.toString(),
-								commands.get(0).stockId().toString(),
+								commands.stream().map(c -> c.stockId().toString()).toList(),
 								errorMsg
 							)
 						);
@@ -605,7 +605,7 @@ public class StockServiceImpl implements StockService {
 				StockRestoreFailedEvent.of(
 					sagaId.toString(),
 					orderId.toString(),
-					commands.get(0).stockId().toString(),
+					commands.stream().map(c -> c.stockId().toString()).toList(),
 					e.getMessage()
 				)
 			);
@@ -616,12 +616,11 @@ public class StockServiceImpl implements StockService {
 			String errorMsg = "재고 복구 중 오류 발생: " + e.getMessage();
 			log.error("[Saga-{}] 배치 재고 복구 실패: {}", sagaId, errorMsg, e);
 
-			// ✅ 실패 이벤트 발행
 			eventPublisher.publishEvent(
 				StockRestoreFailedEvent.of(
 					sagaId.toString(),
 					orderId.toString(),
-					commands.get(0).stockId().toString(), // TODO: 실패한 재고 ID 목록들로 변경
+					commands.stream().map(c -> c.stockId().toString()).toList(),
 					errorMsg
 				)
 			);

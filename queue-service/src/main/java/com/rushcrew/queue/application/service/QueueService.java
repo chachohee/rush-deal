@@ -7,6 +7,7 @@ import com.rushcrew.queue.application.port.in.QueuePort;
 import com.rushcrew.queue.common.QueueErrorCode;
 import com.rushcrew.queue.domain.entity.QueuePolicy;
 import com.rushcrew.queue.domain.entity.QueueToken;
+import com.rushcrew.queue.domain.enums.QueuePolicyStatus;
 import com.rushcrew.queue.domain.enums.QueueStatus;
 import com.rushcrew.queue.domain.repository.QueuePolicyRepository;
 import com.rushcrew.queue.domain.repository.QueueRepository;
@@ -36,8 +37,6 @@ public class QueueService implements QueuePort {
 
     /**
      * 대기열 진입
-     * TODO: product ID는 타임딜 정책(QueuePolicy) 테이블에서 유효성 검증
-     * 관리자가 정책을 등록하지 않은 상품은 대기열을 생성할 수 없음
      */
     @Override
     @Transactional(readOnly = true)
@@ -47,9 +46,14 @@ public class QueueService implements QueuePort {
             throw new BusinessException(QueueErrorCode.PRODUCT_SOLD_OUT);
         }
 
-        // 대기열 정책 확인 (RDB 조회 - 상품 존재 여부 및 시간 확인)
+        // 대기열 정책 확인 (RDB 조회 - 상품 존재 여부 및 상태 확인)
         QueuePolicy policy = queuePolicyRepository.findByProductId(command.productId())
             .orElseThrow(() -> new BusinessException(QueueErrorCode.NO_TIMEDEAL_PRODUCT));
+
+        // STOPPED 상태면 타임딜 종료 또는 재고 소진 — 대기열 진입 불가
+        if (policy.getStatus() == QueuePolicyStatus.STOPPED) {
+            throw new BusinessException(QueueErrorCode.NO_TIMEDEAL_PRODUCT);
+        }
 
         QueueToken queueToken = QueueToken.create(command.productId(), command.userId());
 

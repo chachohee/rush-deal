@@ -212,8 +212,8 @@ public class OrderSagaEventHandler {
 			return;
 		}
 
-		log.error("[Saga-{}] 재고 복구 실패: orderId={}, stockId={}, reason={}",
-			event.sagaId(), event.orderId(), event.stockId(), event.reason());
+		log.error("[Saga-{}] 재고 복구 실패: orderId={}, stockIds={}, reason={}",
+			event.sagaId(), event.orderId(), event.stockIds(), event.reason());
 
 		// 재고 복구 실패는 심각한 상황이므로 별도 처리 필요
 		// 1. Saga 상태를 FAILED로 마킹
@@ -225,7 +225,7 @@ public class OrderSagaEventHandler {
 		metricsPort.recordSagaFailure();
 
 		// 3. 알림/모니터링 (선택사항)
-		log.error("[CRITICAL][Saga-{}] 재고 복구 실패 - 수동 확인 필요! orderId={}, stockId={}",
-			event.sagaId(), event.orderId(), event.stockId());
+		log.error("[CRITICAL][Saga-{}] 재고 복구 실패 - 수동 확인 필요! orderId={}, stockIds={}",
+			event.sagaId(), event.orderId(), event.stockIds());
 	}
 }

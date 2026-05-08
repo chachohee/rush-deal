@@ -73,7 +73,7 @@ public class StockEventConsumer {
 				StockReservationFailedEvent failedEvent = StockReservationFailedEvent.of(
 					event.sagaId(),
 					event.orderId(),
-					event.productId(),
+					List.of(event.productId()),
 					e.getMessage()
 				);
 				stockEventProducer.publishStockReservationFailed(failedEvent);

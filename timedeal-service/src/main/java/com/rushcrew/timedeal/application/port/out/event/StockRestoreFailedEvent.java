@@ -1,12 +1,14 @@
 package com.rushcrew.timedeal.application.port.out.event;
 
+import java.util.List;
+
 public record StockRestoreFailedEvent(
 	String sagaId,
 	String orderId,
-	String stockId,  // TODO: 실패한 재고 ID 목록들로 변경
+	List<String> stockIds,
 	String reason
 ) {
-	public static StockRestoreFailedEvent of(String sagaId, String orderId, String stockId, String reason) {
-		return new StockRestoreFailedEvent(sagaId, orderId, stockId, reason);
+	public static StockRestoreFailedEvent of(String sagaId, String orderId, List<String> stockIds, String reason) {
+		return new StockRestoreFailedEvent(sagaId, orderId, stockIds, reason);
 	}
 }

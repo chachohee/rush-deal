@@ -15,7 +15,7 @@ import com.rushcrew.order_service.domain.model.order.Order;
 
 public interface OrderJpaRepository extends JpaRepository<Order, UUID> {
 
-	/* 사용자의 특정 타임딜 누적 구매 수량 조회 */ // TODO: product_snapshot에 productId 저장
+	/* 사용자의 특정 타임딜 누적 구매 수량 조회 */
 	@Query(value = """
        SELECT COALESCE(SUM(oi.quantity), 0)
        FROM order_schema.p_order_item oi

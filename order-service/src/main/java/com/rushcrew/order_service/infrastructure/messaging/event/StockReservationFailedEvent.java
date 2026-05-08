@@ -1,11 +1,12 @@
 package com.rushcrew.order_service.infrastructure.messaging.event;
 
 import java.time.Instant;
+import java.util.List;
 
 public record StockReservationFailedEvent(
 	String sagaId,
 	String orderId,
-	String stockId,
+	List<String> stockIds,
 	String reason,
 	Instant occurredAt
 ) {
@@ -13,13 +14,13 @@ public record StockReservationFailedEvent(
 	public static StockReservationFailedEvent of(
 		String sagaId,
 		String orderId,
-		String stockId,
+		List<String> stockIds,
 		String reason
 	) {
 		return new StockReservationFailedEvent(
 			sagaId,
 			orderId,
-			stockId,
+			stockIds,
 			reason,
 			Instant.now()
 		);

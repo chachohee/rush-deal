@@ -1,24 +1,25 @@
 package com.rushcrew.timedeal.application.port.out.event;
 
 import java.time.Instant;
+import java.util.List;
 
 public record StockReservationFailedEvent(
 	String sagaId,
 	String orderId,
-	String stockId, // TODO: 실패한 재고 ID 목록들로 변경
+	List<String> stockIds,
 	String reason,
 	Instant occurredAt
 ) {
 	public static StockReservationFailedEvent of(
 		String sagaId,
 		String orderId,
-		String stockId,
+		List<String> stockIds,
 		String reason
 	) {
 		return new StockReservationFailedEvent(
 			sagaId,
 			orderId,
-			stockId,
+			stockIds,
 			reason,
 			Instant.now()
 		);

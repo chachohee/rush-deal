@@ -99,7 +99,7 @@ public class RetryStockService {
 				StockReservationFailedEvent.of(
 					command.sagaId().toString(),
 					command.orderId().getOrderId().toString(),
-					command.stockId().toString(), // stockId를 productId 대신 사용
+					List.of(command.stockId().toString()),
 					errorMsg
 				)
 			);
@@ -115,7 +115,7 @@ public class RetryStockService {
 				StockReservationFailedEvent.of(
 					command.sagaId().toString(),
 					command.orderId().getOrderId().toString(),
-					command.stockId().toString(),
+					List.of(command.stockId().toString()),
 					errorMsg
 				)
 			);

@@ -68,6 +68,7 @@
 | 주문 | POST | `/api/v1/orders/**` |
 | 결제 | POST | `/api/v1/payments/**` |
 | 대기열 | GET | `/api/v1/queues/**` |
+| 배송지 관리 | GET/POST/PUT/PATCH/DELETE | `/api/v1/users/me/addresses/**` |
 
 ---
 
@@ -206,7 +207,7 @@ Saga·Outbox 패턴 기반의 주문 생성 전체 흐름입니다.
 
 | 스키마 | 테이블 | 설명 |
 |--------|--------|------|
-| `user_schema` | p_user, p_point_history | 사용자 정보, 포인트 이력 |
+| `user_schema` | p_user, p_point_history, p_shipping_address | 사용자 정보, 포인트 이력, 배송지 |
 | `product_schema` | p_product, p_product_option | 상품 및 옵션 |
 | `time_deal_schema` | p_time_deal, p_time_deal_product, p_time_deal_stock, p_stock_log | 타임딜, 재고, 재고 이력 |
 | `order_schema` | p_order, p_order_item, p_order_reservation, p_order_history, p_saga_instance, p_saga_step, p_outbox_event | 주문, Saga, Outbox |

@@ -63,6 +63,7 @@ public class UserController {
     }
 
     @GetMapping("/me")
+    @PreAuthorize("hasAnyRole('USER', 'SELLER', 'MASTER')")
     public ResponseEntity<UserResponse> getUser(
         @RequestHeader("X-User-Id") Long userId
     ) {
@@ -71,6 +72,7 @@ public class UserController {
     }
 
     @PutMapping("/me")
+    @PreAuthorize("hasAnyRole('USER', 'SELLER', 'MASTER')")
     public ResponseEntity<Void> updateUser(
         @Valid @RequestBody UserUpdateRequest request,
         @RequestHeader("X-User-Id") Long userId
@@ -83,6 +85,7 @@ public class UserController {
     }
 
     @GetMapping("/internal/users/{userId}")
+    @PreAuthorize("hasRole('MASTER')")
     public ResponseEntity<UserInfoResponse> getUserById(
         @PathVariable Long userId
     ) {

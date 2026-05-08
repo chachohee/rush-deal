@@ -39,6 +39,7 @@ public class PaymentController {
     }
 
     @PostMapping("/complete")
+    @PreAuthorize("hasAnyRole('USER', 'SELLER', 'MASTER')")
     public Mono<PaymentResponse> completePayment(
             @RequestBody CompletePaymentRequest completeRequest
     ) {

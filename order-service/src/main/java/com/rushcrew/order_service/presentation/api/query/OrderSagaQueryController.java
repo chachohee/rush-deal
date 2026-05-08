@@ -2,6 +2,7 @@ package com.rushcrew.order_service.presentation.api.query;
 
 import java.util.UUID;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import com.rushcrew.common.dto.ApiResponse;
@@ -18,6 +19,7 @@ public class OrderSagaQueryController {
 	private final GetOrderSagaUseCase getOrderSagaUseCase;
 
 	@GetMapping("/saga/{sagaId}")
+	@PreAuthorize("hasRole('MASTER')")
 	public ApiResponse<OrderSagaResult> getSaga(
 		@PathVariable UUID sagaId
 	) {

@@ -99,6 +99,7 @@ public class TimeDealController {
 
 
 	@GetMapping("/{timeDealId}/order")
+	@PreAuthorize("hasAnyRole('USER', 'SELLER', 'MASTER')")
 	public ResponseEntity<TimeDealForOrderResponse> getTimeDealForOrder(
 		@PathVariable UUID timeDealId
 	) {

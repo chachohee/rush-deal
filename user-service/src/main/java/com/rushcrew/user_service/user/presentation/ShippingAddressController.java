@@ -10,6 +10,7 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -29,6 +30,7 @@ public class ShippingAddressController {
     private final ShippingAddressService shippingAddressService;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('USER', 'SELLER', 'MASTER')")
     public ResponseEntity<List<ShippingAddressResponse>> getAddresses(
         @RequestHeader("X-User-Id") Long userId
     ) {
@@ -40,6 +42,7 @@ public class ShippingAddressController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('USER', 'SELLER', 'MASTER')")
     public ResponseEntity<ShippingAddressResponse> createAddress(
         @Valid @RequestBody CreateShippingAddressRequest request,
         @RequestHeader("X-User-Id") Long userId
@@ -49,6 +52,7 @@ public class ShippingAddressController {
     }
 
     @PutMapping("/{addressId}")
+    @PreAuthorize("hasAnyRole('USER', 'SELLER', 'MASTER')")
     public ResponseEntity<ShippingAddressResponse> updateAddress(
         @PathVariable Long addressId,
         @Valid @RequestBody UpdateShippingAddressRequest request,
@@ -59,6 +63,7 @@ public class ShippingAddressController {
     }
 
     @PatchMapping("/{addressId}/default")
+    @PreAuthorize("hasAnyRole('USER', 'SELLER', 'MASTER')")
     public ResponseEntity<Void> setDefault(
         @PathVariable Long addressId,
         @RequestHeader("X-User-Id") Long userId
@@ -68,6 +73,7 @@ public class ShippingAddressController {
     }
 
     @DeleteMapping("/{addressId}")
+    @PreAuthorize("hasAnyRole('USER', 'SELLER', 'MASTER')")
     public ResponseEntity<Void> deleteAddress(
         @PathVariable Long addressId,
         @RequestHeader("X-User-Id") Long userId

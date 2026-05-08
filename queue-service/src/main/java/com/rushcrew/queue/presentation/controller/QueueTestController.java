@@ -9,6 +9,7 @@ import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -32,6 +33,7 @@ public class QueueTestController {
      * 용도: Fast Track(100명 미만 즉시 활성) 우회하여 대기열 테스트 가능
      */
     @PostMapping("/seed-active-tokens")
+    @PreAuthorize("hasRole('MASTER')")
     public ResponseEntity<ApiResponse<String>> seedActiveTokens(
         @RequestParam UUID productId,
         @RequestParam(defaultValue = "110") int count,
@@ -87,6 +89,7 @@ public class QueueTestController {
      * 테스트용: 특정 상품의 대기열/활성열 전체 초기화
      */
     @PostMapping("/clear-queues")
+    @PreAuthorize("hasRole('MASTER')")
     public ResponseEntity<ApiResponse<String>> clearQueues(
         @RequestParam UUID productId
     ) {
@@ -119,6 +122,7 @@ public class QueueTestController {
      * 테스트용: 현재 대기열/활성열 상태 조회
      */
     @PostMapping("/queue-status")
+    @PreAuthorize("hasRole('MASTER')")
     public ResponseEntity<ApiResponse<QueueStatusResponse>> getQueueStatus(
         @RequestParam UUID productId
     ) {

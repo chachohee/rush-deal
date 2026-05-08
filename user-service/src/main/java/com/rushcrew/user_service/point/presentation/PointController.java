@@ -11,6 +11,7 @@ import com.rushcrew.user_service.point.presentation.dto.response.PointBalanceRes
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -26,6 +27,7 @@ public class PointController {
     private final PointService pointService;
 
     @GetMapping("/balance")
+    @PreAuthorize("hasAnyRole('USER', 'SELLER', 'MASTER')")
     public ResponseEntity<PointBalanceResponse> getBalance(
         @RequestHeader("X-User-Id") Long userId
     ) {
@@ -33,6 +35,7 @@ public class PointController {
     }
 
     @PostMapping("/pending")
+    @PreAuthorize("hasRole('MASTER')")
     public ResponseEntity<Void> createPendingPoint(
         @Valid @RequestBody CreatePendingPointRequest request
     ) {
@@ -42,6 +45,7 @@ public class PointController {
     }
 
     @PostMapping("/use")
+    @PreAuthorize("hasRole('MASTER')")
     public ResponseEntity<Void> usePoint(
         @Valid @RequestBody UsePointRequest request
     ) {
@@ -52,6 +56,7 @@ public class PointController {
     }
 
     @PostMapping("/order/cancel")
+    @PreAuthorize("hasRole('MASTER')")
     public ResponseEntity<Void> cancelOrder(
         @Valid @RequestBody CancelOrderRequest request
     ) {

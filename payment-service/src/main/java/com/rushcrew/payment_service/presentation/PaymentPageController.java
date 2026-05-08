@@ -2,6 +2,7 @@ package com.rushcrew.payment_service.presentation;
 
 import com.rushcrew.payment_service.infrastructure.config.PortOneSecretProperties;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,6 +20,7 @@ public class PaymentPageController {
     private final PortOneSecretProperties secret;
 
     @GetMapping("/page/{orderId}")
+    @PreAuthorize("hasAnyRole('USER', 'SELLER', 'MASTER')")
     public String getPaymentRequest(
             @PathVariable UUID orderId,
             Model model

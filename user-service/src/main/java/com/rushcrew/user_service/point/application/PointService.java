@@ -143,6 +143,13 @@ public class PointService {
         return newConfirmHistories.size();
     }
 
+    public long getBalance(Long userId) {
+        return pointHistoryQueryRepository
+            .findLatestByUserId(userId)
+            .map(h -> h.getBalanceAfter().getAmount())
+            .orElse(0L);
+    }
+
     private Point getCurrentBalance(Long userId) {
         return pointHistoryQueryRepository
             .findLatestByUserId(userId)

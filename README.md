@@ -69,6 +69,7 @@
 | 결제 | POST | `/api/v1/payments/**` |
 | 대기열 | GET | `/api/v1/queues/**` |
 | 배송지 관리 | GET | `/api/v1/users/me/addresses/**` |
+| 포인트 잔액 | GET | `/api/v1/points/balance` |
 
 ---
 
@@ -185,7 +186,7 @@
 
 Saga·Outbox 패턴 기반의 주문 생성 전체 흐름입니다.
 
-![flowchart](docs/image/flowchart.png)
+![flowchart](docs/image/flowchart.svg)
 
 | 단계 | 설명 |
 |------|------|

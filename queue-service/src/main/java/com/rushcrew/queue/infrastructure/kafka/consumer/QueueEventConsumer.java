@@ -83,7 +83,7 @@ public class QueueEventConsumer {
         log.info("[QUEUE:Kafka:Consume] 타임딜 종료 이벤트 수신 - TimeDealId: {}, ProductId: {}",
             event.timeDealId(), event.productId());
 
-        queuePolicyService.deleteByProductId(event.productId());
+        queuePolicyService.deactivateByProductId(event.productId());
 
         ack.acknowledge();
         log.info("[QUEUE:Kafka:Success] 대기열 정책 삭제 완료 - ProductId: {}", event.productId());

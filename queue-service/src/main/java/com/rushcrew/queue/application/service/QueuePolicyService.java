@@ -37,22 +37,22 @@ public class QueuePolicyService implements QueuePolicyPort {
     @Override
     @Transactional
     public QueuePolicyQueryResponse createQueuePolicy(CreatePolicyCommand command, Long userId) {
-
-        // 중복 정책 검증 (해당 상품에 정책이 이미 있는지 검증)
-        if (queuePolicyRepository.findByProductId(command.productId()).isPresent()) {
-            throw new BusinessException(QueueErrorCode.POLICY_ALREADY_EXISTS);
-        }
-
-        QueuePolicy queuePolicy = QueuePolicy.create(
-            command.productId(),
-            command.dealName(),
-            command.status(),
-            command.timePeriod(),
-            command.trafficSetting()
-        );
-
-        QueuePolicy saved = queuePolicyRepository.save(queuePolicy);
-        return QueuePolicyQueryResponse.from(saved);
+        return queuePolicyRepository.findByProductId(command.productId())
+            .map(existing -> {
+                if (existing.getStatus() != QueuePolicyStatus.STOPPED) {
+                    throw new BusinessException(QueueErrorCode.POLICY_ALREADY_EXISTS);
+                }
+                existing.update(command.dealName(), command.status(),
+                    command.timePeriod(), command.trafficSetting());
+                return QueuePolicyQueryResponse.from(existing);
+            })
+            .orElseGet(() -> {
+                QueuePolicy created = QueuePolicy.create(
+                    command.productId(), command.dealName(), command.status(),
+                    command.timePeriod(), command.trafficSetting()
+                );
+                return QueuePolicyQueryResponse.from(queuePolicyRepository.save(created));
+            });
     }
 
     /**
@@ -122,12 +122,11 @@ public class QueuePolicyService implements QueuePolicyPort {
     }
 
     @Transactional
-    public void deleteByProductId(UUID productId) {
-        queuePolicyRepository.findByProductId(productId).ifPresent(policy -> {
-            if (!policy.isDeleted()) {
-                policy.softDelete(null);
-            }
-        });
+    public void deactivateByProductId(UUID productId) {
+        queuePolicyRepository.findByProductId(productId).ifPresent(policy ->
+            policy.update(policy.getTimeDealName(), QueuePolicyStatus.STOPPED,
+                policy.getTimePeriod(), policy.getTrafficSetting())
+        );
     }
 
     private QueuePolicy getQueuePolicy(UUID queuePolicyId) {

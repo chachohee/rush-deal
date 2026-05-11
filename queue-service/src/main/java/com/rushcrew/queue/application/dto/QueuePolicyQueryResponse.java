@@ -14,6 +14,7 @@ public record QueuePolicyQueryResponse(
     QueuePolicyStatus status,
     LocalDateTime startTime,
     LocalDateTime endTime,
+    Integer maxCapacity,
     Integer limitSize,
     Integer queueGap,
     Integer ttl
@@ -26,6 +27,7 @@ public record QueuePolicyQueryResponse(
             .status(queuePolicy.getStatus())
             .startTime(queuePolicy.getTimePeriod().getStartTime())
             .endTime(queuePolicy.getTimePeriod().getEndTime())
+            .maxCapacity(queuePolicy.getTrafficSetting().getMaxCapacity())
             .limitSize(queuePolicy.getTrafficSetting().getLimitSize())
             .queueGap(queuePolicy.getTrafficSetting().getQueueGap())
             .ttl(queuePolicy.getTrafficSetting().getTtl())

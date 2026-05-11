@@ -5,6 +5,7 @@ import java.util.UUID;
 
 public record TimeDealEndMessage(
     UUID timeDealId,
+    UUID productId,
     Instant endAt
 ) {
 

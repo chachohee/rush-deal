@@ -4,6 +4,7 @@ import com.rushcrew.common.exception.BusinessException;
 import com.rushcrew.queue.application.port.in.QueuePort;
 import com.rushcrew.queue.application.port.in.SoldOutEvent;
 import com.rushcrew.queue.application.port.in.TokenRemoveEvent;
+import com.rushcrew.queue.application.service.QueuePolicyService;
 import com.rushcrew.queue.application.service.QueueService;
 import com.rushcrew.queue.common.QueueErrorCode;
 import com.rushcrew.queue.domain.entity.QueuePolicy;
@@ -21,12 +22,14 @@ public class QueueEventConsumer {
     private final QueuePort queueService;
     private final RedisQueueRepository redisQueueRepository;
     private final QueuePolicyRepository queuePolicyRepository;
+    private final QueuePolicyService queuePolicyService;
 
     public QueueEventConsumer(QueueService queueService, RedisQueueRepository redisQueueRepository,
-        QueuePolicyRepository queuePolicyRepository) {
+        QueuePolicyRepository queuePolicyRepository, QueuePolicyService queuePolicyService) {
         this.queueService = queueService;
         this.redisQueueRepository = redisQueueRepository;
         this.queuePolicyRepository = queuePolicyRepository;
+        this.queuePolicyService = queuePolicyService;
     }
 
     /**
@@ -69,5 +72,20 @@ public class QueueEventConsumer {
         log.info("[QUEUE:Kafka:Success] 상품 재고 품절 레디스 등록 및 Offset 커밋 - ProductId: {}", event.productId());
 
         // (추후 선택사항) 현재 대기열에 있는 사람들에게 웹소켓 등으로 "품절되었습니다" 알림
+    }
+
+    /**
+     * 타임딜 종료 이벤트 수신 → 연결된 대기열 정책 soft delete
+     * Topic: time-deal-end
+     */
+    @KafkaListener(topics = "time-deal-end", groupId = "queue-service-group")
+    public void handleTimeDealEndEvent(TimeDealEndMessage event, Acknowledgment ack) {
+        log.info("[QUEUE:Kafka:Consume] 타임딜 종료 이벤트 수신 - TimeDealId: {}, ProductId: {}",
+            event.timeDealId(), event.productId());
+
+        queuePolicyService.deleteByProductId(event.productId());
+
+        ack.acknowledge();
+        log.info("[QUEUE:Kafka:Success] 대기열 정책 삭제 완료 - ProductId: {}", event.productId());
     }
 }

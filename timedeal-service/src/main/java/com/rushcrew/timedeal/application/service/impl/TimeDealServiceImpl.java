@@ -7,6 +7,7 @@ import com.rushcrew.timedeal.application.command.CreateTimeDealCommand;
 import com.rushcrew.timedeal.application.command.UpdateTimeDealCommand;
 import com.rushcrew.timedeal.application.event.TimeDealScheduledEvent;
 import com.rushcrew.timedeal.application.event.TimeDealsEndedEvent;
+import com.rushcrew.timedeal.application.event.TimeDealsEndedEvent.TimeDealEndInfo;
 import com.rushcrew.timedeal.application.event.TimeDealsStartedEvent;
 import com.rushcrew.timedeal.application.model.ProductInfo;
 import com.rushcrew.timedeal.application.result.CreateTimeDealResult;
@@ -123,6 +124,12 @@ public class TimeDealServiceImpl implements TimeDealService {
         TimeDeal timeDeal = timeDealRepository.findById(timeDealId)
             .orElseThrow(() -> new BusinessException(TimeDealErrorCode.NOT_FOUND_TIME_DEAL));
         timeDeal.forceEnd();
+
+        UUID productId = timeDeal.getTimeDealProducts().get(0).getItemIds().getProductId();
+        Map<String, TimeDealEndInfo> endMap = Map.of(
+            timeDealId.toString(), new TimeDealEndInfo(productId, Instant.now())
+        );
+        eventPublisher.publishEvent(new TimeDealsEndedEvent(endMap));
     }
 
     @Override
@@ -167,10 +174,13 @@ public class TimeDealServiceImpl implements TimeDealService {
     public void endTimeDeals(List<String> timeDealIds) {
         List<TimeDeal> updatedTimeDeals = executeStatusUpdate(timeDealIds, TimeDealStatus.ENDED);
 
-        Map<String, Instant> endMap = updatedTimeDeals.stream()
+        Map<String, TimeDealEndInfo> endMap = updatedTimeDeals.stream()
             .collect(Collectors.toMap(
                 timeDeal -> timeDeal.getId().toString(),
-                timeDeal -> timeDeal.getPeriod().getEndAt()
+                timeDeal -> new TimeDealEndInfo(
+                    timeDeal.getTimeDealProducts().get(0).getItemIds().getProductId(),
+                    timeDeal.getPeriod().getEndAt()
+                )
             ));
 
         eventPublisher.publishEvent(new TimeDealsEndedEvent(endMap));

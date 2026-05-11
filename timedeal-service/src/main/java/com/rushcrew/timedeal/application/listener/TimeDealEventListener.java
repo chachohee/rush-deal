@@ -70,10 +70,10 @@ public class TimeDealEventListener {
             log.warn("Redis 삭제 실패", e);
         }
 
-        event.timeDealEndMap().forEach((timeDealId, endAt) -> {
+        event.timeDealEndMap().forEach((timeDealId, info) -> {
             try {
                 timeDealEventProducer.publishTimeDealEnd(
-                    new TimeDealEndedEvent(UUID.fromString(timeDealId), endAt));
+                    new TimeDealEndedEvent(UUID.fromString(timeDealId), info.productId(), info.endAt()));
             } catch (Exception e) {
                 log.error("Kafka 이벤트 발행 실패 - TimeDealId: {}", timeDealId, e);
             }

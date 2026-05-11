@@ -1,12 +1,10 @@
-package com.rushcrew.timedeal.application.port.out.event;
+package com.rushcrew.queue.infrastructure.kafka.consumer;
 
 import java.time.Instant;
 import java.util.UUID;
 
-public record TimeDealEndedEvent(
+public record TimeDealEndMessage(
     UUID timeDealId,
     UUID productId,
     Instant endAt
-) {
-
-}
+) {}

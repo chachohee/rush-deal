@@ -34,7 +34,7 @@ public class TimeDealEventProducer {
     public void publishTimeDealEnd(TimeDealEndedEvent event) {
         try {
             TimeDealEndMessage message =
-                new TimeDealEndMessage(event.timeDealId(), event.endAt());
+                new TimeDealEndMessage(event.timeDealId(), event.productId(), event.endAt());
 
             kafkaTemplate.send("time-deal-end", event.timeDealId().toString(),
                 objectMapper.writeValueAsString(message));

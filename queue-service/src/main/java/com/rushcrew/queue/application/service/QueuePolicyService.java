@@ -121,6 +121,15 @@ public class QueuePolicyService implements QueuePolicyPort {
         queuePolicy.softDelete(userId);
     }
 
+    @Transactional
+    public void deleteByProductId(UUID productId) {
+        queuePolicyRepository.findByProductId(productId).ifPresent(policy -> {
+            if (!policy.isDeleted()) {
+                policy.softDelete(null);
+            }
+        });
+    }
+
     private QueuePolicy getQueuePolicy(UUID queuePolicyId) {
         return queuePolicyRepository.findById(queuePolicyId)
             .orElseThrow(() -> new BusinessException(QueueErrorCode.POLICY_NOT_FOUND));

@@ -36,6 +36,11 @@ public class TimeDealRepositoryAdapter implements TimeDealRepository {
     }
 
     @Override
+    public Page<TimeDealResult> findAllByStatus(TimeDealStatus status, Pageable pageable) {
+        return timeDealJpaRepository.findAllByStatus(status, pageable);
+    }
+
+    @Override
     public Optional<TimeDeal> findByIdAndStatusNot(
         UUID timeDealId, TimeDealStatus timeDealStatus
     ) {

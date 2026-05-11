@@ -1,5 +1,6 @@
 package com.rushcrew.timedeal.domain.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.rushcrew.common.entity.BaseEntity;
 import com.rushcrew.timedeal.domain.vo.ProductItemIds;
 import com.rushcrew.timedeal.domain.vo.TimeDealProductStatus;
@@ -37,6 +38,7 @@ public class TimeDealProduct extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "time_deal_id", nullable = false)
     private TimeDeal timeDeal;

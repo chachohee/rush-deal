@@ -40,6 +40,25 @@ public interface TimeDealJpaRepository extends JpaRepository<TimeDeal, UUID> {
 
 
     @Query("""
+                SELECT new com.rushcrew.timedeal.application.result.TimeDealResult(
+                            td.id,
+                            td.timeDealInfo.title,
+                            td.timeDealInfo.description,
+                            td.price.amount,
+                            td.period.startAt,
+                            td.period.endAt,
+                            td.status
+                       )
+                FROM TimeDeal td
+                WHERE (:status IS NULL OR td.status = :status)
+                  AND td.deletedAt IS NULL
+        """)
+    Page<TimeDealResult> findAllByStatus(
+        @Param(value = "status") TimeDealStatus status,
+        Pageable pageable
+    );
+
+    @Query("""
                    SELECT td
                     FROM TimeDeal td
                    WHERE td.id = :timeDealId

@@ -131,6 +131,11 @@ public class TimeDealServiceImpl implements TimeDealService {
     }
 
     @Override
+    public Page<TimeDealResult> getAllTimeDealsForAdmin(TimeDealStatus status, Pageable pageable) {
+        return timeDealRepository.findAllByStatus(status, pageable);
+    }
+
+    @Override
     public TimeDealDetailResult getTimeDealDetail(UUID timeDealId) {
         TimeDeal timeDeal = timeDealRepository.findByIdAndStatusNot(timeDealId,
                 TimeDealStatus.ENDED)

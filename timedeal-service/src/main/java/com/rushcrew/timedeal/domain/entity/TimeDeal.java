@@ -11,6 +11,7 @@ import com.rushcrew.timedeal.domain.vo.Price;
 import com.rushcrew.timedeal.domain.vo.ProductItemIds;
 import com.rushcrew.timedeal.domain.vo.TimeDealInfo;
 import com.rushcrew.timedeal.domain.vo.TimeDealStatus;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.AttributeOverride;
 import jakarta.persistence.AttributeOverrides;
 import jakarta.persistence.CascadeType;
@@ -80,6 +81,7 @@ public class TimeDeal extends BaseEntity {
     @Builder.Default
     private TimeDealStatus status = TimeDealStatus.SCHEDULED;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "timeDeal", cascade = CascadeType.PERSIST)
     @Builder.Default
     private List<TimeDealProduct> timeDealProducts = new ArrayList<>();

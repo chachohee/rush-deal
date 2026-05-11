@@ -19,6 +19,8 @@ public interface TimeDealRepository {
 
     Page<TimeDealResult> findNotEndedByStatus(TimeDealStatus status, Pageable pageable);
 
+    Page<TimeDealResult> findAllByStatus(TimeDealStatus status, Pageable pageable);
+
     Optional<TimeDeal> findByIdAndStatusNot(UUID timeDealId, TimeDealStatus timeDealStatus);
 
     Optional<TimeDealProduct> findProductByProductId(UUID productId);

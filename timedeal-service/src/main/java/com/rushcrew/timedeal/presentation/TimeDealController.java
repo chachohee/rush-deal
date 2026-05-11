@@ -89,6 +89,17 @@ public class TimeDealController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/admin/all")
+    @PreAuthorize("hasRole('MASTER')")
+    public ResponseEntity<Page<TimeDealResponse>> getAllTimeDealsForAdmin(
+        @RequestParam(required = false) TimeDealStatus status,
+        @SortDefault(sort = "createdAt", direction = Direction.DESC) Pageable pageable
+    ) {
+        Page<TimeDealResult> result = timeDealService.getAllTimeDealsForAdmin(status, pageable);
+        Page<TimeDealResponse> response = result.map(TimeDealResponse::from);
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/{timeDealId}")
     public ResponseEntity<TimeDealDetailResponse> getTimeDealDetail(
         @PathVariable UUID timeDealId

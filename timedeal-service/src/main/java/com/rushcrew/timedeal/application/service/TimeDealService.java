@@ -24,6 +24,8 @@ public interface TimeDealService {
 
     Page<TimeDealResult> getTimeDeals(TimeDealStatus status, Pageable pageable);
 
+    Page<TimeDealResult> getAllTimeDealsForAdmin(TimeDealStatus status, Pageable pageable);
+
     TimeDealDetailResult getTimeDealDetail(UUID timeDealId);
 
     void startTimeDeals(List<String> timeDealIds);

@@ -144,8 +144,7 @@ public class TimeDealServiceImpl implements TimeDealService {
 
     @Override
     public TimeDealDetailResult getTimeDealDetail(UUID timeDealId) {
-        TimeDeal timeDeal = timeDealRepository.findByIdAndStatusNot(timeDealId,
-                TimeDealStatus.ENDED)
+        TimeDeal timeDeal = timeDealRepository.findById(timeDealId)
             .orElseThrow(() -> new BusinessException(TimeDealErrorCode.NOT_FOUND_TIME_DEAL));
 
         List<TimeDealProductResult> timeDealProdutResultList =

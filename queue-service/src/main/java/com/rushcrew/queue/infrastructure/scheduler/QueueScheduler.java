@@ -53,7 +53,6 @@
                 LocalDateTime oneMinuteLater = now.plusMinutes(1);
 
                 // 현재 유효한(진행 중인) 타임딜 정책 조회
-                // TODO: RDB 부하가 걱정된다면 이 목록을 Redis에 캐싱
                 List<QueuePolicy> allActivePolicies = queuePolicyRepository.findAllActivePolicies(now,
                     oneMinuteLater);
 
@@ -133,16 +132,6 @@
 
                 log.info("[Scheduler] 락 획득 성공 - 상품 활성화 진행");
 
-                // ==========================================
-                // [TEST] 동시성 테스트를 위해 강제로 2초 멈춤!
-                // 이 코드가 있어야 뒤따라온 요청들이 "어? 락이 걸려있네?" 하고 튕겨나감
-                try {
-                    Thread.sleep(2000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                // ==========================================
-
                 // 락 획득 성공
                 TrafficSetting setting = queuePolicy.getTrafficSetting();
                 // 대기열 -> 활성열로 이동 주기
@@ -175,7 +164,6 @@
         /**
          * 대기열 토큰 활성열 이동 처리 (토큰 활성화)
          * 토큰 활성화 실패 시 마지막 실행 시간(lastExecutionTime) 롤백
-         * TODO: 추후 모니터링 추가 필요
          */
         private void activateTokens(UUID productId, long executionTime, TrafficSetting setting) {
             try {
@@ -211,8 +199,7 @@
                 );
                 log.info("[Scheduler] 상품({}) 실행 시간 롤백 완료", productId);
             } catch (BusinessException e) {
-                log.error("[Scheduler] 상품({}) 실행 시간 롤백 실패 - 수동 개입 필요", productId, e);
-                // TODO: 추후 따로 알림 보내는 형식으로의 조치가 필요
+                log.error("[Scheduler][CRITICAL] 상품({}) 실행 시간 롤백 실패 - 수동 개입 필요", productId, e);
             }
         }
 

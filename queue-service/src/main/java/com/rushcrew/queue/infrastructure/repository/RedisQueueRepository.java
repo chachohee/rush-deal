@@ -35,9 +35,6 @@ public class RedisQueueRepository implements QueueRepository {
     private static final String USER_INDEX_KEY = "queue:user:product:%s:%s"; // String (중복방지용)
     private static final String PRODUCT_STATUS_KEY = "queue:product:status:%s"; // 카프카로부터 받아옴 - Value: "AVAILABLE" or "SOLDOUT"
 
-    // FAST TRACK(대기열 진입 정책) 기준 인원 (100인 미만이면 대기열 토큰 생성 시 바로 활성열로 이동)
-    // TODO: 추후 QueuePolicy (정책 DB)에서 관리하도록 수정 예정
-    private static final Long MAX_ACTIVE_COUNT = 0L;
 
     public RedisQueueRepository(StringRedisTemplate redisTemplate) {
         this.redisTemplate = redisTemplate;
@@ -52,7 +49,7 @@ public class RedisQueueRepository implements QueueRepository {
      * "진짜 대기열/활성열에 살아있는지" 더블 체크. 없다면 좀비 키로 간주하고 삭제 후 재진입을 허용하는 방식으로 수정
      */
     @Override
-    public boolean register(QueueToken token, LocalDateTime dealEndTime, Integer activeTtl) {
+    public boolean register(QueueToken token, LocalDateTime dealEndTime, Integer activeTtl, Integer maxCapacity) {
         // TTL 계산 : (이벤트 종료 시간 - 현재 시간)
         long secondsUntilClose = Duration.between(LocalDateTime.now(), dealEndTime).getSeconds();
 
@@ -86,7 +83,7 @@ public class RedisQueueRepository implements QueueRepository {
                 redisTemplate.delete(userIndexKey);
 
                 // 삭제하고 재시도 (재귀 호출)
-                return register(token, dealEndTime, activeTtl);
+                return register(token, dealEndTime, activeTtl, maxCapacity);
             }
 
             // 이미 대기 중인 유저 (중복 진입 거부)
@@ -97,8 +94,8 @@ public class RedisQueueRepository implements QueueRepository {
         // FAST TRACK 판단 : 활성열 인원 조회
         Long activeCount = countActiveTokens(token.getProductId());
 
-        log.warn("[QUEUE:INFO] 현재 활성열 인원 개수 count={}", activeCount);
-        if (activeCount != null && activeCount < MAX_ACTIVE_COUNT) {
+        log.info("[QUEUE:INFO] 현재 활성열 인원 개수 count={}", activeCount);
+        if (activeCount != null && activeCount < maxCapacity) {
             // [Fast Track] 대기 없이 바로 활성 상태 진입
             return registerFastTrack(token, dealEndTime, activeTtl, userIndexKey);
         } else {
@@ -229,7 +226,6 @@ public class RedisQueueRepository implements QueueRepository {
 
     /**
      * 활성열의 토큰 삭제
-     * TODO: Order Service 쪽에서 결제/주문 로직이나, 트랜잭션 종료 시점에 해당 API를 호출하여 토큰을 정리해야 함
      */
     @Override
     public void removeToken(UUID productId, TokenId tokenId) {
@@ -343,8 +339,7 @@ public class RedisQueueRepository implements QueueRepository {
      */
     private boolean registerWaitingQueue(QueueToken token, String userIndexKey) {
         try {
-            // TODO: 추후 확인 -> System.currentTimeMillis()는 동시성 이슈가 미세하게 있을 수 있으므로 nanoTime 혼용 추천
-            double score = System.currentTimeMillis();
+            double score = System.currentTimeMillis() * 1_000_000.0 + (System.nanoTime() % 1_000_000);
             redisTemplate.opsForZSet().add(
                 getWaitingKey(token.getProductId()),
                 token.getId().getValue().toString(),

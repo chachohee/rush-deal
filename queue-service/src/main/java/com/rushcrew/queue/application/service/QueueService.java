@@ -59,7 +59,7 @@ public class QueueService implements QueuePort {
 
         // redis 대기열 저장소 저장 & 중복 진입 차단
         boolean isSuccess = queueRepository.register(queueToken, policy.getTimePeriod().getEndTime(),
-            policy.getTrafficSetting().getTtl());
+            policy.getTrafficSetting().getTtl(), policy.getTrafficSetting().getMaxCapacity());
         if (!isSuccess) {
             // 이미 대기열에 있는 경우 예외 처리
             throw new BusinessException(QueueErrorCode.USER_ALREADY_IN_WAITING_QUEUE);

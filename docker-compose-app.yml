@@ -350,6 +350,12 @@ services:
       SHOW_SQL: ${SHOW_SQL:-false}
       SQL_INIT_MODE: ${SQL_INIT_MODE:-never}
 
+      # Feign client URLs
+      USER_SERVICE_URL: http://user-service:8060
+      TIMEDEAL_SERVICE_URL: http://timedeal-service:8030
+      QUEUE_SERVICE_URL: http://queue-service:8040
+      PAYMENT_SERVICE_URL: http://payment-service:8010
+
       # Monitoring
       MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: ${ZIPKIN_URL:-http://zipkin:9411/api/v2/spans}
       MANAGEMENT_TRACING_SAMPLING_PROBABILITY: ${TRACING_SAMPLING_RATE:-1.0}
@@ -393,6 +399,9 @@ services:
       PORTONE_STORE_ID: ${PORTONE_STORE_ID}
       PORTONE_CHANNEL_KEY: ${PORTONE_CHANNEL_KEY}
       PORTONE_WEBHOOK: ${PORTONE_WEBHOOK}
+
+      # Feign client URLs
+      ORDER_SERVICE_URL: http://order-service:8050
 
       # Monitoring
       MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: ${ZIPKIN_URL:-http://zipkin:9411/api/v2/spans}
@@ -513,6 +522,9 @@ services:
       JPA_DDL_AUTO: ${JPA_DDL_AUTO:-update}
       SHOW_SQL: ${SHOW_SQL:-false}
       SQL_INIT_MODE: ${SQL_INIT_MODE:-never}
+
+      # Feign client URLs
+      PRODUCT_SERVICE_URL: http://product-service:8020
 
       # Monitoring
       MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: ${ZIPKIN_URL:-http://zipkin:9411/api/v2/spans}

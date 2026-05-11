@@ -6,14 +6,18 @@ public record UserAllResult(
     Long userId,
     String email,
     String name,
-    String role
+    String role,
+    boolean isBlocked,
+    boolean isDeleted
 ) {
     public static UserAllResult fromDomain(User user) {
         return new UserAllResult(
             user.getUserId(),
             user.getEmail(),
             user.getName(),
-            user.getRole().name()
+            user.getRole().name(),
+            user.isBlocked(),
+            user.isDeleted()
         );
     }
 }

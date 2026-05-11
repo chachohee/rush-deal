@@ -22,13 +22,16 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -95,13 +98,45 @@ public class UserController {
 
     @GetMapping("/all")
     @PreAuthorize("hasRole('MASTER')")
-    public ResponseEntity<List<UserAllResponse>> getAllUsers(
-    ) {
+    public ResponseEntity<List<UserAllResponse>> getAllUsers() {
         List<UserAllResponse> response = userService.getAllUsers()
             .stream()
             .map(UserAllResponse::fromResult)
             .toList();
-
         return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/{userId}/role")
+    @PreAuthorize("hasRole('MASTER')")
+    public ResponseEntity<Void> changeRole(
+        @PathVariable Long userId,
+        @RequestParam String role
+    ) {
+        userService.changeRole(userId, role);
+        return ResponseEntity.ok().build();
+    }
+
+    @PatchMapping("/{userId}/block")
+    @PreAuthorize("hasRole('MASTER')")
+    public ResponseEntity<Void> blockUser(@PathVariable Long userId) {
+        userService.blockUser(userId);
+        return ResponseEntity.ok().build();
+    }
+
+    @PatchMapping("/{userId}/unblock")
+    @PreAuthorize("hasRole('MASTER')")
+    public ResponseEntity<Void> unblockUser(@PathVariable Long userId) {
+        userService.unblockUser(userId);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/{userId}")
+    @PreAuthorize("hasRole('MASTER')")
+    public ResponseEntity<Void> deleteUser(
+        @PathVariable Long userId,
+        @RequestHeader("X-User-Id") Long adminId
+    ) {
+        userService.deleteUser(userId, adminId);
+        return ResponseEntity.ok().build();
     }
 }

@@ -39,6 +39,9 @@ public class User extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private UserRole role;
 
+    @Column(nullable = false)
+    private boolean isBlocked = false;
+
     public static User create(String email, String password, String name, UserRole role) {
         User user = new User();
 
@@ -83,5 +86,17 @@ public class User extends BaseEntity {
             throw new BusinessException(UserErrorCode.INVALID_USER_INFO);
         }
         this.name = name;
+    }
+
+    public void changeRole(UserRole newRole) {
+        this.role = newRole;
+    }
+
+    public void block() {
+        this.isBlocked = true;
+    }
+
+    public void unblock() {
+        this.isBlocked = false;
     }
 }

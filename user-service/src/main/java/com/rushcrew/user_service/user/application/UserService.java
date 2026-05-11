@@ -8,8 +8,10 @@ import com.rushcrew.user_service.user.application.result.UserCreateResult;
 import com.rushcrew.user_service.user.application.result.UserInfoResult;
 import com.rushcrew.user_service.user.application.result.UserResult;
 import com.rushcrew.user_service.user.application.result.VerifyPasswordResult;
+import com.rushcrew.common.exception.BusinessException;
 import com.rushcrew.user_service.user.domain.entity.User;
 import com.rushcrew.user_service.user.domain.enums.UserRole;
+import com.rushcrew.user_service.user.domain.error.UserErrorCode;
 import com.rushcrew.user_service.user.domain.repository.UserRepository;
 import com.rushcrew.user_service.user.domain.service.UserValidator;
 import java.util.List;
@@ -55,6 +57,9 @@ public class UserService {
         public VerifyPasswordResult verifyPassword(VerifyPasswordCommand command) {
         User user = userRepository.getByEmail(command.email());
 
+        if (user.isDeleted()) throw new BusinessException(UserErrorCode.DELETED_USER);
+        if (user.isBlocked()) throw new BusinessException(UserErrorCode.BLOCKED_USER);
+
         userValidator.validatePassword(user, command.password());
 
         return new VerifyPasswordResult(
@@ -99,5 +104,29 @@ public class UserService {
             .stream()
             .map(UserAllResult::fromDomain)
             .toList();
+    }
+
+    @Transactional
+    public void changeRole(Long targetUserId, String role) {
+        User user = userRepository.getById(targetUserId);
+        user.changeRole(UserRole.of(role));
+    }
+
+    @Transactional
+    public void blockUser(Long targetUserId) {
+        User user = userRepository.getById(targetUserId);
+        user.block();
+    }
+
+    @Transactional
+    public void unblockUser(Long targetUserId) {
+        User user = userRepository.getById(targetUserId);
+        user.unblock();
+    }
+
+    @Transactional
+    public void deleteUser(Long targetUserId, Long adminId) {
+        User user = userRepository.getById(targetUserId);
+        user.softDelete(adminId);
     }
 }

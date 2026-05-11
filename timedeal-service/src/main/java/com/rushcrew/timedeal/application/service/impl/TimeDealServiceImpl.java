@@ -127,7 +127,7 @@ public class TimeDealServiceImpl implements TimeDealService {
 
     @Override
     public Page<TimeDealResult> getTimeDeals(TimeDealStatus status, Pageable pageable) {
-        return timeDealRepository.findNotEndedByStatus(status, pageable);
+        return timeDealRepository.findAllByStatus(status, pageable);
     }
 
     @Override

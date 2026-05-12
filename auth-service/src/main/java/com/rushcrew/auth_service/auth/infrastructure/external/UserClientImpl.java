@@ -94,6 +94,7 @@ public class UserClientImpl implements UserClient {
         SignUpCommand command,
         Exception e
     ) {
+        if (e instanceof BusinessException be) throw be;
         log.error("User service unavailable during createUser. email={}, cause={}", command.email(), e.getMessage(), e);
         throw new BusinessException(AuthErrorCode.USER_SERVICE_UNAVAILABLE);
     }
@@ -102,11 +103,13 @@ public class UserClientImpl implements UserClient {
         LoginCommand command,
         Exception e
     ) {
+        if (e instanceof BusinessException be) throw be;
         log.error("User service unavailable during verifyPassword. email={}, cause={}", command.email(), e.getMessage(), e);
         throw new BusinessException(AuthErrorCode.USER_SERVICE_UNAVAILABLE);
     }
 
     private UserInfoResult getUserByIdFallback(Long userId, Exception e) {
+        if (e instanceof BusinessException be) throw be;
         log.error("User service unavailable during getUserById. userId={}, cause={}", userId, e.getMessage(), e);
         throw new BusinessException(AuthErrorCode.USER_SERVICE_UNAVAILABLE);
     }

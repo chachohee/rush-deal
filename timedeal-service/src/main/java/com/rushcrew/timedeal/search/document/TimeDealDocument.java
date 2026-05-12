@@ -9,6 +9,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.elasticsearch.annotations.DateFormat;
 import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
@@ -38,10 +39,10 @@ public class TimeDealDocument {
     @Field(type = FieldType.Long)
     private Long price;
 
-    @Field(type = FieldType.Date)
+    @Field(type = FieldType.Date, format = DateFormat.date_optional_time)
     private Instant startAt;
 
-    @Field(type = FieldType.Date)
+    @Field(type = FieldType.Date, format = DateFormat.date_optional_time)
     private Instant endAt;
 
     public static TimeDealDocument from(TimeDeal td) {

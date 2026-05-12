@@ -5,7 +5,9 @@ import com.rushcrew.common.exception.BusinessException;
 import com.rushcrew.common.global.error.CommonErrorCode;
 import com.rushcrew.timedeal.application.command.CreateTimeDealCommand;
 import com.rushcrew.timedeal.application.command.UpdateTimeDealCommand;
+import com.rushcrew.timedeal.application.event.TimeDealCreatedEvent;
 import com.rushcrew.timedeal.application.event.TimeDealScheduledEvent;
+import com.rushcrew.timedeal.application.event.TimeDealUpdatedEvent;
 import com.rushcrew.timedeal.application.event.TimeDealsEndedEvent;
 import com.rushcrew.timedeal.application.event.TimeDealsEndedEvent.TimeDealEndInfo;
 import com.rushcrew.timedeal.application.event.TimeDealsStartedEvent;
@@ -83,6 +85,7 @@ public class TimeDealServiceImpl implements TimeDealService {
             new TimeDealScheduledEvent(newTimeDeal.getId(), startAt, TimeDealQueueKey.START));
         eventPublisher.publishEvent(
             new TimeDealScheduledEvent(newTimeDeal.getId(), endAt, TimeDealQueueKey.END));
+        eventPublisher.publishEvent(new TimeDealCreatedEvent(newTimeDeal.getId()));
 
         return CreateTimeDealResult.from(newTimeDeal);
     }
@@ -114,6 +117,7 @@ public class TimeDealServiceImpl implements TimeDealService {
                     timeDeal.getId(), command.endAt(), TimeDealQueueKey.END)
             );
         }
+        eventPublisher.publishEvent(new TimeDealUpdatedEvent(timeDeal.getId()));
 
         return UpdateTimeDealResult.from(timeDeal);
     }

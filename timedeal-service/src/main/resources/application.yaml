@@ -23,6 +23,13 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: ${TIMEDEAL_REDIS_PORT:6382}
       password: ${REDIS_PASSWORD:}
+    elasticsearch:
+      repositories:
+        enabled: true
+  elasticsearch:
+    uris: ${ELASTICSEARCH_URIS:http://localhost:9200}
+    connection-timeout: 5s
+    socket-timeout: 30s
   sql:
     init:
       mode: ${SQL_INIT_MODE:never}

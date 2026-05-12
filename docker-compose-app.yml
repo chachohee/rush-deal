@@ -171,6 +171,29 @@ services:
     networks:
       - rushdeal-network
 
+  elasticsearch:
+    build:
+      context: .
+      dockerfile: Dockerfile.elasticsearch
+    image: rush-deal-elasticsearch
+    container_name: rushdeal_elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+    volumes:
+      - rushdeal_es_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -E 'yellow|green'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - rushdeal-network
+
 
   # =========================================
   # [MSA 서비스] 스프링 부트 앱 설정
@@ -517,6 +540,7 @@ services:
       REDIS_HOST: ${TIMEDEAL_REDIS_HOST:-rushdeal_timedeal_redis}
       TIMEDEAL_REDIS_PORT: 6379
       KAFKA_BROKERS: ${KAFKA_BROKERS:-kafka:29092}
+      ELASTICSEARCH_URIS: ${ELASTICSEARCH_URIS:-http://elasticsearch:9200}
       EUREKA_ENABLED: ${EUREKA_ENABLED:-true}
       EUREKA_URL: http://discovery-service:8761/eureka/
       JPA_DDL_AUTO: ${JPA_DDL_AUTO:-update}
@@ -540,6 +564,8 @@ services:
         condition: service_healthy
       kafka:
         condition: service_started
+      elasticsearch:
+        condition: service_healthy
       zipkin:
         condition: service_healthy
       discovery-service:
@@ -648,6 +674,7 @@ volumes:
   rushdeal_queue_redis_data:
   rushdeal_order_redis_data:
   rushdeal_timedeal_redis_data:
+  rushdeal_es_data:
   prometheus_data:
   grafana_data:
 

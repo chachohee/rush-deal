@@ -39,7 +39,7 @@ public class User extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private UserRole role;
 
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "BOOLEAN NOT NULL DEFAULT FALSE")
     private boolean isBlocked = false;
 
     public static User create(String email, String password, String name, UserRole role) {

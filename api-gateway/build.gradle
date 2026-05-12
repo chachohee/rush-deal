@@ -4,8 +4,13 @@ dependencies {
 	implementation 'org.springframework.cloud:spring-cloud-starter-gateway-server-webflux'
 	implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
 
-	// 공통 모듈
-	implementation 'com.github.RushCrew:rush-deal-common:v0.0.7'
+	// 공통 모듈 (Webflux 환경이므로 Tomcat starter 제외)
+	implementation('com.github.RushCrew:rush-deal-common:v0.0.7') {
+		exclude group: 'org.springframework.boot', module: 'spring-boot-starter-web'
+		exclude group: 'org.springframework.boot', module: 'spring-boot-starter-tomcat'
+		exclude group: 'org.apache.tomcat.embed', module: 'tomcat-embed-core'
+		exclude group: 'org.apache.tomcat.embed', module: 'tomcat-embed-websocket'
+	}
 
 	// jjwt
 	implementation 'io.jsonwebtoken:jjwt-api:0.13.0'

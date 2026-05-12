@@ -2,6 +2,7 @@ package com.rushcrew.product.presentation.internal;
 
 import com.rushcrew.product.application.service.internal.ProductInternalService;
 import com.rushcrew.product.presentation.internal.dto.ProductInfoResponse;
+import com.rushcrew.product.presentation.internal.dto.ProductSearchInfoResponse;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,5 +22,12 @@ public class ProductInternalController {
         @PathVariable UUID productId
     ) {
         return productService.getProductItemIds(productId);
+    }
+
+    @GetMapping("/{productId}/search-info")
+    public ProductSearchInfoResponse getProductSearchInfo(
+        @PathVariable UUID productId
+    ) {
+        return productService.getProductSearchInfo(productId);
     }
 }

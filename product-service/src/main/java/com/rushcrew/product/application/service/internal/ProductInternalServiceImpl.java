@@ -5,6 +5,7 @@ import com.rushcrew.product.domain.entity.Product;
 import com.rushcrew.product.domain.exception.ProductErrorCode;
 import com.rushcrew.product.domain.repository.ProductRepository;
 import com.rushcrew.product.presentation.internal.dto.ProductInfoResponse;
+import com.rushcrew.product.presentation.internal.dto.ProductSearchInfoResponse;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -29,5 +30,18 @@ public class ProductInternalServiceImpl implements ProductInternalService {
         return ProductInfoResponse.of(
             product.getId(), optionIds,
             product.getSellerId().getId(), product.getPrice().getAmount());
+    }
+
+    @Override
+    public ProductSearchInfoResponse getProductSearchInfo(UUID productId) {
+        Product product = productRepository.findById(productId)
+            .orElseThrow(() -> new BusinessException(ProductErrorCode.NOT_FOUND_PRODUCT));
+
+        return new ProductSearchInfoResponse(
+            product.getId(),
+            product.getProductInfo().getName(),
+            product.getCompanyName(),
+            product.getCategory().name()
+        );
     }
 }

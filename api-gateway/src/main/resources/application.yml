@@ -90,6 +90,7 @@ gateway:
     - /api/v1/auth/login
     - /api/v1/timedeals
     - /api/v1/timedeals/search
+    - /api/v1/timedeals/search/**
     - /api/v1/timedeals/*
     - /actuator/health
 

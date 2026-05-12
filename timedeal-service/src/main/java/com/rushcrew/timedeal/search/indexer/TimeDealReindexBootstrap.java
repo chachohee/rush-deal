@@ -1,11 +1,10 @@
 package com.rushcrew.timedeal.search.indexer;
 
 import com.rushcrew.timedeal.domain.entity.TimeDeal;
-import com.rushcrew.timedeal.search.document.TimeDealDocument;
-import com.rushcrew.timedeal.search.repository.TimeDealSearchRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -18,7 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class TimeDealReindexBootstrap {
 
-    private final TimeDealSearchRepository searchRepository;
+    private final TimeDealIndexer indexer;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -26,22 +25,20 @@ public class TimeDealReindexBootstrap {
     @EventListener(ApplicationReadyEvent.class)
     @Transactional(readOnly = true)
     public void reindexOnStartup() {
-        long indexed = searchRepository.count();
         long total = (Long) entityManager
             .createQuery("SELECT COUNT(t) FROM TimeDeal t")
             .getSingleResult();
 
-        if (indexed >= total) {
-            log.info("[Search] Index already populated ({} docs, {} entities) — skipping bootstrap reindex",
-                indexed, total);
+        if (total == 0L) {
+            log.info("[Search] No timedeals to index — skipping bootstrap reindex");
             return;
         }
 
-        log.info("[Search] Bootstrap reindex starting: {} → {}", indexed, total);
-        List<TimeDeal> all = entityManager
-            .createQuery("SELECT t FROM TimeDeal t", TimeDeal.class)
+        log.info("[Search] Bootstrap reindex starting: {} entities", total);
+        List<UUID> ids = entityManager
+            .createQuery("SELECT t.id FROM TimeDeal t", UUID.class)
             .getResultList();
-        searchRepository.saveAll(all.stream().map(TimeDealDocument::from).toList());
-        log.info("[Search] Bootstrap reindex finished: {} docs", all.size());
+        ids.forEach(indexer::index);
+        log.info("[Search] Bootstrap reindex finished: {} docs", ids.size());
     }
 }

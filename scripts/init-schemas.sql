@@ -6,6 +6,7 @@ CREATE SCHEMA IF NOT EXISTS payment_schema;
 CREATE SCHEMA IF NOT EXISTS product_schema;
 CREATE SCHEMA IF NOT EXISTS queue_schema;
 CREATE SCHEMA IF NOT EXISTS time_deal_schema;
+CREATE SCHEMA IF NOT EXISTS notification_schema;
 
 -- 권한 부여
 GRANT ALL PRIVILEGES ON SCHEMA auth_schema TO rushdeal;
@@ -15,3 +16,4 @@ GRANT ALL PRIVILEGES ON SCHEMA payment_schema TO rushdeal;
 GRANT ALL PRIVILEGES ON SCHEMA product_schema TO rushdeal;
 GRANT ALL PRIVILEGES ON SCHEMA queue_schema TO rushdeal;
 GRANT ALL PRIVILEGES ON SCHEMA time_deal_schema TO rushdeal;
+GRANT ALL PRIVILEGES ON SCHEMA notification_schema TO rushdeal;

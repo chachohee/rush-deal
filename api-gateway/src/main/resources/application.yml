@@ -67,6 +67,11 @@ spring:
               predicates:
                 - Path=/api/v1/queues/**,/api/v1/queue/policies/**,/api/v1/internal/queues/**
 
+            - id: notification-routes
+              uri: lb://notification-service
+              predicates:
+                - Path=/api/v1/notifications/**
+
           discovery:
             locator:
               enabled: true
@@ -92,6 +97,7 @@ gateway:
     - /api/v1/timedeals/search
     - /api/v1/timedeals/search/**
     - /api/v1/timedeals/*
+    - /api/v1/notifications/ws/**
     - /actuator/health
 
 management:

@@ -10,6 +10,7 @@ include 'product-service'
 include 'timedeal-service'
 include 'queue-service'
 include 'auth-service'
+include 'notification-service'
 
 project(':api-gateway').projectDir = file('api-gateway')
 project(':user-service').projectDir = file('user-service')
@@ -20,3 +21,4 @@ project(':product-service').projectDir = file('product-service')
 project(':timedeal-service').projectDir = file('timedeal-service')
 project(':queue-service').projectDir = file('queue-service')
 project(':auth-service').projectDir = file('auth-service')
+project(':notification-service').projectDir = file('notification-service')

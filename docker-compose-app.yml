@@ -574,6 +574,45 @@ services:
       - rushdeal-network
     restart: unless-stopped
 
+  notification-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.local
+      args:
+        SERVICE_NAME: notification-service
+    container_name: rushdeal_notification_service
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-local}
+      SERVER_PORT: ${NOTIFICATION_SERVER_PORT:-8070}
+      DB_URL: ${DB_URL}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      KAFKA_BROKERS: ${KAFKA_BROKERS:-kafka:29092}
+      EUREKA_ENABLED: ${EUREKA_ENABLED:-true}
+      EUREKA_URL: http://discovery-service:8761/eureka/
+      JPA_DDL_AUTO: ${JPA_DDL_AUTO:-update}
+      SHOW_SQL: ${SHOW_SQL:-false}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+
+      MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: ${ZIPKIN_URL:-http://zipkin:9411/api/v2/spans}
+      MANAGEMENT_TRACING_SAMPLING_PROBABILITY: ${TRACING_SAMPLING_RATE:-1.0}
+      MANAGEMENT_METRICS_EXPORT_PROMETHEUS_ENABLED: true
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    ports:
+      - "${NOTIFICATION_SERVER_PORT:-8070}:${NOTIFICATION_SERVER_PORT:-8070}"
+    depends_on:
+      rushdeal_postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      zipkin:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
+    networks:
+      - rushdeal-network
+    restart: unless-stopped
+
   # =========================================
   # [모니터링] Prometheus, Grafana, Zipkin
   # =========================================

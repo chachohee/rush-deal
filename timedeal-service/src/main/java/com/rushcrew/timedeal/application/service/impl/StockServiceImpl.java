@@ -78,7 +78,9 @@ public class StockServiceImpl implements StockService {
 			timeDealRepository.findProductByProductId(command.productId())
 				.orElseThrow(() -> new BusinessException(TimeDealErrorCode.NOT_FOUND_PRODUCT));
 
-		ProductInfo productInfo = productClient.getProductItemIds(command.productId());
+		// command.productId() 는 TimeDealProduct.id 이므로 실제 Product.id 는 itemIds 에서 추출
+		ProductInfo productInfo = productClient.getProductItemIds(
+			timeDealProduct.getItemIds().getProductId());
 		BigDecimal originalPrice = BigDecimal.valueOf(productInfo.price().getAmount());
 
 		TimeDealStock newStock = TimeDealStock.create(command, timeDealProduct, originalPrice);

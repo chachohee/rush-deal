@@ -45,8 +45,10 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         GatewayFilterChain chain
     ) {
         String path = exchange.getRequest().getURI().getPath();
+        String method = exchange.getRequest().getMethod() != null
+            ? exchange.getRequest().getMethod().name() : "";
 
-        if (isPublic(path)) {
+        if (isPublic(method, path)) {
             return chain.filter(exchange);
         }
 
@@ -177,11 +179,29 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         );
     }
 
-    private boolean isPublic(String path) {
+    private boolean isPublic(String method, String path) {
         return gatewayProperties
             .publicPaths()
             .stream()
-            .anyMatch(pattern -> pathMatcher.match(pattern, path));
+            .anyMatch(rule -> matches(rule, method, path));
+    }
+
+    // 룰 포맷:
+    //   "/api/v1/foo"        → 모든 메서드 매칭
+    //   "GET:/api/v1/foo"    → GET 만 매칭 (콤마 구분으로 여러 메서드도 허용: "GET,HEAD:/path")
+    private boolean matches(String rule, String method, String path) {
+        int colon = rule.indexOf(':');
+        if (colon < 0) {
+            return pathMatcher.match(rule, path);
+        }
+        String methodsPart = rule.substring(0, colon);
+        String pattern = rule.substring(colon + 1);
+        for (String m : methodsPart.split(",")) {
+            if (m.trim().equalsIgnoreCase(method)) {
+                return pathMatcher.match(pattern, path);
+            }
+        }
+        return false;
     }
 
     @Override

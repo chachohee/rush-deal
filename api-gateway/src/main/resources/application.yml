@@ -91,12 +91,12 @@ jwt:
 
 gateway:
   public-paths:
-    - /api/v1/auth/signup
-    - /api/v1/auth/login
-    - /api/v1/timedeals
-    - /api/v1/timedeals/search
-    - /api/v1/timedeals/search/**
-    - /api/v1/timedeals/*
+    - POST:/api/v1/auth/signup
+    - POST:/api/v1/auth/login
+    - GET:/api/v1/timedeals
+    - GET:/api/v1/timedeals/search
+    - GET:/api/v1/timedeals/search/**
+    - GET:/api/v1/timedeals/*
     - /api/v1/notifications/ws/**
     - /actuator/health
 

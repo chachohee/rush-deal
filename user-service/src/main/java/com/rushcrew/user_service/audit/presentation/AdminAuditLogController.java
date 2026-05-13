@@ -26,8 +26,6 @@ public class AdminAuditLogController {
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "30") int size
     ) {
-        Page<AdminAuditLogResponse> response = service.list(action, PageRequest.of(page, size))
-            .map(AdminAuditLogResponse::from);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(service.list(action, PageRequest.of(page, size)));
     }
 }

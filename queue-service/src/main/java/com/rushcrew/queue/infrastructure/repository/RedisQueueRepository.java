@@ -305,6 +305,14 @@ public class RedisQueueRepository implements QueueRepository {
         return savedToken != null && savedToken.equals(token);
     }
 
+    @Override
+    public String findExistingTokenForUser(UUID productId, Long userId) {
+        String saved = redisTemplate.opsForValue().get(getUserIndexKey(productId, userId));
+        if (saved == null) return null;
+        // 좀비 키일 수도 있으니 실제 ZSet 에 있는지 확인
+        return isTokenAlive(productId, saved) ? saved : null;
+    }
+
     /**
      * Fast Track: 즉시 활성열 등록 (ZSet 등록)
      */

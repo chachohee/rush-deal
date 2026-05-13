@@ -61,7 +61,12 @@ public class QueueService implements QueuePort {
         boolean isSuccess = queueRepository.register(queueToken, policy.getTimePeriod().getEndTime(),
             policy.getTrafficSetting().getTtl(), policy.getTrafficSetting().getMaxCapacity());
         if (!isSuccess) {
-            // 이미 대기열에 있는 경우 예외 처리
+            // 이미 대기 중인 유저 — 기존 토큰을 반환하여 멱등하게 처리
+            // (브라우저 새로고침이나 화면 재진입 시 중복 진입 시도가 자연스럽게 동작)
+            String existing = queueRepository.findExistingTokenForUser(command.productId(), command.userId());
+            if (existing != null) {
+                return getQueueRank(command.productId(), existing, command.userId());
+            }
             throw new BusinessException(QueueErrorCode.USER_ALREADY_IN_WAITING_QUEUE);
         }
 

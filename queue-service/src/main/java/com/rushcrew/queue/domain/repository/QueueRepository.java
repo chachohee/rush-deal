@@ -102,4 +102,10 @@ public interface QueueRepository {
      * @return
      */
     boolean isSoldOut(UUID productId);
+
+    /**
+     * USER_INDEX_KEY 에서 기존 발급된 토큰 조회 (재진입 시 사용)
+     * @return 기존 토큰 (없으면 null)
+     */
+    String findExistingTokenForUser(UUID productId, Long userId);
 }

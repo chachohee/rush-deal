@@ -17,6 +17,8 @@
 - [주문 생성 플로우차트](#-주문-생성-플로우차트)
 - [ERD](#-erd)
 - [성능 검증](#-성능-검증)
+- [테스트 자동화](#-테스트-자동화)
+- [모니터링 대시보드](#-모니터링-대시보드)
 - [프로젝트 구조](#-프로젝트-구조)
 
 ---
@@ -25,7 +27,7 @@
 
 한정된 시간과 수량 안에서 주문이 집중되는 타임딜 커머스 환경의 MSA(Microservices Architecture) 기반 이커머스 플랫폼입니다.
 
-트래픽 집중 상황에서 발생할 수 있는 **동시성·정합성·서비스 병목 문제**를 해결하기 위해 동시성 제어, 비동기 이벤트 기반 서비스 연동, Redis·Kafka·모니터링 도구를 활용한 트래픽 처리 구조를 설계하고 구현했습니다.
+트래픽 집중 상황에서 발생할 수 있는 **동시성·정합성·서비스 병목 문제**를 해결하기 위해 동시성 제어, 비동기 이벤트 기반 서비스 연동, Redis·Kafka·Elasticsearch·모니터링 도구를 활용한 트래픽 처리 구조를 설계하고 구현했습니다.
 
 ---
 
@@ -36,13 +38,19 @@
 - Redis Sorted Set 대기열과 Kafka 비동기 이벤트로 트래픽 집중 구간 안정화
 - 동시성 제어(Optimistic Lock, Redisson 분산 락)로 데이터 정합성 보장
 
+### 검색·알림 등 사용자 경험 강화
+- Elasticsearch(nori 형태소 분석)로 한국어 타임딜 검색 + 자동완성
+- WebSocket/STOMP 기반 실시간 알림 + Kafka fanout으로 도메인 이벤트 → 사용자 알림 변환
+- 관심 등록 → 타임딜 시작 시 자동 알림으로 비회원 회원가입 유도 funnel 구축
+
 ### 배포 및 운영
 - Docker 기반 서비스별 실행 환경 통일
 - `docker-compose-app.yml` 단일 파일로 전체 인프라·앱·모니터링 일괄 실행
+- Flyway로 명시적 DB 마이그레이션 관리 (silent schema drift 방지)
 - GitHub Actions + AWS ECS 기반 CI/CD 파이프라인
 
 ### 모니터링 시스템 구축
-- Prometheus + Grafana를 활용한 메트릭 수집 및 시각화
+- Prometheus + Grafana 대시보드 3종 (서비스 헬스/Kafka/비즈니스 지표)
 - Zipkin을 통한 분산 트레이싱 및 병목 지점 분석
 
 ---
@@ -64,10 +72,17 @@
 | 회원가입 | POST | `/api/v1/auth/signup` |
 | 로그인 | POST | `/api/v1/auth/login` |
 | 상품 조회 | GET | `/api/v1/products/**` |
-| 타임딜 | GET | `/api/v1/timedeals/**` |
+| 타임딜 목록·상세 | GET | `/api/v1/timedeals/**` |
+| 타임딜 검색 | GET | `/api/v1/timedeals/search?q=...` |
+| 타임딜 검색 자동완성 | GET | `/api/v1/timedeals/search/suggest?q=...` |
+| 관심 등록/해제/조회 | POST/DELETE/GET | `/api/v1/timedeals/{id}/interest` |
+| 내 관심 타임딜 | GET | `/api/v1/timedeals/me/interested` |
 | 주문 | POST | `/api/v1/orders/**` |
 | 결제 | POST | `/api/v1/payments/**` |
 | 대기열 | GET | `/api/v1/queues/**` |
+| 알림 목록·읽음 | GET/PATCH | `/api/v1/notifications/**` |
+| 알림 WebSocket(STOMP) | WS | `/api/v1/notifications/ws` |
+| 관리자 감사 로그 | GET | `/api/v1/users/audit-logs` |
 | 배송지 관리 | GET | `/api/v1/users/me/addresses/**` |
 | 포인트 잔액 | GET | `/api/v1/points/balance` |
 
@@ -105,6 +120,29 @@
 - **Redisson 분산 락**으로 동시 요청에서도 포인트 데이터 무결성 보장
 - USE_PENDING → 결제 확정 시 EARN_CONFIRM, 취소 시 USE_CANCEL 상태 전이
 
+### Elasticsearch 기반 한국어 타임딜 검색
+- nori 형태소 분석기로 한국어 토큰화, 타임딜·상품·회사명 통합 검색
+- 필드별 boost (제목 2.0 > 상품명 1.5 > 회사명 1.2 > 설명 0.8) + `<mark>` 하이라이트
+- ES completion suggester로 자동완성, debounce 200ms로 입력 중 미리보기
+- Spring 이벤트(`TimeDealCreatedEvent`/`UpdatedEvent`/`StartedEvent`/`EndedEvent`) → @TransactionalEventListener로 인덱스 동기화
+- 부트스트랩 reindexer로 인덱스가 DB보다 뒤처지면 앱 시작 시 자동 보정
+
+### 알림 서비스 분리 + 실시간 WebSocket 푸시
+- 독립 `notification-service`(마이크로서비스 분리) + STOMP 기반 WebSocket(`/api/v1/notifications/ws`) 푸시
+- Kafka 이벤트(`order.created`, `order.paid`, `order.cancelled`, `user.account.event`, `timedeal.start.notify`, `timedeal.ending.soon`, `timedeal.sold.out.notify`) 구독 → 사용자별 알림 row 생성 + WS push
+- WebSocket CONNECT 헤더의 JWT를 ChannelInterceptor로 검증, `/user/queue/notifications`로 사용자별 라우팅
+- 14종 알림 타입 (주문/결제/계정/타임딜 진행/매진/관심/셀러)
+
+### 관심 타임딜 + 시작 알림 fanout
+- 비회원이 하트 아이콘으로 관심 등록 → 회원가입 유도 funnel
+- 타임딜 시작 시 관심 사용자 + 셀러에게 자동 알림 (Kafka fanout 패턴)
+- 종료 임박(10분 전) 스케줄러로 사용자 재참여 유도, 매진 발생 시 셀러에게 완판 알림
+
+### 관리자 감사 로그
+- 정지/해제/역할변경/삭제 시 `p_admin_audit_log`에 누가·언제·무엇을·누구에게 기록
+- 응답 시점에 관리자/대상 이메일을 배치 조회로 enrichment
+- 관리자 페이지에서 액션별 필터 + 기간 + 이메일 검색
+
 ---
 
 ## 🧑‍🤝‍🧑 팀원 및 역할
@@ -115,7 +153,7 @@
 | [김민수](https://github.com/Doritosch) | 결제, 모니터링 |
 | [민송경](https://github.com/miiiiiin) | 대기열, 배포 |
 | [유민아](https://github.com/minahYu) | 상품, 타임딜, 재고 |
-| [차초희](https://github.com/chachohee) | 주문 |
+| [차초희](https://github.com/chachohee) | 주문, 검색·알림·관심·감사로그·테스트 자동화·Flyway·모니터링 대시보드 |
 
 ---
 
@@ -125,12 +163,25 @@
 | 분류 | 기술 |
 |------|------|
 | Language | Java 21 |
-| Framework | Spring Boot 3.5.8, Spring Security |
-| Data | Spring Data JPA, Spring Data Redis, PostgreSQL |
+| Framework | Spring Boot 3.5.8, Spring Security, Spring WebSocket(STOMP) |
+| Data | Spring Data JPA, Spring Data Redis, Spring Data Elasticsearch, PostgreSQL |
+| Search | Elasticsearch 8.13 + analysis-nori |
+| Migration | Flyway |
 | Messaging | Spring Kafka |
 | Service Discovery | Spring Cloud Eureka, Spring Cloud Gateway |
 | External API | OpenFeign, PortOne |
 | Resilience | Resilience4j (Circuit Breaker, Retry, Time Limiter) |
+| Test | JUnit 5, Testcontainers (Postgres / Kafka / Redis / Elasticsearch), Awaitility |
+
+### Front-End ([rush-deal-web](https://github.com/chachohee/rush-deal-web))
+| 분류 | 기술 |
+|------|------|
+| Framework | Next.js 16 (Turbopack), React 19, TypeScript |
+| Styling | Tailwind CSS |
+| State / Data | Zustand (persist), TanStack Query |
+| Forms | React Hook Form + Zod |
+| Realtime | @stomp/stompjs (WebSocket) |
+| Payment | @portone/browser-sdk |
 
 ### Infrastructure
 | 분류 | 기술 |
@@ -142,7 +193,7 @@
 ### Monitoring
 | 분류 | 기술 |
 |------|------|
-| Metrics | Prometheus, Grafana |
+| Metrics | Prometheus, Grafana (대시보드 3종: 서비스 헬스 / Kafka / 비즈니스 지표) |
 | Tracing | Zipkin |
 | Kafka UI | Kafka UI (provectuslabs) |
 
@@ -162,15 +213,19 @@
 | **User** | User | — | UserRole |
 | **User** | ShippingAddress | — | RecipientName, RecipientPhone, ZipCode, Address |
 | **User** | PointHistory | — | Point, UserId, OrderId, SagaId |
+| **User** | AdminAuditLog | — | AdminAction |
 | **Product** | Product | ProductOption | SellerId, ProductInfo, Price, Category |
 | **TimeDeal** | TimeDeal | TimeDealProduct | TimeDealInfo, Price, Period, LimitQuantity |
 | **TimeDeal** | TimeDealStock | StockLog | StockCounts, ProductItemIds, Quantity |
+| **TimeDeal** | InterestedDeal | — | UserId, TimeDealId |
+| **TimeDeal** | TimeDealDocument *(Elasticsearch)* | — | korean-analyzed title/description, completion suggest |
 | **Order** | Order | OrderItem, OrderReservation, OrderHistory | OrderAmount, ShippingInfo, ProductSnapshot |
 | **Order** | SagaInstance | SagaStep | SagaStatus |
 | **Order** | OutboxEventEntity *(인프라)* | — | OutboxStatus |
 | **Payment** | Payment | PaymentTransaction | Amount, Card, Cancel |
 | **Queue** | QueuePolicy *(DB)* | — | TimePeriod, TrafficSetting |
 | **Queue** | QueueToken *(Redis)* | — | TokenId, QueueStatus |
+| **Notification** | Notification | — | NotificationType (14종) |
 
 > ★ = Aggregate Root  |  Optimistic Lock: `TimeDealStock.version`  |  분산 락: `PointHistory` (Redisson)
 
@@ -198,24 +253,27 @@ Saga·Outbox 패턴 기반의 주문 생성 전체 흐름입니다.
 | **보상 트랜잭션** | 어느 한 Step 실패 시 완료된 Step 역순 보상 |
 | **결제** | Payment Service - PortOne 웹훅으로 결제 완료 처리 |
 | **구매확정** | 결제 후 7일 자동 구매확정 스케줄러 |
+| **알림** | 단계별 Kafka 이벤트 → notification-service가 사용자/셀러 알림 생성 + WebSocket 푸시 |
 
 ---
 
 ## 🗄 ERD
 
-서비스별 독립 스키마로 분리되어 있으며, 서비스 간 DB 직접 참조는 없습니다.
+서비스별 독립 스키마로 분리되어 있으며, 서비스 간 DB 직접 참조는 없습니다. 스키마 변경은 **Flyway 마이그레이션 파일**(`src/main/resources/db/migration/V*__*.sql`)로 명시적으로 관리됩니다.
 
 ![erd](docs/image/rushdeal_erd.svg)
 
 | 스키마 | 테이블 | 설명 |
 |--------|--------|------|
-| `user_schema` | p_user, p_point_history, p_shipping_address | 사용자 정보, 포인트 이력, 배송지 |
+| `user_schema` | p_user, p_point_history, p_shipping_address, **p_admin_audit_log** | 사용자, 포인트, 배송지, 관리자 감사 로그 |
 | `product_schema` | p_product, p_product_option | 상품 및 옵션 |
-| `time_deal_schema` | p_time_deal, p_time_deal_product, p_time_deal_stock, p_stock_log | 타임딜, 재고, 재고 이력 |
+| `time_deal_schema` | p_time_deal, p_time_deal_product, p_time_deal_stock, p_stock_log, **p_interested_deal** | 타임딜, 재고, 재고 이력, 관심 등록 |
 | `order_schema` | p_order, p_order_item, p_order_reservation, p_order_history, p_saga_instance, p_saga_step, p_outbox_event | 주문, Saga, Outbox |
 | `payment_schema` | p_payment, p_payment_transaction | 결제, 결제 트랜잭션 |
 | `queue_schema` | p_queue_policy | 대기열 정책 (토큰은 Redis 전용) |
+| `notification_schema` | **p_notification** | 사용자 알림 (Kafka fanout 결과) |
 | `auth` | — | JWT 토큰은 Redis 전용 (DB 없음) |
+| Elasticsearch `timedeal` index | — | 타임딜 검색용 비정규화 문서 |
 
 ---
 
@@ -242,6 +300,34 @@ Saga·Outbox 패턴 기반의 주문 생성 전체 흐름입니다.
 
 ---
 
+## 🧪 테스트 자동화
+
+핵심 비즈니스 흐름을 보호하기 위해 **Testcontainers 기반 통합 테스트**를 작성했습니다. 외부 의존성(Postgres, Kafka, Redis, Elasticsearch)을 실제로 띄워 운영 환경과 동일하게 검증합니다.
+
+| 서비스 | 테스트 수 | 검증 영역 |
+|---|---:|---|
+| notification-service | 9 | order.* / user.account.event / timedeal.*.notify Kafka fanout, REST API |
+| user-service | 3 | block·unblock·changeRole이 audit log + Kafka 이벤트 + DB 상태를 한 트랜잭션으로 |
+| queue-service | 4 | 중복 활성 정책 거부, STOPPED upsert, time-deal-end 수신 시 STOPPED 전환 |
+| timedeal-service | 5 | 관심 등록 idempotent, findUserIdsByTimeDealId, 참조 무결성 |
+| **합계** | **21** | |
+
+추가 효과로, Flyway 베이스라인의 `NotificationType` 체크 제약이 enum 추가분을 누락한 **silent drift를 자동 발견**하여 `V2__expand_notification_type_check.sql` 마이그레이션을 추가하는 계기가 됐습니다.
+
+---
+
+## 📊 모니터링 대시보드
+
+`http://localhost:3000` (Grafana, 기본 계정 `.env`의 `GRAFANA_ADMIN_*`)로 접근. 자동 프로비저닝된 대시보드 3종:
+
+1. **RushDeal — 서비스 헬스 & JVM**: 11개 서비스 가용성 / HTTP 처리율·에러율 / 응답시간 p95·p99 / JVM 힙·GC / Hikari 커넥션
+2. **RushDeal — Kafka 메시징**: 컨슈머 처리율·lag / 프로듀서 송신·에러 / @KafkaListener 처리 시간·실패
+3. **RushDeal — 비즈니스 지표**: 가입·주문·검색·관심 등록 분당 / 검색 p95 / 알림 fanout 처리율 / 주문·결제 토픽 처리율 / 5xx·4xx 합계
+
+Prometheus 타겟: 11개 (api-gateway, discovery-service, auth/user/order/payment/product/queue/timedeal/notification-service, prometheus 자체).
+
+---
+
 ## 📂 프로젝트 구조
 
 ```
@@ -249,18 +335,19 @@ rush-deal/
 ├── api-gateway/          # 요청 라우팅, JWT 인증, 하위 서비스 헤더 전파 (X-User-Id/Role)
 ├── discovery-service/    # 서비스 디스커버리 (Eureka)
 ├── auth-service/         # 인증, JWT 발급·갱신·블랙리스트
-├── user-service/         # 사용자 관리, 포인트 적립·차감
+├── user-service/         # 사용자 관리, 포인트, 관리자 감사 로그
 ├── product-service/      # 상품 및 옵션 관리
-├── timedeal-service/     # 타임딜 생성·관리, 재고 제어
+├── timedeal-service/     # 타임딜 생성·관리, 재고 제어, ES 검색, 관심 등록
 ├── order-service/        # 주문 처리, Saga 오케스트레이션, Outbox
 ├── payment-service/      # 결제 (PortOne 연동)
 ├── queue-service/        # Redis 대기열 토큰 발급·관리
-├── monitoring/           # Prometheus, Grafana 설정
+├── notification-service/ # 알림 Kafka fanout + WebSocket 푸시
+├── monitoring/           # Prometheus 설정 + Grafana 대시보드 3종
 ├── docs/                 # 아키텍처, ERD, 플로우차트 이미지
-├── scripts/              # DB 초기화 SQL
+├── scripts/              # DB 스키마 초기화 (Flyway 마이그레이션은 각 서비스 db/migration)
 ├── docker-compose-app.yml   # 로컬 전체 실행 (인프라 + 앱 + 모니터링)
-├── docker-compose.yml       # 인프라 전용 (IDE 개발용)
 ├── Dockerfile.local         # 로컬 빌드용 (JAR 복사)
+├── Dockerfile.elasticsearch # nori plugin 포함한 ES 이미지
 ├── Dockerfile.template      # CI/CD용 (Docker 내부 빌드)
 ├── start-local.sh           # 로컬 전체 실행 스크립트
 ├── stop-local.sh            # 로컬 전체 종료 스크립트

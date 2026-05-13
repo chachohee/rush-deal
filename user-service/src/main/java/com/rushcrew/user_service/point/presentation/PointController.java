@@ -34,8 +34,9 @@ public class PointController {
         return ResponseEntity.ok(new PointBalanceResponse(pointService.getBalance(userId)));
     }
 
+    // order-service Saga 가 사용자 권한으로 Feign 호출하는 흐름이라 USER 까지 허용
     @PostMapping("/pending")
-    @PreAuthorize("hasRole('MASTER')")
+    @PreAuthorize("hasAnyRole('USER', 'SELLER', 'MASTER')")
     public ResponseEntity<Void> createPendingPoint(
         @Valid @RequestBody CreatePendingPointRequest request
     ) {
@@ -45,7 +46,7 @@ public class PointController {
     }
 
     @PostMapping("/use")
-    @PreAuthorize("hasRole('MASTER')")
+    @PreAuthorize("hasAnyRole('USER', 'SELLER', 'MASTER')")
     public ResponseEntity<Void> usePoint(
         @Valid @RequestBody UsePointRequest request
     ) {
@@ -56,7 +57,7 @@ public class PointController {
     }
 
     @PostMapping("/order/cancel")
-    @PreAuthorize("hasRole('MASTER')")
+    @PreAuthorize("hasAnyRole('USER', 'SELLER', 'MASTER')")
     public ResponseEntity<Void> cancelOrder(
         @Valid @RequestBody CancelOrderRequest request
     ) {

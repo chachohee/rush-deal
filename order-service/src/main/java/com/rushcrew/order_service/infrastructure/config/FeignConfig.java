@@ -4,16 +4,44 @@ import java.util.concurrent.TimeUnit;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import feign.Logger;
 import feign.Request;
+import feign.RequestInterceptor;
 import feign.Retryer;
 import feign.codec.ErrorDecoder;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Configuration
 public class FeignConfig {
+
+	private static final String[] PROPAGATED_HEADERS = {
+		"X-User-Id", "X-User-Role", "X-User-Email", "X-Queue-Token"
+	};
+
+	/**
+	 * 게이트웨이가 주입한 사용자 헤더를 다운스트림 Feign 호출에 전파.
+	 * 없으면 timedeal-service / payment-service 의 @PreAuthorize 가 403 처리.
+	 */
+	@Bean
+	public RequestInterceptor headerForwardingInterceptor() {
+		return template -> {
+			ServletRequestAttributes attrs =
+				(ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+			if (attrs == null) return;
+			HttpServletRequest req = attrs.getRequest();
+			for (String h : PROPAGATED_HEADERS) {
+				String v = req.getHeader(h);
+				if (v != null && !v.isBlank()) {
+					template.header(h, v);
+				}
+			}
+		};
+	}
 
 	@Bean
 	public Logger.Level feignLoggerLevel() {

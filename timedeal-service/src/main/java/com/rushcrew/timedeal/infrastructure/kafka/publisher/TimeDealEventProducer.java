@@ -5,6 +5,7 @@ import com.rushcrew.timedeal.application.port.out.event.TimeDealEndedEvent;
 import com.rushcrew.timedeal.application.port.out.event.TimeDealStartedEvent;
 import com.rushcrew.timedeal.infrastructure.kafka.dto.TimeDealEndMessage;
 import com.rushcrew.timedeal.infrastructure.kafka.dto.TimeDealStartMessage;
+import com.rushcrew.timedeal.infrastructure.kafka.dto.TimeDealStartNotifyMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -28,6 +29,18 @@ public class TimeDealEventProducer {
             log.info("time-deal-start 이벤트 발행 완료 - timeDealId={}", event.timeDealId());
         } catch (Exception e) {
             log.error("time-deal-start 이벤트 발행 실패 - timeDealId={}", event.timeDealId(), e);
+        }
+    }
+
+    public void publishTimeDealStartNotify(TimeDealStartNotifyMessage message) {
+        if (message.interestedUserIds() == null || message.interestedUserIds().isEmpty()) return;
+        try {
+            kafkaTemplate.send("timedeal.start.notify", message.timeDealId().toString(),
+                objectMapper.writeValueAsString(message));
+            log.info("timedeal.start.notify 발행 완료 - timeDealId={}, users={}",
+                message.timeDealId(), message.interestedUserIds().size());
+        } catch (Exception e) {
+            log.error("timedeal.start.notify 발행 실패 - timeDealId={}", message.timeDealId(), e);
         }
     }
 

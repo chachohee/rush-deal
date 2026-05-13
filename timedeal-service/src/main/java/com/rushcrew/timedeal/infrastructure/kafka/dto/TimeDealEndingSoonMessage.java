@@ -4,12 +4,11 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-public record TimeDealStartNotifyMessage(
+public record TimeDealEndingSoonMessage(
     UUID timeDealId,
     String title,
-    Instant startAt,
     Instant endAt,
-    Long price,
+    int minutesLeft,
     Long sellerId,
-    List<Long> interestedUserIds
+    List<Long> userIds
 ) {}

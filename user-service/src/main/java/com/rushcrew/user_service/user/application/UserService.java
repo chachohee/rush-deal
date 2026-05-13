@@ -14,6 +14,7 @@ import com.rushcrew.user_service.user.domain.enums.UserRole;
 import com.rushcrew.user_service.user.domain.error.UserErrorCode;
 import com.rushcrew.user_service.user.domain.repository.UserRepository;
 import com.rushcrew.user_service.user.domain.service.UserValidator;
+import com.rushcrew.user_service.user.infrastructure.kafka.AccountEventProducer;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -28,6 +29,7 @@ public class UserService {
     private final UserValidator userValidator;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AccountEventProducer accountEventProducer;
 
     @Transactional
     public UserCreateResult createUser(UserCreateCommand command) {
@@ -110,18 +112,21 @@ public class UserService {
     public void changeRole(Long targetUserId, String role) {
         User user = userRepository.getById(targetUserId);
         user.changeRole(UserRole.of(role));
+        accountEventProducer.publishRoleChanged(targetUserId, role);
     }
 
     @Transactional
     public void blockUser(Long targetUserId) {
         User user = userRepository.getById(targetUserId);
         user.block();
+        accountEventProducer.publishBlocked(targetUserId);
     }
 
     @Transactional
     public void unblockUser(Long targetUserId) {
         User user = userRepository.getById(targetUserId);
         user.unblock();
+        accountEventProducer.publishUnblocked(targetUserId);
     }
 
     @Transactional

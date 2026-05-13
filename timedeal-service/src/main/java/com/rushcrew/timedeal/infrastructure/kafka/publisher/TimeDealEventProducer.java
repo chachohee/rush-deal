@@ -33,12 +33,12 @@ public class TimeDealEventProducer {
     }
 
     public void publishTimeDealStartNotify(TimeDealStartNotifyMessage message) {
-        if (message.interestedUserIds() == null || message.interestedUserIds().isEmpty()) return;
         try {
             kafkaTemplate.send("timedeal.start.notify", message.timeDealId().toString(),
                 objectMapper.writeValueAsString(message));
-            log.info("timedeal.start.notify 발행 완료 - timeDealId={}, users={}",
-                message.timeDealId(), message.interestedUserIds().size());
+            log.info("timedeal.start.notify 발행 완료 - timeDealId={}, seller={}, users={}",
+                message.timeDealId(), message.sellerId(),
+                message.interestedUserIds() == null ? 0 : message.interestedUserIds().size());
         } catch (Exception e) {
             log.error("timedeal.start.notify 발행 실패 - timeDealId={}", message.timeDealId(), e);
         }

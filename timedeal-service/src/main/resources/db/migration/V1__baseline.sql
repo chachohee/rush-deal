@@ -101,4 +101,3 @@ ALTER TABLE ONLY time_deal_schema.p_time_deal_product
     ADD CONSTRAINT fk6dj4c9k09fmrwcvly2fhqq67t FOREIGN KEY (time_deal_id) REFERENCES time_deal_schema.p_time_deal(id);
 ALTER TABLE ONLY time_deal_schema.p_stock_log
     ADD CONSTRAINT fkbpnydjs9yco54qesy9wnso7st FOREIGN KEY (time_deal_stock_id) REFERENCES time_deal_schema.p_time_deal_stock(id);
-\unrestrict HLPMDZKBP28AvbU0Gdy7kiyx52RPUcM6DVQ6cC3Ncz4i40brDAUA2SFBIVlcaBc

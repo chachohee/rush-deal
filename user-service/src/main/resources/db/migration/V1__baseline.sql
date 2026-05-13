@@ -88,4 +88,3 @@ ALTER TABLE ONLY user_schema.p_user
 CREATE INDEX idx_audit_admin ON user_schema.p_admin_audit_log USING btree (admin_id);
 CREATE INDEX idx_audit_created ON user_schema.p_admin_audit_log USING btree (created_at DESC);
 CREATE INDEX idx_audit_target ON user_schema.p_admin_audit_log USING btree (target_user_id);
-\unrestrict gtVtNd4LcfxLAob38NNGQm6j4813GWrsa1JvzgogqHirj9kzzgiA6cu9Liv5Aoy

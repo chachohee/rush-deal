@@ -33,4 +33,3 @@ ALTER TABLE ONLY product_schema.p_product
     ADD CONSTRAINT p_product_pkey PRIMARY KEY (id);
 ALTER TABLE ONLY product_schema.p_product_option
     ADD CONSTRAINT fklm9lo8y687hjypp2qssrb6bsl FOREIGN KEY (product_id) REFERENCES product_schema.p_product(id);
-\unrestrict 0mpK8SL2fyKhEMUWqyvrs5yxIpRhIhpzjE6hvlpEEYLGe12IsvWWgw41ka5z3QC

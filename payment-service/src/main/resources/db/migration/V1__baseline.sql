@@ -45,4 +45,3 @@ ALTER TABLE ONLY payment_schema.p_payment_transaction
     ADD CONSTRAINT p_payment_transaction_pkey PRIMARY KEY (payment_transaction_id);
 ALTER TABLE ONLY payment_schema.p_payment_transaction
     ADD CONSTRAINT fk9ijgawtu2rfywmw5ox81o3dw0 FOREIGN KEY (payment_id) REFERENCES payment_schema.p_payment(payment_id);
-\unrestrict 6DYA741RB86uB9bcS0ygNbYi2fdVFehVfoizM7jVEREzcAF5Q9sAeu7Pz8jyY7O

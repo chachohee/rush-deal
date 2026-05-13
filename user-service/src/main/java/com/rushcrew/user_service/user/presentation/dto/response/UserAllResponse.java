@@ -1,6 +1,7 @@
 package com.rushcrew.user_service.user.presentation.dto.response;
 
 import com.rushcrew.user_service.user.application.result.UserAllResult;
+import java.time.LocalDateTime;
 
 public record UserAllResponse(
     Long userId,
@@ -8,7 +9,8 @@ public record UserAllResponse(
     String name,
     String role,
     boolean isBlocked,
-    boolean isDeleted
+    boolean isDeleted,
+    LocalDateTime createdAt
 ) {
     public static UserAllResponse fromResult(UserAllResult result) {
         return new UserAllResponse(
@@ -17,7 +19,8 @@ public record UserAllResponse(
             result.name(),
             result.role(),
             result.isBlocked(),
-            result.isDeleted()
+            result.isDeleted(),
+            result.createdAt()
         );
     }
 }

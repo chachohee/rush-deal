@@ -14,6 +14,7 @@ public record SearchHitItem(
     String category,
     String status,
     Long price,
+    String imageUrl,
     Instant startAt,
     Instant endAt,
     Map<String, List<String>> highlights
@@ -29,6 +30,7 @@ public record SearchHitItem(
             doc.getCategory(),
             doc.getStatus(),
             doc.getPrice(),
+            doc.getImageUrl(),
             doc.getStartAt(),
             doc.getEndAt(),
             highlights

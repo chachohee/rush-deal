@@ -14,6 +14,7 @@ public record ProductDetailResponse(
     Long price,
     Boolean isActive,
     String category,
+    String imageUrl,
     List<ProductOptionResult> productOptionsResult
 ) {
 
@@ -27,6 +28,7 @@ public record ProductDetailResponse(
             result.price(),
             result.isActive(),
             result.category(),
+            result.imageUrl(),
             result.productOptionsResult()
         );
     }

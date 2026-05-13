@@ -194,6 +194,42 @@ services:
     networks:
       - rushdeal-network
 
+  minio:
+    image: minio/minio:latest
+    container_name: rushdeal_minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-rushdeal}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-rushdeal123}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - rushdeal_minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - rushdeal-network
+
+  minio-init:
+    image: minio/mc:latest
+    container_name: rushdeal_minio_init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      sh -c "
+        mc alias set local http://minio:9000 ${MINIO_ROOT_USER:-rushdeal} ${MINIO_ROOT_PASSWORD:-rushdeal123};
+        mc mb local/rushdeal-products --ignore-existing;
+        mc anonymous set download local/rushdeal-products;
+      "
+    networks:
+      - rushdeal-network
+
 
   # =========================================
   # [MSA 서비스] 스프링 부트 앱 설정
@@ -463,6 +499,13 @@ services:
       SHOW_SQL: ${SHOW_SQL:-false}
       SQL_INIT_MODE: ${SQL_INIT_MODE:-never}
 
+      # MinIO
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT:-http://minio:9000}
+      MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT:-http://localhost:9000}
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-rushdeal}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-rushdeal123}
+      MINIO_BUCKET: ${MINIO_BUCKET:-rushdeal-products}
+
       # Monitoring
       MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: ${ZIPKIN_URL:-http://zipkin:9411/api/v2/spans}
       MANAGEMENT_TRACING_SAMPLING_PROBABILITY: ${TRACING_SAMPLING_RATE:-1.0}
@@ -476,6 +519,8 @@ services:
       zipkin:
         condition: service_healthy
       discovery-service:
+        condition: service_healthy
+      minio:
         condition: service_healthy
     networks:
       - rushdeal-network
@@ -714,6 +759,7 @@ volumes:
   rushdeal_order_redis_data:
   rushdeal_timedeal_redis_data:
   rushdeal_es_data:
+  rushdeal_minio_data:
   prometheus_data:
   grafana_data:
 

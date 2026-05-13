@@ -11,6 +11,7 @@ public record CreateProductCommand(
     ProductInfo productInfo,
     Price price,
     Category category,
+    String imageUrl,
     List<CreateOptionCommand> optionCommands
 ) {
 

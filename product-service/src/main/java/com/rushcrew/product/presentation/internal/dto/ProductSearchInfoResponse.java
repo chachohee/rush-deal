@@ -6,5 +6,6 @@ public record ProductSearchInfoResponse(
     UUID productId,
     String productName,
     String companyName,
-    String category
+    String category,
+    String imageUrl
 ) {}

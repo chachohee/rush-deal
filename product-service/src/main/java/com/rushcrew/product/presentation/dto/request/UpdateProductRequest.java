@@ -9,7 +9,8 @@ public record UpdateProductRequest(
     String productName,
     String description,
     @PositiveOrZero Long price,
-    Category category
+    Category category,
+    String imageUrl
 ) {
 
     public UpdateProductCommand toCommand() {
@@ -18,7 +19,8 @@ public record UpdateProductRequest(
             this.productName(),
             this.description(),
             this.price(),
-            this.category()
+            this.category(),
+            this.imageUrl()
         );
     }
 }

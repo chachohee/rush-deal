@@ -67,6 +67,9 @@ public class Product extends BaseEntity {
     @Column(nullable = false)
     private Category category;
 
+    @Column(name = "image_url")
+    private String imageUrl;
+
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<ProductOption> options = new ArrayList<>();
@@ -78,6 +81,7 @@ public class Product extends BaseEntity {
             .productInfo(params.productInfo())
             .price(params.price())
             .category(params.category())
+            .imageUrl(params.imageUrl())
             .build();
 
         params.optionCommands().forEach(option ->
@@ -101,6 +105,9 @@ public class Product extends BaseEntity {
         }
         updateProductInfo(params.productName(), params.description());
         this.price = params.price() != null ? Price.of(params.price()) : this.price;
+        if (params.imageUrl() != null) {
+            this.imageUrl = params.imageUrl();
+        }
     }
 
     private void updateProductInfo(String newName, String newDescription) {

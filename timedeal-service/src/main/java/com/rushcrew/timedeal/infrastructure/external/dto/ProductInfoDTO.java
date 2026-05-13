@@ -7,7 +7,8 @@ public record ProductInfoDTO(
     UUID productId,
     List<UUID> optionIds,
     Long sellerId,
-    Long price
+    Long price,
+    String imageUrl
 ) {
 
 }

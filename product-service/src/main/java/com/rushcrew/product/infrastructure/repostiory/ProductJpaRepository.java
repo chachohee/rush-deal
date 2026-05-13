@@ -25,7 +25,8 @@ public interface ProductJpaRepository extends JpaRepository<Product, UUID> {
                           p.companyName,
                           p.productInfo.name,
                           p.productInfo.description,
-                          p.price.amount
+                          p.price.amount,
+                          p.imageUrl
                      )
                 FROM Product p
                 WHERE p.isActive = true

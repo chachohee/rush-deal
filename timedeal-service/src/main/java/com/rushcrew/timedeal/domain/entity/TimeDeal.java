@@ -81,6 +81,9 @@ public class TimeDeal extends BaseEntity {
     @Builder.Default
     private TimeDealStatus status = TimeDealStatus.SCHEDULED;
 
+    @Column(name = "image_url")
+    private String imageUrl;
+
     @JsonIgnore
     @OneToMany(mappedBy = "timeDeal", cascade = CascadeType.PERSIST)
     @Builder.Default
@@ -104,6 +107,10 @@ public class TimeDeal extends BaseEntity {
 
     public void updateStatus(TimeDealStatus timeDealStatus) {
         this.status = timeDealStatus;
+    }
+
+    public void updateImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 
     public void update(UpdateTimeDealParams params) {

@@ -8,7 +8,8 @@ public record ProductResponse(
     String companyName,
     String productName,
     String description,
-    Long price
+    Long price,
+    String imageUrl
 ) {
 
     public static ProductResponse from(ProductResult result) {
@@ -17,7 +18,8 @@ public record ProductResponse(
             result.companyName(),
             result.productName(),
             result.description(),
-            result.price()
+            result.price(),
+            result.imageUrl()
         );
     }
 }

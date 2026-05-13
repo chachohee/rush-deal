@@ -7,14 +7,16 @@ import java.util.UUID;
 public record ProductInfo(
     List<UUID> optionIds,
     Long sellerId,
-    Price price
+    Price price,
+    String imageUrl
 ) {
 
-    public static ProductInfo of(List<UUID> optionIds, Long sellerId, Long price) {
+    public static ProductInfo of(List<UUID> optionIds, Long sellerId, Long price, String imageUrl) {
         return new ProductInfo(
             optionIds,
             sellerId,
-            Price.of(price)
+            Price.of(price),
+            imageUrl
         );
     }
 }

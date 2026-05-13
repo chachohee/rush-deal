@@ -7,7 +7,8 @@ public record UpdateProductCommand(
     String productName,
     String description,
     Long price,
-    Category category
+    Category category,
+    String imageUrl
 ) {
 
 }

@@ -13,6 +13,7 @@ public record CreateProductParams(
     ProductInfo productInfo,
     Price price,
     Category category,
+    String imageUrl,
     List<CreateOptionCommand> optionCommands
 ) {
 

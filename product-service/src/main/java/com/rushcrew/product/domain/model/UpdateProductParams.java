@@ -7,7 +7,8 @@ public record UpdateProductParams(
     Category category,
     Long price,
     String productName,
-    String description
+    String description,
+    String imageUrl
 ) {
 
 }

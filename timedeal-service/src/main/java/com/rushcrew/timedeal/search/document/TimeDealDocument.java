@@ -52,6 +52,9 @@ public class TimeDealDocument {
     @Field(type = FieldType.Long)
     private Long price;
 
+    @Field(type = FieldType.Keyword, index = false)
+    private String imageUrl;
+
     @Field(type = FieldType.Date, format = DateFormat.date_optional_time)
     private Instant startAt;
 
@@ -66,6 +69,7 @@ public class TimeDealDocument {
         String productName = productInfo != null ? productInfo.productName() : null;
         String companyName = productInfo != null ? productInfo.companyName() : null;
         String category = productInfo != null ? productInfo.category() : null;
+        String imageUrl = productInfo != null ? productInfo.imageUrl() : null;
 
         return TimeDealDocument.builder()
             .id(td.getId().toString())
@@ -74,6 +78,7 @@ public class TimeDealDocument {
             .productName(productName)
             .companyName(companyName)
             .category(category)
+            .imageUrl(imageUrl)
             .status(td.getStatus().name())
             .price(td.getPrice().getAmount())
             .startAt(td.getPeriod().getStartAt())

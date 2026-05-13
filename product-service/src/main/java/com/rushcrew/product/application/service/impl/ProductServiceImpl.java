@@ -40,7 +40,8 @@ public class ProductServiceImpl implements ProductService {
 
         CreateProductParams params = new CreateProductParams(
             sellerId, command.companyName(), command.productInfo(),
-            command.price(), command.category(), command.optionCommands()
+            command.price(), command.category(), command.imageUrl(),
+            command.optionCommands()
         );
 
         Product product = Product.create(params);
@@ -58,7 +59,7 @@ public class ProductServiceImpl implements ProductService {
 
         UpdateProductParams params = new UpdateProductParams(
             command.companyName(), command.category(), command.price(),
-            command.productName(), command.description()
+            command.productName(), command.description(), command.imageUrl()
         );
         product.update(params);
 

@@ -9,6 +9,7 @@ import com.rushcrew.product.application.result.ProductResult;
 import com.rushcrew.product.application.result.UpdateProductResult;
 import com.rushcrew.product.application.service.ProductService;
 import com.rushcrew.product.global.security.model.UserDetailsImpl;
+import com.rushcrew.product.infrastructure.storage.ImageUploadService;
 import com.rushcrew.product.presentation.dto.request.CreateProductRequest;
 import com.rushcrew.product.presentation.dto.request.UpdateProductRequest;
 import com.rushcrew.product.presentation.dto.response.CreateProductResponse;
@@ -35,7 +36,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/v1/products")
@@ -43,6 +46,18 @@ import org.springframework.web.bind.annotation.RestController;
 public class ProductController {
 
     private final ProductService productService;
+    private final ImageUploadService imageUploadService;
+
+    @PostMapping(value = "/images", consumes = "multipart/form-data")
+    @PreAuthorize("hasAnyRole('MASTER', 'SELLER')")
+    public ResponseEntity<ImageUploadResponse> uploadImage(
+        @RequestPart("file") MultipartFile file
+    ) {
+        String url = imageUploadService.upload(file);
+        return ResponseEntity.status(HttpStatus.CREATED).body(new ImageUploadResponse(url));
+    }
+
+    public record ImageUploadResponse(String imageUrl) {}
 
     @PostMapping
     @PreAuthorize("hasAnyRole('MASTER', 'SELLER')")

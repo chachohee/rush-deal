@@ -30,6 +30,8 @@ public record CreateProductRequest(
     @NotNull
     Category category,
 
+    String imageUrl,
+
     @NotEmpty @Valid
     List<CreateOptionRequest> optionRequests
 ) {
@@ -41,6 +43,7 @@ public record CreateProductRequest(
             ProductInfo.of(this.productName(), this.description()),
             Price.of(this.price()),
             this.category(),
+            this.imageUrl(),
             this.optionRequests().stream().map(CreateOptionRequest::toCommand).toList()
         );
     }

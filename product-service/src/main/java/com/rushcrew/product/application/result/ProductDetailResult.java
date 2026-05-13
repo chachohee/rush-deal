@@ -13,6 +13,7 @@ public record ProductDetailResult(
     Long price,
     Boolean isActive,
     String category,
+    String imageUrl,
     List<ProductOptionResult> productOptionsResult
 ) {
 
@@ -27,6 +28,7 @@ public record ProductDetailResult(
             product.getPrice().getAmount(),
             product.getIsActive(),
             product.getCategory().name(),
+            product.getImageUrl(),
             optionResultList
         );
     }

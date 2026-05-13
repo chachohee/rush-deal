@@ -56,7 +56,8 @@ public class InterestedDealService {
                 td.getPrice().getAmount(),
                 td.getPeriod().getStartAt(),
                 td.getPeriod().getEndAt(),
-                td.getStatus()))
+                td.getStatus(),
+                td.getImageUrl()))
             .toList();
     }
 

@@ -8,7 +8,8 @@ public record UpdateProductResponse(
     String productName,
     String description,
     Long price,
-    Category category
+    Category category,
+    String imageUrl
 ) {
 
     public static UpdateProductResponse from(UpdateProductResult result) {
@@ -17,7 +18,8 @@ public record UpdateProductResponse(
             result.productName(),
             result.description(),
             result.price(),
-            result.category()
+            result.category(),
+            result.imageUrl()
         );
     }
 }

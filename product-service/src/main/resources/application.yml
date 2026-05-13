@@ -27,6 +27,17 @@ spring:
   sql:
     init:
       mode: ${SQL_INIT_MODE:never}
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+minio:
+  endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+  public-endpoint: ${MINIO_PUBLIC_ENDPOINT:http://localhost:9000}
+  access-key: ${MINIO_ACCESS_KEY:rushdeal}
+  secret-key: ${MINIO_SECRET_KEY:rushdeal123}
+  bucket: ${MINIO_BUCKET:rushdeal-products}
 
 eureka:
   client:

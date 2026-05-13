@@ -11,7 +11,8 @@ public record TimeDealResult(
     Long price,
     Instant startAt,
     Instant endAt,
-    TimeDealStatus status
+    TimeDealStatus status,
+    String imageUrl
 ) {
 
 }

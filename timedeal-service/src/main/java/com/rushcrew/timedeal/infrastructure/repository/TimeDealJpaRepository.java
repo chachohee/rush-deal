@@ -26,7 +26,8 @@ public interface TimeDealJpaRepository extends JpaRepository<TimeDeal, UUID> {
                             td.price.amount,
                             td.period.startAt,
                             td.period.endAt,
-                            td.status
+                            td.status,
+                            td.imageUrl
                        )
                 FROM TimeDeal td
                 WHERE td.status <> com.rushcrew.timedeal.domain.vo.TimeDealStatus.ENDED
@@ -47,7 +48,8 @@ public interface TimeDealJpaRepository extends JpaRepository<TimeDeal, UUID> {
                             td.price.amount,
                             td.period.startAt,
                             td.period.endAt,
-                            td.status
+                            td.status,
+                            td.imageUrl
                        )
                 FROM TimeDeal td
                 WHERE (:status IS NULL OR td.status = :status)

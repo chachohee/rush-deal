@@ -7,7 +7,8 @@ public record CreateProductResult(
     UUID productId,
     String productName,
     String description,
-    Long price
+    Long price,
+    String imageUrl
 ) {
 
     public static CreateProductResult from(Product product) {
@@ -15,7 +16,8 @@ public record CreateProductResult(
             product.getId(),
             product.getProductInfo().getName(),
             product.getProductInfo().getDescription(),
-            product.getPrice().getAmount()
+            product.getPrice().getAmount(),
+            product.getImageUrl()
         );
     }
 }

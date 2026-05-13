@@ -12,7 +12,8 @@ public record TimeDealResponse(
     Long price,
     Instant startAt,
     Instant endAt,
-    TimeDealStatus status
+    TimeDealStatus status,
+    String imageUrl
 ) {
 
     public static TimeDealResponse from(TimeDealResult result) {
@@ -23,7 +24,8 @@ public record TimeDealResponse(
             result.price(),
             result.startAt(),
             result.endAt(),
-            result.status()
+            result.status(),
+            result.imageUrl()
         );
     }
 }

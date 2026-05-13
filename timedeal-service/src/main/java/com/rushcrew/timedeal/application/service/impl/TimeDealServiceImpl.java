@@ -77,6 +77,7 @@ public class TimeDealServiceImpl implements TimeDealService {
             command.productId(), productInfo.optionIds()
         );
         TimeDeal newTimeDeal = TimeDeal.create(params);
+        newTimeDeal.updateImageUrl(productInfo.imageUrl());
         timeDealRepository.save(newTimeDeal);
 
         Instant startAt = command.period().getStartAt();

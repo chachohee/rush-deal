@@ -12,6 +12,7 @@ import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
@@ -41,6 +42,11 @@ public class StockRepositoryAdapter implements StockRepository {
     @Override
     public StockResult findStockResultById(UUID stockId) {
         return stockJpaRepository.findStockResultById(stockId);
+    }
+
+    @Override
+    public List<StockResult> findLowStockBySellerId(Long sellerId, Long threshold, int limit) {
+        return stockJpaRepository.findLowStockBySellerId(sellerId, threshold, PageRequest.of(0, limit));
     }
 
     @Override

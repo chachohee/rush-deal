@@ -59,4 +59,11 @@ public class InterestedDealController {
     ) {
         return ResponseEntity.ok(service.listMyInterested(userId));
     }
+
+    @GetMapping("/timedeals/{timeDealId}/interest/count")
+    public ResponseEntity<Map<String, Long>> countInterests(
+        @PathVariable UUID timeDealId
+    ) {
+        return ResponseEntity.ok(Map.of("count", service.count(timeDealId)));
+    }
 }

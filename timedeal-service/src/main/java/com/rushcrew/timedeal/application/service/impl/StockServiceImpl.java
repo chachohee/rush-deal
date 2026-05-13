@@ -119,6 +119,12 @@ public class StockServiceImpl implements StockService {
 
 	@Override
 	@Transactional(readOnly = true)
+	public List<StockResult> getLowStock(Long sellerId, Long threshold, int limit) {
+		return stockRepository.findLowStockBySellerId(sellerId, threshold, limit);
+	}
+
+	@Override
+	@Transactional(readOnly = true)
 	public StockResult getStock(Long userId, String role, UUID stockId) {
 		StockResult result = stockRepository.findStockResultById(stockId);
 		// if (role.equals(UserRole.SELLER.getDescription())

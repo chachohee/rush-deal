@@ -29,6 +29,8 @@ public interface StockService {
     Page<StockResult> getStocks(
         String keyword, UUID productId, TimeDealStockStatus status, Pageable pageable);
 
+    List<StockResult> getLowStock(Long sellerId, Long threshold, int limit);
+
     StockResult getStock(Long userId, String role, UUID stockId);
 
     ReserveStockResult reserveStock(ReserveStockCommand command);

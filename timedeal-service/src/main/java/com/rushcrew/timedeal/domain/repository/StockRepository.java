@@ -21,6 +21,8 @@ public interface StockRepository {
     Page<StockResult> findStockResults(
         String keyword, UUID productId, TimeDealStockStatus status, Pageable pageable);
 
+    List<StockResult> findLowStockBySellerId(Long sellerId, Long threshold, int limit);
+
     StockResult findStockResultById(UUID stockId);
 
     Optional<StockLog> findLastByStockIdAndOrderId(UUID stockId, UUID orderId);

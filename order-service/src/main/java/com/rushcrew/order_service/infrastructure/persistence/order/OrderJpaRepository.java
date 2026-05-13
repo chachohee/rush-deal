@@ -95,11 +95,11 @@ public interface OrderJpaRepository extends JpaRepository<Order, UUID> {
 	// 	Pageable pageable
 	// );
 	@Query("""
-    SELECT DISTINCT o 
-    FROM Order o 
+    SELECT DISTINCT o
+    FROM Order o
     LEFT JOIN FETCH o.reservations
-    WHERE o.status = :status 
-    AND o.orderedAt < :createdBefore 
+    WHERE o.status = :status
+    AND o.orderedAt < :createdBefore
     ORDER BY o.orderedAt ASC
 """)
 	List<Order> findByStatusAndOrderedAtBefore(
@@ -108,4 +108,43 @@ public interface OrderJpaRepository extends JpaRepository<Order, UUID> {
 		Pageable pageable
 	);
 
+	// ==================== 셀러 대시보드 통계 ====================
+
+	@Query(value = """
+		SELECT COUNT(DISTINCT o.order_id)
+		FROM order_schema.p_order o
+		JOIN order_schema.p_order_item oi ON oi.order_id = o.order_id
+		WHERE oi.product_snapshot ->> 'sellerId' = CAST(:sellerId AS TEXT)
+		  AND o.status IN ('PAID', 'PURCHASE_CONFIRMED')
+	""", nativeQuery = true)
+	Long countSellerPaidOrders(@Param("sellerId") Long sellerId);
+
+	@Query(value = """
+		SELECT COALESCE(SUM(oi.subtotal), 0)
+		FROM order_schema.p_order o
+		JOIN order_schema.p_order_item oi ON oi.order_id = o.order_id
+		WHERE oi.product_snapshot ->> 'sellerId' = CAST(:sellerId AS TEXT)
+		  AND o.status IN ('PAID', 'PURCHASE_CONFIRMED')
+	""", nativeQuery = true)
+	java.math.BigDecimal sumSellerRevenue(@Param("sellerId") Long sellerId);
+
+	@Query(value = """
+		SELECT COUNT(DISTINCT o.order_id)
+		FROM order_schema.p_order o
+		JOIN order_schema.p_order_item oi ON oi.order_id = o.order_id
+		WHERE oi.product_snapshot ->> 'sellerId' = CAST(:sellerId AS TEXT)
+		  AND o.status IN ('PAID', 'PURCHASE_CONFIRMED')
+		  AND o.ordered_at >= :since
+	""", nativeQuery = true)
+	Long countSellerOrdersSince(@Param("sellerId") Long sellerId, @Param("since") Instant since);
+
+	@Query(value = """
+		SELECT COALESCE(SUM(oi.subtotal), 0)
+		FROM order_schema.p_order o
+		JOIN order_schema.p_order_item oi ON oi.order_id = o.order_id
+		WHERE oi.product_snapshot ->> 'sellerId' = CAST(:sellerId AS TEXT)
+		  AND o.status IN ('PAID', 'PURCHASE_CONFIRMED')
+		  AND o.ordered_at >= :since
+	""", nativeQuery = true)
+	java.math.BigDecimal sumSellerRevenueSince(@Param("sellerId") Long sellerId, @Param("since") Instant since);
 }

@@ -81,6 +81,33 @@ public interface StockJpaRepository extends JpaRepository<TimeDealStock, UUID> {
 		@Param("stockId") UUID stockId
 	);
 
+	@Query("""
+			SELECT new com.rushcrew.timedeal.application.result.StockResult(
+				tds.id,
+				tds.itemIds.productId,
+				tds.itemIds.optionId,
+				tdp.timeDeal.timeDealInfo.sellerId,
+				tds.stockCounts.available,
+				tds.stockCounts.reserved,
+				tds.stockCounts.sold,
+				tdp.status,
+				tds.updatedAt
+			)
+			FROM TimeDealStock tds
+			JOIN tds.timeDealProduct tdp
+			JOIN tdp.timeDeal td
+			WHERE tdp.timeDeal.timeDealInfo.sellerId = :sellerId
+			  AND tds.stockCounts.available <= :threshold
+			  AND td.status IN ('SCHEDULED', 'IN_PROGRESS')
+			  AND tds.deletedAt IS NULL
+			ORDER BY tds.stockCounts.available ASC
+		""")
+	List<StockResult> findLowStockBySellerId(
+		@Param("sellerId") Long sellerId,
+		@Param("threshold") Long threshold,
+		Pageable pageable
+	);
+
 	@Query(value = """
 			SELECT * 
 			FROM time_deal_schema.p_stock_log 

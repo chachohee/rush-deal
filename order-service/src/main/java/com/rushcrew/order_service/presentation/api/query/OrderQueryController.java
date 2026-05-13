@@ -13,8 +13,10 @@ import com.rushcrew.common.dto.ApiResponse;
 import com.rushcrew.order_service.application.query.dto.OrderDetailDto;
 import com.rushcrew.order_service.application.query.dto.OrderListDto;
 import com.rushcrew.order_service.application.query.dto.OrderSearchCriteria;
+import com.rushcrew.order_service.application.query.dto.SellerOrderSummary;
 import com.rushcrew.order_service.application.query.usecase.GetOrderDetailUseCase;
 import com.rushcrew.order_service.application.query.usecase.GetOrderListUseCase;
+import com.rushcrew.order_service.application.query.usecase.GetSellerOrderSummaryUseCase;
 import com.rushcrew.order_service.presentation.dto.response.OrderDetailResponse;
 import com.rushcrew.order_service.presentation.dto.response.OrderListResponse;
 
@@ -27,6 +29,7 @@ public class OrderQueryController {
 
 	private final GetOrderDetailUseCase getOrderDetailUseCase;
 	private final GetOrderListUseCase getOrderListUseCase;
+	private final GetSellerOrderSummaryUseCase getSellerOrderSummaryUseCase;
 
 	@GetMapping("/{orderId}")
 	@PreAuthorize("hasAnyRole('USER', 'MASTER', 'SELLER')")
@@ -49,5 +52,13 @@ public class OrderQueryController {
 			.build();
 		Page<OrderListDto> orders = getOrderListUseCase.getOrderList(criteria, pageable);
 		return ApiResponse.success(orders.map(OrderListResponse::from));
+	}
+
+	@GetMapping("/seller/me/summary")
+	@PreAuthorize("hasAnyRole('SELLER', 'MASTER')")
+	public ApiResponse<SellerOrderSummary> getSellerOrderSummary(
+		@AuthenticationPrincipal UserDetailsImpl userDetails
+	) {
+		return ApiResponse.success(getSellerOrderSummaryUseCase.getSummary(userDetails.userId()));
 	}
 }

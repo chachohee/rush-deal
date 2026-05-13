@@ -13,4 +13,6 @@ public interface InterestedDealRepository extends JpaRepository<InterestedDeal, 
     List<InterestedDeal> findByUserIdOrderByCreatedAtDesc(Long userId);
 
     List<InterestedDeal> findByTimeDealIdIn(List<UUID> timeDealIds);
+
+    long countByTimeDealId(UUID timeDealId);
 }

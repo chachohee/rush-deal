@@ -74,4 +74,9 @@ public class InterestedDealService {
             .map(InterestedDeal::getUserId)
             .toList();
     }
+
+    @Transactional(readOnly = true)
+    public long count(UUID timeDealId) {
+        return interestedDealRepository.countByTimeDealId(timeDealId);
+    }
 }

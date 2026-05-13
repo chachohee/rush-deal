@@ -88,6 +88,20 @@ public class StockController {
         return ResponseEntity.ok(StockResponse.from(result));
     }
 
+    @GetMapping("/seller/me/low")
+    @PreAuthorize("hasAnyRole('MASTER', 'SELLER')")
+    public ResponseEntity<java.util.List<StockResponse>> getLowStockForMe(
+        @AuthenticationPrincipal UserDetailsImpl principle,
+        @RequestParam(defaultValue = "10") Long threshold,
+        @RequestParam(defaultValue = "5") int limit
+    ) {
+        java.util.List<StockResponse> response = stockService
+            .getLowStock(principle.userId(), threshold, limit).stream()
+            .map(StockResponse::from)
+            .toList();
+        return ResponseEntity.ok(response);
+    }
+
     @DeleteMapping("/{stockId}")
     @PreAuthorize("hasRole('MASTER')")
     public ResponseEntity<Void> deleteStock(

@@ -7,5 +7,6 @@ public record ProductSearchInfoDTO(
     String productName,
     String companyName,
     String category,
+    String categoryLabel,
     String imageUrl
 ) {}

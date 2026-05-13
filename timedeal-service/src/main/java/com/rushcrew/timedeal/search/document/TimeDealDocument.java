@@ -46,6 +46,9 @@ public class TimeDealDocument {
     @Field(type = FieldType.Keyword)
     private String category;
 
+    @Field(type = FieldType.Text, analyzer = "korean")
+    private String categoryLabel;
+
     @Field(type = FieldType.Keyword)
     private String status;
 
@@ -69,6 +72,7 @@ public class TimeDealDocument {
         String productName = productInfo != null ? productInfo.productName() : null;
         String companyName = productInfo != null ? productInfo.companyName() : null;
         String category = productInfo != null ? productInfo.category() : null;
+        String categoryLabel = productInfo != null ? productInfo.categoryLabel() : null;
         String imageUrl = productInfo != null ? productInfo.imageUrl() : null;
 
         return TimeDealDocument.builder()
@@ -78,6 +82,7 @@ public class TimeDealDocument {
             .productName(productName)
             .companyName(companyName)
             .category(category)
+            .categoryLabel(categoryLabel)
             .imageUrl(imageUrl)
             .status(td.getStatus().name())
             .price(td.getPrice().getAmount())

@@ -43,6 +43,7 @@ public class ProductInternalServiceImpl implements ProductInternalService {
             product.getProductInfo().getName(),
             product.getCompanyName(),
             product.getCategory().name(),
+            product.getCategory().getDescription(),
             product.getImageUrl()
         );
     }

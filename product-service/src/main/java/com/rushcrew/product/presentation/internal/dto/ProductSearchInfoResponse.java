@@ -7,5 +7,6 @@ public record ProductSearchInfoResponse(
     String productName,
     String companyName,
     String category,
+    String categoryLabel,
     String imageUrl
 ) {}

@@ -31,7 +31,16 @@ import org.springframework.stereotype.Service;
 public class TimeDealSearchService {
 
     private static final List<String> HIGHLIGHT_FIELDS =
-        List.of("title", "productName", "companyName", "description");
+        List.of("title", "productName", "companyName", "description", "categoryLabel");
+
+    // 1글자 토큰으로 분해되는 합성어(예: nori 가 "핫딜"→"딜")가
+    // 회사명 등의 흔한 토큰과 부분 매칭되어 노이즈가 끼는 것을 차단.
+    // 점수가 임계값 이상인 문서만 결과에 포함.
+    // - 정확 매칭은 보통 1.0 이상
+    // - 회사명 1개 토큰 매칭(idf 가 낮은 공통 토큰)은 ~0.3
+    // - "핫딜→딜" 같은 1글자 부분 매칭 노이즈는 ~0.08
+    // 회사명 동질 매칭은 보존하고 1글자 노이즈만 차단하도록 0.2.
+    private static final float MIN_SCORE = 0.2f;
 
     private final ElasticsearchOperations elasticsearchOperations;
     private final ElasticsearchClient elasticsearchClient;
@@ -42,6 +51,7 @@ public class TimeDealSearchService {
             .should(s -> s.match(m -> m.field("productName").query(q).boost(1.5f)))
             .should(s -> s.match(m -> m.field("companyName").query(q).boost(1.2f)))
             .should(s -> s.match(m -> m.field("description").query(q).boost(0.8f)))
+            .should(s -> s.match(m -> m.field("categoryLabel").query(q).boost(1.0f)))
             .should(s -> s.term(t -> t.field("category").value(q.toUpperCase()).boost(0.5f)))
             .minimumShouldMatch("1")
         ));
@@ -60,6 +70,7 @@ public class TimeDealSearchService {
         NativeQuery nativeQuery = NativeQuery.builder()
             .withQuery(query)
             .withPageable(pageable)
+            .withMinScore(MIN_SCORE)
             .withHighlightQuery(new HighlightQuery(highlight, TimeDealDocument.class))
             .build();
 

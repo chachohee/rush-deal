@@ -25,6 +25,6 @@ public class ProductFeignAdapter implements ProductClient {
     @Override
     public ProductSearchInfo getProductSearchInfo(UUID productId) {
         ProductSearchInfoDTO dto = productFeignClient.getProductSearchInfo(productId);
-        return new ProductSearchInfo(dto.productId(), dto.productName(), dto.companyName(), dto.category(), dto.imageUrl());
+        return new ProductSearchInfo(dto.productId(), dto.productName(), dto.companyName(), dto.category(), dto.categoryLabel(), dto.imageUrl());
     }
 }

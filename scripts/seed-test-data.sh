@@ -87,13 +87,22 @@ declare -a PRODUCT_IDS=()
 CATEGORIES=(CLOTHES SHOES BAG HEADWEAR ACCESSORY)
 NAMES=("기본 티셔츠" "러닝화" "토트백" "비니" "체인 목걸이")
 PRICES=(29000 89000 49000 19000 35000)
+# picsum.photos 의 seed 기반 placeholder — 인터넷만 되면 동일 이미지가 안정적으로 노출됨
+IMAGES=(
+  "https://picsum.photos/seed/tshirt/600/600"
+  "https://picsum.photos/seed/runningshoes/600/600"
+  "https://picsum.photos/seed/totebag/600/600"
+  "https://picsum.photos/seed/beanie/600/600"
+  "https://picsum.photos/seed/necklace/600/600"
+)
 for i in 0 1 2 3 4; do
   body=$(jq -nc \
     --arg name "${NAMES[$i]}" \
     --arg desc "${NAMES[$i]} 상품 설명입니다." \
     --argjson price "${PRICES[$i]}" \
     --arg cat "${CATEGORIES[$i]}" \
-    '{companyName:"러시딜브랜드", productName:$name, description:$desc, price:$price, category:$cat,
+    --arg img "${IMAGES[$i]}" \
+    '{companyName:"러시딜브랜드", productName:$name, description:$desc, price:$price, category:$cat, imageUrl:$img,
       optionRequests:[{size:"S",color:"BLACK"},{size:"M",color:"BLACK"},{size:"L",color:"BLACK"}]}')
   pid=$(curl -sf -X POST "$API/api/v1/products" \
     -H "Authorization: Bearer $SELLER_TOKEN" \

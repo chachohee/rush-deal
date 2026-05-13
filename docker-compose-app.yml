@@ -328,7 +328,7 @@ services:
       KAFKA_BROKERS: ${KAFKA_BROKERS:-kafka:29092}
       EUREKA_ENABLED: ${EUREKA_ENABLED:-true}
       EUREKA_URL: http://discovery-service:8761/eureka/
-      JPA_DDL_AUTO: ${JPA_DDL_AUTO:-update}
+      JPA_DDL_AUTO: ${JPA_DDL_AUTO:-validate}
 
       # Monitoring
       MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: ${ZIPKIN_URL:-http://zipkin:9411/api/v2/spans}
@@ -369,7 +369,7 @@ services:
       KAFKA_BROKERS: ${KAFKA_BROKERS:-kafka:29092}
       EUREKA_ENABLED: ${EUREKA_ENABLED:-true}
       EUREKA_URL: http://discovery-service:8761/eureka/
-      JPA_DDL_AUTO: ${JPA_DDL_AUTO:-update}
+      JPA_DDL_AUTO: ${JPA_DDL_AUTO:-validate}
       SHOW_SQL: ${SHOW_SQL:-false}
       SQL_INIT_MODE: ${SQL_INIT_MODE:-never}
 
@@ -416,7 +416,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       EUREKA_ENABLED: ${EUREKA_ENABLED:-true}
       EUREKA_URL: http://discovery-service:8761/eureka/
-      JPA_DDL_AUTO: ${JPA_DDL_AUTO:-update}
+      JPA_DDL_AUTO: ${JPA_DDL_AUTO:-validate}
       SHOW_SQL: ${SHOW_SQL:-false}
       PORTONE_API_SECRET: ${PORTONE_API_SECRET}
       PORTONE_STORE_ID: ${PORTONE_STORE_ID}
@@ -459,7 +459,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       EUREKA_ENABLED: ${EUREKA_ENABLED:-true}
       EUREKA_URL: http://discovery-service:8761/eureka/
-      JPA_DDL_AUTO: ${JPA_DDL_AUTO:-update}
+      JPA_DDL_AUTO: ${JPA_DDL_AUTO:-validate}
       SHOW_SQL: ${SHOW_SQL:-false}
       SQL_INIT_MODE: ${SQL_INIT_MODE:-never}
 
@@ -499,7 +499,7 @@ services:
       KAFKA_BROKERS: ${KAFKA_BROKERS:-kafka:29092}
       EUREKA_ENABLED: ${EUREKA_ENABLED:-true}
       EUREKA_URL: http://discovery-service:8761/eureka/
-      JPA_DDL_AUTO: ${JPA_DDL_AUTO:-update}
+      JPA_DDL_AUTO: ${JPA_DDL_AUTO:-validate}
       SHOW_SQL: ${SHOW_SQL:-false}
 
       # Monitoring
@@ -543,7 +543,7 @@ services:
       ELASTICSEARCH_URIS: ${ELASTICSEARCH_URIS:-http://elasticsearch:9200}
       EUREKA_ENABLED: ${EUREKA_ENABLED:-true}
       EUREKA_URL: http://discovery-service:8761/eureka/
-      JPA_DDL_AUTO: ${JPA_DDL_AUTO:-update}
+      JPA_DDL_AUTO: ${JPA_DDL_AUTO:-validate}
       SHOW_SQL: ${SHOW_SQL:-false}
       SQL_INIT_MODE: ${SQL_INIT_MODE:-never}
 
@@ -590,7 +590,7 @@ services:
       KAFKA_BROKERS: ${KAFKA_BROKERS:-kafka:29092}
       EUREKA_ENABLED: ${EUREKA_ENABLED:-true}
       EUREKA_URL: http://discovery-service:8761/eureka/
-      JPA_DDL_AUTO: ${JPA_DDL_AUTO:-update}
+      JPA_DDL_AUTO: ${JPA_DDL_AUTO:-validate}
       SHOW_SQL: ${SHOW_SQL:-false}
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
 

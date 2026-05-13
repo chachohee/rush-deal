@@ -9,6 +9,12 @@ server:
     connection-timeout: 20000
 
 spring:
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 1
+    default-schema: order_schema
+    locations: classpath:db/migration
   application:
     name: order-service
 
@@ -27,7 +33,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: ${JPA_DDL_AUTO:update}
+      ddl-auto: ${JPA_DDL_AUTO:validate}
     show-sql: ${SHOW_SQL:false}
     properties:
       hibernate:

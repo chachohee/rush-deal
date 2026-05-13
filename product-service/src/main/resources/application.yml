@@ -3,6 +3,12 @@ server:
   port: ${PRODUCT_SERVER_PORT:8020}
 
 spring:
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 1
+    default-schema: product_schema
+    locations: classpath:db/migration
   application:
     name: product-service
   datasource:
@@ -12,7 +18,7 @@ spring:
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: ${JPA_DDL_AUTO:update}
+      ddl-auto: ${JPA_DDL_AUTO:validate}
     show-sql: ${SHOW_SQL:false}
     properties:
       hibernate:

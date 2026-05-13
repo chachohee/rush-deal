@@ -21,4 +21,3 @@ ALTER TABLE ONLY notification_schema.p_notification
     ADD CONSTRAINT p_notification_pkey PRIMARY KEY (id);
 CREATE INDEX idx_notification_user_created ON notification_schema.p_notification USING btree (user_id, created_at DESC);
 CREATE INDEX idx_notification_user_unread ON notification_schema.p_notification USING btree (user_id, is_read);
-\unrestrict odtpZzHdYbA0EGQHBmfxNUz0pgIsMX1kPH4O8XKzGCBWHaqUrYQJE5pPBT3QLi5

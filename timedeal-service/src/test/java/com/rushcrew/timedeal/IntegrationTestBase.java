@@ -26,7 +26,7 @@ public abstract class IntegrationTestBase {
 
         ImageFromDockerfile esWithNori = new ImageFromDockerfile("rush-deal-elasticsearch-test", false)
             .withDockerfileFromBuilder(builder -> builder
-                .from("docker.elastic.co/elasticsearch/elasticsearch:8.13.4")
+                .from("docker.elastic.co/elasticsearch/elasticsearch:8.18.8")
                 .run("bin/elasticsearch-plugin install --batch analysis-nori"));
         ELASTICSEARCH = new ElasticsearchContainer(
             DockerImageName.parse(esWithNori.get())

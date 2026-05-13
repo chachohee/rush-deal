@@ -171,6 +171,20 @@ $PG -c "
 ok "ENDED 1개 ($T4)"
 
 # ============================================
+# 9) Elasticsearch 인덱스 정리 + 재색인
+#    DB 직접 수정으로 ES 와 desync 되므로 인덱스를 비우고 timedeal-service 를 재시작
+#    → TimeDealReindexBootstrap 이 모든 타임딜을 현재 상태로 다시 색인
+# ============================================
+step "9. ES 인덱스 정리 + 재색인"
+curl -s -X DELETE "${ES_URL:-http://localhost:9200}/timedeal" >/dev/null 2>&1 || true
+docker restart rushdeal_timedeal_service >/dev/null
+until docker ps --filter "name=rushdeal_timedeal_service" --format '{{.Status}}' | grep -q "healthy"; do
+  sleep 3
+done
+sleep 4
+ok "재색인 완료"
+
+# ============================================
 # 요약
 # ============================================
 echo -e "\n\033[1;32m=========================="

@@ -180,6 +180,13 @@ $PG -c "
 ok "ENDED 1개 ($T4)"
 
 # ============================================
+# 8.5) Queue Redis 정리
+#      이전 실행에서 user 가 대기열에 남아 있으면 USER_ALREADY_IN_WAITING_QUEUE 로 막힘
+# ============================================
+docker exec rushdeal_queue_redis redis-cli FLUSHDB >/dev/null 2>&1 || true
+ok "큐 Redis 정리"
+
+# ============================================
 # 9) QueuePolicy 등록 (대기열 진입을 위한 정책)
 #    Kafka 이벤트 누락이나 DB 직접 UPDATE 케이스를 위해 직접 호출
 #    진행중·예정 타임딜의 상품에 대해 master 권한으로 정책 생성

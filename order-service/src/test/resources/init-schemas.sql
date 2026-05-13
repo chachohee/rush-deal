@@ -1,0 +1,2 @@
+CREATE SCHEMA IF NOT EXISTS order_schema;
+GRANT ALL PRIVILEGES ON SCHEMA order_schema TO rushdeal;

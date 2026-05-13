@@ -67,6 +67,27 @@ scrape_configs:
         labels:
           service: 'timedeal-service'
 
+  - job_name: 'notification-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['notification-service:8070']
+        labels:
+          service: 'notification-service'
+
+  - job_name: 'api-gateway'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['api-gateway:8080']
+        labels:
+          service: 'api-gateway'
+
+  - job_name: 'discovery-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['discovery-service:8761']
+        labels:
+          service: 'discovery-service'
+
   # Redis 모니터링 (선택사항 - Redis Exporter 필요)
   # - job_name: 'redis'
   #   static_configs:

@@ -1,0 +1,156 @@
+{
+  "title": "RushDeal — 비즈니스 지표",
+  "uid": "rushdeal-business",
+  "schemaVersion": 39,
+  "version": 1,
+  "tags": ["rushdeal", "business"],
+  "time": { "from": "now-1h", "to": "now" },
+  "refresh": "30s",
+  "timezone": "browser",
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "최근 5분 가입 / 분",
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "60 * sum(rate(http_server_requests_seconds_count{uri=\"/api/v1/auth/signup\", status=~\"2..\"}[5m]))",
+          "legendFormat": "가입/분"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "최근 5분 주문 생성 / 분",
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 0 },
+      "targets": [
+        {
+          "expr": "60 * sum(rate(http_server_requests_seconds_count{uri=~\"/api/v1/orders.*\", method=\"POST\", status=~\"2..\"}[5m]))",
+          "legendFormat": "주문/분"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "검색 호출 / 분",
+      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "60 * sum(rate(http_server_requests_seconds_count{uri=~\"/api/v1/timedeals/search.*\"}[5m]))",
+          "legendFormat": "검색/분"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "관심 등록 / 분",
+      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 0 },
+      "targets": [
+        {
+          "expr": "60 * sum(rate(http_server_requests_seconds_count{uri=~\"/api/v1/timedeals/.*/interest\", method=\"POST\"}[5m]))",
+          "legendFormat": "관심/분"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "검색 응답 시간 p95 (ms)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 5 },
+      "targets": [
+        {
+          "expr": "1000 * histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{uri=~\"/api/v1/timedeals/search.*\"}[1m])) by (le, uri))",
+          "legendFormat": "{{uri}}"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ms" } }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "주요 API 처리율 (req/min)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 5 },
+      "targets": [
+        {
+          "expr": "60 * sum(rate(http_server_requests_seconds_count{uri=~\"/api/v1/(auth|orders|timedeals|notifications).*\"}[1m])) by (uri)",
+          "legendFormat": "{{uri}}"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "알림 fanout 처리율 (records/s, by topic)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 13 },
+      "targets": [
+        {
+          "expr": "sum(rate(kafka_consumer_fetch_manager_records_consumed_total{service=\"notification-service\"}[1m])) by (topic)",
+          "legendFormat": "{{topic}}"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "주문/결제 토픽 처리율 (records/s)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 13 },
+      "targets": [
+        {
+          "expr": "sum(rate(kafka_consumer_fetch_manager_records_consumed_total{topic=~\"order\\\\..*|payment\\\\..*|time-deal-.*\"}[1m])) by (topic)",
+          "legendFormat": "{{topic}}"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+    {
+      "id": 9,
+      "type": "stat",
+      "title": "5xx 에러 (최근 5분 합계)",
+      "gridPos": { "h": 5, "w": 12, "x": 0, "y": 21 },
+      "targets": [
+        {
+          "expr": "sum(increase(http_server_requests_seconds_count{status=~\"5..\"}[5m]))",
+          "legendFormat": "5xx"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 1 },
+              { "color": "red", "value": 10 }
+            ]
+          }
+        }
+      },
+      "options": { "graphMode": "none", "colorMode": "background" }
+    },
+    {
+      "id": 10,
+      "type": "stat",
+      "title": "4xx 에러 (최근 5분 합계)",
+      "gridPos": { "h": 5, "w": 12, "x": 12, "y": 21 },
+      "targets": [
+        {
+          "expr": "sum(increase(http_server_requests_seconds_count{status=~\"4..\"}[5m]))",
+          "legendFormat": "4xx"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "options": { "graphMode": "none", "colorMode": "value" }
+    }
+  ]
+}

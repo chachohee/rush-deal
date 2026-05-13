@@ -1,0 +1,90 @@
+{
+  "title": "RushDeal — Kafka 메시징",
+  "uid": "rushdeal-kafka",
+  "schemaVersion": 39,
+  "version": 1,
+  "tags": ["rushdeal", "kafka"],
+  "time": { "from": "now-30m", "to": "now" },
+  "refresh": "10s",
+  "timezone": "browser",
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Kafka 컨슈머 처리율 (records/s)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(rate(kafka_consumer_fetch_manager_records_consumed_total[1m])) by (topic, service)",
+          "legendFormat": "{{service}} · {{topic}}"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Kafka 컨슈머 lag (records)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(kafka_consumer_fetch_manager_records_lag) by (topic, service)",
+          "legendFormat": "{{service}} · {{topic}}"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Kafka 프로듀서 전송율 (records/s)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "sum(rate(kafka_producer_record_send_total[1m])) by (service)",
+          "legendFormat": "{{service}}"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Kafka 프로듀서 에러율",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        {
+          "expr": "sum(rate(kafka_producer_record_error_total[1m])) by (service)",
+          "legendFormat": "{{service}}"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "@KafkaListener 처리 시간 평균 (ms)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "targets": [
+        {
+          "expr": "1000 * sum(rate(spring_kafka_listener_seconds_sum[1m])) by (service, name) / sum(rate(spring_kafka_listener_seconds_count[1m])) by (service, name)",
+          "legendFormat": "{{service}} · {{name}}"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ms" } }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "@KafkaListener 처리 실패",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "targets": [
+        {
+          "expr": "sum(rate(spring_kafka_listener_seconds_count{result=\"failure\"}[1m])) by (service, name)",
+          "legendFormat": "{{service}} · {{name}}"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    }
+  ]
+}

@@ -180,11 +180,57 @@ $PG -c "
 ok "ENDED 1개 ($T4)"
 
 # ============================================
-# 9) Elasticsearch 인덱스 정리 + 재색인
+# 9) QueuePolicy 등록 (대기열 진입을 위한 정책)
+#    Kafka 이벤트 누락이나 DB 직접 UPDATE 케이스를 위해 직접 호출
+#    진행중·예정 타임딜의 상품에 대해 master 권한으로 정책 생성
+# ============================================
+step "9. QueuePolicy 등록 (진행중·예정 타임딜)"
+
+policy_iso() {
+  local m=$1
+  # macOS: 음수는 그대로 -v-5M 형태, GNU: date -d "5 minutes ago"
+  if date -v+1M >/dev/null 2>&1; then
+    if [ "$m" -lt 0 ]; then
+      date -v"${m}M" '+%Y-%m-%dT%H:%M:%S'
+    else
+      date -v+"${m}M" '+%Y-%m-%dT%H:%M:%S'
+    fi
+  else
+    date -d "$m minutes" '+%Y-%m-%dT%H:%M:%S'
+  fi
+}
+
+create_policy() {
+  local pid=$1 name=$2 startMin=$3 endMin=$4
+  curl -sf -X POST "$API/api/v1/queue/policies" \
+    -H "Authorization: Bearer $MASTER_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "$(jq -nc \
+      --arg pid "$pid" --arg n "$name" \
+      --arg s "$(policy_iso "$startMin")" --arg e "$(policy_iso "$endMin")" \
+      '{productId:$pid, dealName:$n, status:"RUNNING",
+        startTime:$s, endTime:$e,
+        maxCapacity:1000, limitSize:50, queueGap:5, ttl:300}')" >/dev/null
+}
+
+# T2(토트백), T3(비니) — IN_PROGRESS 로 강제 전환됨. 정책 시간도 과거 시작 / 24h 후 종료
+create_policy "${PRODUCT_IDS[2]}" "토트백 핫딜 정책" -5 1440
+ok "토트백 정책 등록"
+create_policy "${PRODUCT_IDS[3]}" "비니 핫딜 정책" -5 1440
+ok "비니 정책 등록"
+
+# T0(티셔츠), T1(러닝화) — SCHEDULED. 시작은 미래
+create_policy "${PRODUCT_IDS[0]}" "티셔츠 예정 정책" 1440 2880
+ok "티셔츠 정책 등록"
+create_policy "${PRODUCT_IDS[1]}" "러닝화 예정 정책" 720 1440
+ok "러닝화 정책 등록"
+
+# ============================================
+# 10) Elasticsearch 인덱스 정리 + 재색인
 #    DB 직접 수정으로 ES 와 desync 되므로 인덱스를 비우고 timedeal-service 를 재시작
 #    → TimeDealReindexBootstrap 이 모든 타임딜을 현재 상태로 다시 색인
 # ============================================
-step "9. ES 인덱스 정리 + 재색인"
+step "10. ES 인덱스 정리 + 재색인"
 curl -s -X DELETE "${ES_URL:-http://localhost:9200}/timedeal" >/dev/null 2>&1 || true
 docker restart rushdeal_timedeal_service >/dev/null
 until docker ps --filter "name=rushdeal_timedeal_service" --format '{{.Status}}' | grep -q "healthy"; do

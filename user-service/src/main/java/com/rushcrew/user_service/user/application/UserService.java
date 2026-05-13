@@ -12,6 +12,9 @@ import com.rushcrew.common.exception.BusinessException;
 import com.rushcrew.user_service.user.domain.entity.User;
 import com.rushcrew.user_service.user.domain.enums.UserRole;
 import com.rushcrew.user_service.user.domain.error.UserErrorCode;
+import com.rushcrew.user_service.audit.domain.AdminAction;
+import com.rushcrew.user_service.audit.domain.AdminAuditLog;
+import com.rushcrew.user_service.audit.domain.AdminAuditLogRepository;
 import com.rushcrew.user_service.user.domain.repository.UserRepository;
 import com.rushcrew.user_service.user.domain.service.UserValidator;
 import com.rushcrew.user_service.user.infrastructure.kafka.AccountEventProducer;
@@ -30,6 +33,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final AccountEventProducer accountEventProducer;
+    private final AdminAuditLogRepository auditLogRepository;
 
     @Transactional
     public UserCreateResult createUser(UserCreateCommand command) {
@@ -109,29 +113,35 @@ public class UserService {
     }
 
     @Transactional
-    public void changeRole(Long targetUserId, String role) {
+    public void changeRole(Long targetUserId, String role, Long adminId) {
         User user = userRepository.getById(targetUserId);
+        String previousRole = user.getRole().name();
         user.changeRole(UserRole.of(role));
         accountEventProducer.publishRoleChanged(targetUserId, role);
+        auditLogRepository.save(AdminAuditLog.of(adminId, AdminAction.ROLE_CHANGED, targetUserId,
+            previousRole + " → " + role));
     }
 
     @Transactional
-    public void blockUser(Long targetUserId) {
+    public void blockUser(Long targetUserId, Long adminId) {
         User user = userRepository.getById(targetUserId);
         user.block();
         accountEventProducer.publishBlocked(targetUserId);
+        auditLogRepository.save(AdminAuditLog.of(adminId, AdminAction.BLOCKED, targetUserId, null));
     }
 
     @Transactional
-    public void unblockUser(Long targetUserId) {
+    public void unblockUser(Long targetUserId, Long adminId) {
         User user = userRepository.getById(targetUserId);
         user.unblock();
         accountEventProducer.publishUnblocked(targetUserId);
+        auditLogRepository.save(AdminAuditLog.of(adminId, AdminAction.UNBLOCKED, targetUserId, null));
     }
 
     @Transactional
     public void deleteUser(Long targetUserId, Long adminId) {
         User user = userRepository.getById(targetUserId);
         user.softDelete(adminId);
+        auditLogRepository.save(AdminAuditLog.of(adminId, AdminAction.DELETED, targetUserId, null));
     }
 }

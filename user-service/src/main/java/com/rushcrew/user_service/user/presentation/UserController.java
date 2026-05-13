@@ -110,23 +110,30 @@ public class UserController {
     @PreAuthorize("hasRole('MASTER')")
     public ResponseEntity<Void> changeRole(
         @PathVariable Long userId,
-        @RequestParam String role
+        @RequestParam String role,
+        @RequestHeader("X-User-Id") Long adminId
     ) {
-        userService.changeRole(userId, role);
+        userService.changeRole(userId, role, adminId);
         return ResponseEntity.ok().build();
     }
 
     @PatchMapping("/{userId}/block")
     @PreAuthorize("hasRole('MASTER')")
-    public ResponseEntity<Void> blockUser(@PathVariable Long userId) {
-        userService.blockUser(userId);
+    public ResponseEntity<Void> blockUser(
+        @PathVariable Long userId,
+        @RequestHeader("X-User-Id") Long adminId
+    ) {
+        userService.blockUser(userId, adminId);
         return ResponseEntity.ok().build();
     }
 
     @PatchMapping("/{userId}/unblock")
     @PreAuthorize("hasRole('MASTER')")
-    public ResponseEntity<Void> unblockUser(@PathVariable Long userId) {
-        userService.unblockUser(userId);
+    public ResponseEntity<Void> unblockUser(
+        @PathVariable Long userId,
+        @RequestHeader("X-User-Id") Long adminId
+    ) {
+        userService.unblockUser(userId, adminId);
         return ResponseEntity.ok().build();
     }
 

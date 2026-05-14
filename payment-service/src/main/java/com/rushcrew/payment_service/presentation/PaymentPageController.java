@@ -29,7 +29,7 @@ public class PaymentPageController {
             Model model
     ) {
         OrderResponse order = orderClient.getOrder(orderId).data();
-        BigDecimal amount = BigDecimal.valueOf(order.totalAmount());
+        BigDecimal amount = order.totalAmount();
 
         model.addAttribute("orderId", orderId);
         model.addAttribute("amount", amount);

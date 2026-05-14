@@ -43,6 +43,7 @@ class ProductLifecycleIntegrationTest extends IntegrationTestBase {
                 ProductInfo.of("에어포스 1", "클래식 한정판"),
                 Price.of(120000L),
                 Category.SHOES,
+                null,
                 List.of(
                     new CreateOptionCommand("260", "WHITE"),
                     new CreateOptionCommand("270", "WHITE")
@@ -127,7 +128,7 @@ class ProductLifecycleIntegrationTest extends IntegrationTestBase {
         CreateProductResult created = createSampleProduct(1L);
 
         productService.updateProduct(1L, "SELLER", created.productId(),
-            new UpdateProductCommand("나이키", "리뉴얼 에어포스", "재출시", 110000L, Category.SHOES));
+            new UpdateProductCommand("나이키", "리뉴얼 에어포스", "재출시", 110000L, Category.SHOES, null));
 
         Product after = productRepository.findById(created.productId()).orElseThrow();
         assertThat(after.getProductInfo().getName()).isEqualTo("리뉴얼 에어포스");

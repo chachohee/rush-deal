@@ -41,6 +41,14 @@ public class OrderEventConsumer {
             (orderId) -> "/orders/" + orderId);
     }
 
+    @KafkaListener(topics = "order.purchase.confirmed", groupId = "notification-service-group")
+    public void onOrderPurchaseConfirmed(String message) {
+        consume(message, NotificationType.ORDER_PURCHASE_CONFIRMED,
+            (orderId) -> "구매가 확정되었습니다",
+            (orderId) -> "주문 " + shortId(orderId) + " 구매확정이 완료되었습니다. 포인트가 적립됩니다.",
+            (orderId) -> "/orders/" + orderId);
+    }
+
     private void consume(String message, NotificationType type,
                          java.util.function.Function<String, String> titleFn,
                          java.util.function.Function<String, String> messageFn,

@@ -1,5 +1,6 @@
 package com.rushcrew.payment_service.application;
 
+import java.math.BigDecimal;
 import com.rushcrew.common.exception.BusinessException;
 import com.rushcrew.payment_service.application.command.PaymentCommand;
 import com.rushcrew.payment_service.application.result.PaymentPrepareResult;
@@ -49,8 +50,11 @@ public class PaymentService {
         try {
             OrderResponse orderResponse = orderClient.getOrder(command.orderId()).data();
 
-            if (orderResponse == null || orderResponse.totalAmount() == null
-                || !orderResponse.totalAmount().equals(command.totalAmount())) {
+            // 결제 요청 금액(command.totalAmount = order.finalAmount, 포인트 차감 후) 과
+            // order 의 finalAmount 를 비교. (orderResponse.totalAmount 는 포인트 차감 전 합계라 다를 수 있음)
+            BigDecimal expected = orderResponse != null ? orderResponse.finalAmount() : null;
+            if (expected == null || command.totalAmount() == null
+                || expected.compareTo(command.totalAmount()) != 0) {
                 throw new BusinessException(PaymentErrorCode.AMOUNT_MISMATCH);
             }
         } catch (FeignException.NotFound e) {

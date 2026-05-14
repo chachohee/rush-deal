@@ -17,6 +17,18 @@ Gradle 빌드 → Docker 이미지 빌드 → 전체 서비스 실행까지 자�
 
 > **주의:** 처음 실행 시 Eureka 캐시가 갱신되기까지 약 30초 소요됩니다. 그 전에 API 호출 시 503이 반환될 수 있습니다.
 
+## 테스트 데이터 생성
+
+서비스가 모두 뜬 후 아래 스크립트로 계정·상품·타임딜·대기열 정책·포인트를 한 번에 생성합니다.
+
+```bash
+./scripts/seed-test-data.sh
+```
+
+생성되는 항목: 계정 3종(master/seller/user) · 상품 5개(이미지 포함) · 타임딜 5개(예정 2·진행중 2·마감 1) · 재고 100개 · QueuePolicy 4개 · user 포인트 100,000P · 기본 배송지 · ES 재색인
+
+전체 테스트 시나리오는 [docs/TESTING_GUIDE.md](docs/TESTING_GUIDE.md) 를 참고하세요.
+
 ## API 엔드포인트
 
 단일 진입점: `http://localhost:8080`
@@ -103,6 +115,7 @@ curl -X POST http://localhost:8080/api/v1/auth/login \
 - **Elasticsearch 8.18.8 + analysis-nori**: 타임딜 한글 검색
 - **MinIO**: S3 호환 오브젝트 스토리지 (상품 이미지)
   - 초기화 시 `rushdeal-products` 버킷 자동 생성 + public download 권한
+  - 이미지 업로드: `POST /api/v1/products/images` (multipart/form-data), 반환된 `imageUrl` 을 상품 등록 시 사용
 - **Prometheus + Grafana**: 메트릭 수집 및 대시보드 3종 (서비스/Kafka/비즈니스)
 - **Zipkin**: 분산 추적
 

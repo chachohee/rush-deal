@@ -72,19 +72,23 @@
 | 회원가입 | POST | `/api/v1/auth/signup` |
 | 로그인 | POST | `/api/v1/auth/login` |
 | 상품 조회 | GET | `/api/v1/products/**` |
+| 상품 이미지 업로드 | POST | `/api/v1/products/images` (multipart) |
 | 타임딜 목록·상세 | GET | `/api/v1/timedeals/**` |
 | 타임딜 검색 | GET | `/api/v1/timedeals/search?q=...` |
 | 타임딜 검색 자동완성 | GET | `/api/v1/timedeals/search/suggest?q=...` |
 | 관심 등록/해제/조회 | POST/DELETE/GET | `/api/v1/timedeals/{id}/interest` |
 | 내 관심 타임딜 | GET | `/api/v1/timedeals/me/interested` |
 | 주문 | POST | `/api/v1/orders/**` |
-| 결제 | POST | `/api/v1/payments/**` |
-| 대기열 | GET | `/api/v1/queues/**` |
+| 셀러 주문 요약 | GET | `/api/v1/orders/seller/me/summary` |
+| 결제 준비·완료·취소 | POST | `/api/v1/payments/**` |
+| 대기열 진입·순위 조회 | POST/GET | `/api/v1/queues/**` |
+| 대기열 정책 관리 | POST/PATCH | `/api/v1/queue/policies` |
 | 알림 목록·읽음 | GET/PATCH | `/api/v1/notifications/**` |
 | 알림 WebSocket(STOMP) | WS | `/api/v1/notifications/ws` |
 | 관리자 감사 로그 | GET | `/api/v1/users/audit-logs` |
-| 배송지 관리 | GET | `/api/v1/users/me/addresses/**` |
+| 배송지 관리 | POST/GET | `/api/v1/users/me/addresses/**` |
 | 포인트 잔액 | GET | `/api/v1/points/balance` |
+| 셀러 저재고 목록 | GET | `/api/v1/stocks/seller/me/low` |
 
 ---
 
@@ -112,8 +116,13 @@
 
 ### PortOne 연동 결제 서비스
 - PortOne 기반 결제 파이프라인 구축으로 결제 준비·완료·취소 구현
+- 포인트 차감 후 잔액(`finalAmount`)을 결제 금액 기준으로 검증해 이중 과금 방지
 - 결제 취소 시 Kafka 이벤트 발행으로 비동기 보상 트랜잭션 수행
 - 결제 완료 후 7일 자동 구매확정 스케줄러
+
+### 상품 이미지 업로드 및 셀러 대시보드
+- MinIO(S3 호환) 기반 이미지 업로드: `POST /api/v1/products/images` (multipart) → 상품에 `imageUrl` 연결
+- 셀러 전용 대시보드(`/seller`): 진행중·예정·마감 타임딜 KPI, 누적·7일 매출 및 주문 집계, 재고 부족(10개 미만) 경보, 최근 타임딜·상품 5개 목록
 
 ### 포인트 시스템
 - 포인트 적립·차감·환불을 Kafka 이벤트로 연동해 도메인 간 결합도 최소화
@@ -344,7 +353,7 @@ rush-deal/
 ├── notification-service/ # 알림 Kafka fanout + WebSocket 푸시
 ├── monitoring/           # Prometheus 설정 + Grafana 대시보드 3종
 ├── docs/                 # 아키텍처, ERD, 플로우차트 이미지
-├── scripts/              # DB 스키마 초기화 (Flyway 마이그레이션은 각 서비스 db/migration)
+├── scripts/              # 테스트 시드 스크립트(seed-test-data.sh) 및 DB 스키마 초기화
 ├── docker-compose-app.yml   # 로컬 전체 실행 (인프라 + 앱 + 모니터링)
 ├── Dockerfile.local         # 로컬 빌드용 (JAR 복사)
 ├── Dockerfile.elasticsearch # nori plugin 포함한 ES 이미지

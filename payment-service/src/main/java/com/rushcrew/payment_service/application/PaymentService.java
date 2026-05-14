@@ -47,9 +47,10 @@ public class PaymentService {
     @Transactional
     public PaymentPrepareResult preparePayment(PaymentCommand command) {
         try {
-            OrderResponse orderResponse = orderClient.getOrder(command.orderId());
+            OrderResponse orderResponse = orderClient.getOrder(command.orderId()).data();
 
-            if (!orderResponse.totalAmount().equals(command.totalAmount())) {
+            if (orderResponse == null || orderResponse.totalAmount() == null
+                || !orderResponse.totalAmount().equals(command.totalAmount())) {
                 throw new BusinessException(PaymentErrorCode.AMOUNT_MISMATCH);
             }
         } catch (FeignException.NotFound e) {

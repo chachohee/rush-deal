@@ -1,6 +1,7 @@
 package com.rushcrew.payment_service.infrastructure.client;
 
 
+import com.rushcrew.common.dto.ApiResponse;
 import com.rushcrew.payment_service.global.security.model.UserDetailsImpl;
 import com.rushcrew.payment_service.infrastructure.client.dto.OrderResponse;
 import org.springframework.cloud.openfeign.FeignClient;
@@ -13,5 +14,5 @@ import java.util.UUID;
 public interface OrderClient {
 
     @GetMapping("/api/v1/orders/{orderId}")
-    OrderResponse getOrder(@PathVariable("orderId") UUID orderId);
+    ApiResponse<OrderResponse> getOrder(@PathVariable("orderId") UUID orderId);
 }

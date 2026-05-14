@@ -28,7 +28,7 @@ public class PaymentPageController {
             @PathVariable UUID orderId,
             Model model
     ) {
-        OrderResponse order = orderClient.getOrder(orderId);
+        OrderResponse order = orderClient.getOrder(orderId).data();
         BigDecimal amount = BigDecimal.valueOf(order.totalAmount());
 
         model.addAttribute("orderId", orderId);

@@ -313,15 +313,33 @@ Saga·Outbox 패턴 기반의 주문 생성 전체 흐름입니다.
 
 핵심 비즈니스 흐름을 보호하기 위해 **Testcontainers 기반 통합 테스트**를 작성했습니다. 외부 의존성(Postgres, Kafka, Redis, Elasticsearch)을 실제로 띄워 운영 환경과 동일하게 검증합니다.
 
-| 서비스 | 테스트 수 | 검증 영역 |
-|---|---:|---|
-| notification-service | 9 | order.* / user.account.event / timedeal.*.notify Kafka fanout, REST API |
-| user-service | 3 | block·unblock·changeRole이 audit log + Kafka 이벤트 + DB 상태를 한 트랜잭션으로 |
-| queue-service | 4 | 중복 활성 정책 거부, STOPPED upsert, time-deal-end 수신 시 STOPPED 전환 |
-| timedeal-service | 5 | 관심 등록 idempotent, findUserIdsByTimeDealId, 참조 무결성 |
-| **합계** | **21** | |
+### 실행
 
-추가 효과로, Flyway 베이스라인의 `NotificationType` 체크 제약이 enum 추가분을 누락한 **silent drift를 자동 발견**하여 `V2__expand_notification_type_check.sql` 마이그레이션을 추가하는 계기가 됐습니다.
+```bash
+./gradlew clean test --max-workers=1 --continue
+```
+
+> `--max-workers=1`은 필수입니다. 서비스별 테스트가 병렬로 실행되면 여러 Kafka Testcontainer가 동시에 기동되어 OOM으로 컨테이너 시작에 실패할 수 있습니다.
+
+### 테스트 목록 (12개 클래스 · 38개 케이스)
+
+| 서비스 | 테스트 클래스 | 테스트 수 | 검증 영역 |
+|---|---|---:|---|
+| api-gateway | ApiGatewayApplicationTests | 1 | 컨텍스트 로드 |
+| auth-service | AuthServiceApplicationTests | 1 | 컨텍스트 로드 |
+| discovery-service | DiscoveryServiceApplicationTests | 1 | 컨텍스트 로드 |
+| notification-service | KafkaEventIntegrationTest | 5 | order.* / user.account.event / timedeal.*.notify Kafka fanout |
+| notification-service | RestApiIntegrationTest | 4 | 알림 조회·읽음 처리 REST API |
+| order-service | OrderApplicationTests | 1 | 컨텍스트 로드 |
+| order-service | OrderDomainIntegrationTest | 7 | Order 상태 전이, Outbox 이벤트, 환불 조건, Spring Batch 자동 구매확정 |
+| payment-service | PaymentDomainIntegrationTest | 6 | 결제 생성·완료·실패·중복 방지, finalAmount 검증 |
+| product-service | ProductLifecycleIntegrationTest | 7 | 상품 등록·수정·비활성화·삭제·옵션 관리 |
+| queue-service | QueuePolicyIntegrationTest | 4 | 중복 활성 정책 거부, STOPPED upsert, time-deal-end 수신 시 STOPPED 전환 |
+| timedeal-service | InterestedDealIntegrationTest | 5 | 관심 등록 idempotent, findUserIdsByTimeDealId, 참조 무결성 |
+| user-service | AdminActionIntegrationTest | 3 | block·unblock·changeRole이 audit log + Kafka 이벤트 + DB 상태를 한 트랜잭션으로 |
+| **합계** | | **38** | |
+
+추가 효과로, Flyway 베이스라인의 `NotificationType` 체크 제약이 enum 추가분을 누락한 **silent drift를 자동 발견**하여 마이그레이션을 추가하는 계기가 됐습니다.
 
 ---
 

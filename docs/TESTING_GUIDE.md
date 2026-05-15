@@ -317,7 +317,39 @@ curl -X POST "http://localhost:8080/api/v1/orders/$ORDER_ID/confirm" \
 
 ---
 
-## 5. 정리 방법
+## 5. 자동화 통합 테스트 실행
+
+수동 흐름과 별개로, 각 서비스에는 Testcontainers 기반 통합 테스트가 준비되어 있습니다. **실행 중인 Docker 서비스와 무관하게** 독립 컨테이너를 띄워 검증하므로, 로컬 서비스를 내리지 않아도 됩니다.
+
+```bash
+./gradlew clean test --max-workers=1 --continue
+```
+
+| 옵션 | 이유 |
+|---|---|
+| `clean` | 이전 캐시로 인한 UP-TO-DATE 스킵 방지 |
+| `--max-workers=1` | 서비스별 Kafka Testcontainer 병렬 기동 시 OOM 방지 — 반드시 지정 |
+| `--continue` | 한 서비스 실패 시에도 나머지 서비스 계속 실행 |
+
+### 예상 결과
+
+```
+BUILD SUCCESSFUL
+55 actionable tasks: 55 executed
+```
+
+12개 테스트 클래스, 38개 케이스 전부 통과 (약 6분 소요). 전체 목록은 `README.md` → `🧪 테스트 자동화` 섹션 참고.
+
+### 특정 서비스만 재실행
+
+```bash
+# 예: order-service 단독 재실행
+./gradlew :order-service:test --rerun-tasks
+```
+
+---
+
+## 6. 정리 방법
 
 ```bash
 ./stop-local.sh

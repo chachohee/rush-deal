@@ -186,9 +186,24 @@ docker exec rushdeal_queue_redis redis-cli FLUSHDB
 # 타임딜 재고 카운터(tds:*) + 대기열 이벤트 스트림
 docker exec rushdeal_timedeal_redis redis-cli FLUSHDB
 docker compose -f docker-compose-app.yml restart timedeal-service  # 재고 캐시 재로드
+
+# 주문 조회 캐시 — order:{uuid} 키, TTL 1시간으로 자동 만료됨
+# 즉시 초기화가 필요하면:
+docker exec rushdeal_order_redis redis-cli FLUSHDB
+docker compose -f docker-compose-app.yml restart order-service     # L1 Caffeine 캐시도 함께 초기화
 ```
 
-> `auth_redis`(JWT 블랙리스트)·`order_redis`·`user_redis`·`gateway_redis`는 TTL 자동 만료 또는 상시 빈 상태이므로 일반적으로 건드리지 않아도 됩니다.
+> `auth_redis`(JWT 블랙리스트, TTL 자동 만료)·`user_redis`·`gateway_redis`는 일반적으로 건드리지 않아도 됩니다.
+
+**각 Redis 인스턴스가 저장하는 것:**
+
+| 인스턴스 | 키 패턴 | TTL | 비고 |
+|---|---|---|---|
+| `queue_redis` | `queue:scheduler:last_run:{id}`, 대기열 sorted set | 없음 | 수동 테스트 후 FLUSHDB 권장 |
+| `timedeal_redis` | `tds:{stockId}` (재고), `td:queue:start/end` | 없음 | FLUSHDB 후 timedeal-service 재시작 |
+| `order_redis` | `order:{uuid}` | 1시간 | TTL 자동 만료, 즉시 초기화 시만 FLUSHDB |
+| `auth_redis` | JWT 블랙리스트 | 토큰 만료 시까지 | 건드리지 않아도 됨 |
+| `user_redis`, `gateway_redis` | (상시 비어 있음) | — | 불필요 |
 
 **전체 리셋(DB 포함)이 필요한 경우:**
 

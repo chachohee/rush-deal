@@ -321,6 +321,8 @@ curl -X POST "http://localhost:8080/api/v1/orders/$ORDER_ID/confirm" \
 
 수동 흐름과 별개로, 각 서비스에는 Testcontainers 기반 통합 테스트가 준비되어 있습니다. **실행 중인 Docker 서비스와 무관하게** 독립 컨테이너를 띄워 검증하므로, 로컬 서비스를 내리지 않아도 됩니다.
 
+> **M1/M2 MacBook Air 8 GB 등 메모리가 부족한 환경**에서도 `docker-compose-app.yml` 없이 이 명령만으로 전체 검증이 가능합니다. 자세한 시스템 요구사항은 [LOCAL_SETUP.md](../LOCAL_SETUP.md) 참고.
+
 ```bash
 ./gradlew clean test --max-workers=1 --continue
 ```
@@ -351,8 +353,18 @@ BUILD SUCCESSFUL
 
 ## 6. 정리 방법
 
+테스트 종류에 따라 정리 범위가 다릅니다. 자세한 내용은 [LOCAL_SETUP.md — 테스트 후 초기화](../LOCAL_SETUP.md#테스트-후-초기화) 참고.
+
+| 케이스 | 정리 방법 |
+|---|---|
+| 자동화 통합 테스트 후 | 불필요 (Testcontainers 자동 정리) |
+| 수동 테스트 후 Redis만 초기화 | `docker exec rushdeal_queue_redis redis-cli FLUSHDB` 외 1줄 |
+| 전체 리셋 (DB 포함) | `docker-compose -f docker-compose-app.yml down -v && ./start-local.sh` |
+
 ```bash
+# 서비스만 중지 (데이터 보존)
 ./stop-local.sh
+
 # 데이터까지 완전 초기화
 docker-compose -f docker-compose-app.yml down -v
 ```

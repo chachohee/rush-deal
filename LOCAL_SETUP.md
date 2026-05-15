@@ -1,8 +1,33 @@
 # RushDeal 로컬 실행 가이드
 
+## 시스템 요구사항
+
+전체 스택(Spring Boot 서비스 10개 + 인프라 16개 컨테이너)은 가동 시 약 **6 GiB RAM**을 점유합니다.
+
+| 항목 | 최소 | 권장 |
+|---|---|---|
+| RAM | 16 GB | 32 GB |
+| Docker Desktop 메모리 할당 | 10 GB | 12 GB 이상 |
+| 여유 디스크 | 20 GB | 30 GB 이상 |
+| CPU | Apple M1 이상 / Intel i5 4코어 이상 | — |
+
+> **M1/M2 MacBook Air 8 GB에서는 전체 스택 실행이 불가합니다.**
+> macOS 자체가 3–4 GB를 점유하므로 Docker에 할당할 수 있는 메모리가 4–5 GB에 불과해 Spring Boot 서비스 대부분이 OOM으로 종료됩니다.
+> 8 GB 환경에서는 [통합 테스트만 실행](#통합-테스트만-실행하는-경우8-gb-환경)하는 방법을 사용하세요.
+
+### 통합 테스트만 실행하는 경우(8 GB 환경)
+
+`docker-compose-app.yml` 전체를 띄우지 않아도 통합 테스트는 독립적으로 실행됩니다. Testcontainers가 테스트별로 격리된 컨테이너를 자동으로 띄우고 종료합니다. Java 21과 Docker Desktop(메모리 4 GB 이상 할당)만 있으면 됩니다.
+
+```bash
+./gradlew clean test --max-workers=1 --continue
+```
+
+수동 API 테스트(curl 흐름)가 필요하다면, 부하가 큰 모니터링 스택(Prometheus·Grafana·Zipkin·Kafka UI)을 제외하고 핵심 서비스만 선택적으로 올리는 방법도 있지만, 현재 `docker-compose-app.yml`에 별도 lite 프로파일은 없습니다.
+
 ## 사전 준비
 
-- Docker Desktop (실행 중이어야 함)
+- Docker Desktop (실행 중이어야 함, 메모리 10 GB 이상 할당 권장)
 - Java 21 (Amazon Corretto 21)
 - `.env` 파일 (루트 경로에 위치, `.env.example` 참고)
   - JWT 시크릿, PortOne 결제, MinIO 자격증명 등 채워야 함
@@ -140,6 +165,35 @@ NEXT_PUBLIC_API_URL=http://localhost:8080
 ```bash
 pnpm install
 pnpm dev
+```
+
+## 테스트 후 초기화
+
+### 자동화 통합 테스트(`./gradlew clean test`) 이후
+
+별도 정리가 **필요 없습니다**. 테스트는 Testcontainers로 완전히 격리되어 실행되며, 테스트 종료 시 컨테이너가 자동 삭제됩니다. 실제 운영 컨테이너는 전혀 영향받지 않습니다.
+
+### 수동 API 테스트(curl 흐름) 이후
+
+**Kafka는 정리 불필요** — 컨슈머 그룹이 오프셋을 커밋했으므로 재시작해도 처리된 메시지를 다시 읽지 않습니다.
+
+**Redis는 인스턴스별로 초기화합니다.**
+
+```bash
+# 대기열 토큰 + 스케줄러 타임스탬프
+docker exec rushdeal_queue_redis redis-cli FLUSHDB
+
+# 타임딜 재고 카운터(tds:*) + 대기열 이벤트 스트림
+docker exec rushdeal_timedeal_redis redis-cli FLUSHDB
+docker compose -f docker-compose-app.yml restart timedeal-service  # 재고 캐시 재로드
+```
+
+> `auth_redis`(JWT 블랙리스트)·`order_redis`·`user_redis`·`gateway_redis`는 TTL 자동 만료 또는 상시 빈 상태이므로 일반적으로 건드리지 않아도 됩니다.
+
+**전체 리셋(DB 포함)이 필요한 경우:**
+
+```bash
+docker-compose -f docker-compose-app.yml down -v && ./start-local.sh && ./scripts/seed-test-data.sh
 ```
 
 ## 종료
